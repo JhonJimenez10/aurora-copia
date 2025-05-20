@@ -6,6 +6,8 @@ use App\Models\Reception;
 use App\Models\Invoice;
 use App\Models\InvDetail;
 use App\Models\ArtPackg;
+use App\Services\SriAuthorizationService;
+use App\Services\XmlSignerService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
@@ -15,6 +17,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use App\Services\SriFacturaXmlService;
+use Carbon\Carbon;
 
 class InvoiceController extends Controller
 {
@@ -110,17 +113,42 @@ class InvoiceController extends Controller
 
             // 6) Generación del XML (sin firma ni autorización)
             $xmlService = new SriFacturaXmlService();
-            $result = $xmlService->generate($invoice);
-            $xmlPath = $result['xml_path'];
+            $result     = $xmlService->generate($invoice);
+            $xmlPath    = $result['xml_path'];
+            $claveAcceso = $result['claveAcceso'];
+            //Actualizamos la factura con la clave de acceso SRI correcta
+            $invoice->update([
+                'access_key' => $claveAcceso,
+                'sri_status' => 'GENERATED',
+            ]);
+            // 7) Firmo el XML
+            $signer        = new XmlSignerService();
+            $signedXmlPath = $signer->sign($xmlPath, $invoice->id);
 
-            // 7) Guardar ruta del XML generado
-            $invoice->update(['xml_url' => $xmlPath]);
+            // 8) Guardo la ruta al XML firmado
+            $invoice->update(['xml_url' => $signedXmlPath]);
 
+            // 9) ==> AUTORIZACIÓN SRI
+            $authorizer    = new SriAuthorizationService();
+            $authResult    = $authorizer->authorize($signedXmlPath, $claveAcceso);
+            $authResp      = $authResult['response']
+                ->RespuestaAutorizacionComprobante
+                ->autorizaciones
+                ->autorizacion;
+
+            // 10) Guardo datos y ruta del XML autorizado
+            $invoice->update([
+                'auth_xml_url' => $authResult['path'],
+                'auth_number'  => $authResp->numeroAutorizacion,
+                'auth_date'    => Carbon::parse($authResp->fechaAutorizacion),
+                'sri_status'   => 'AUTHORIZED',
+            ]);
             // 8) Responder al frontend
             return response()->json([
-                'status'         => 'generado',
-                'message'        => 'Factura generada y XML listo para descarga.',
-                'xml_autorizado' => $xmlPath,
+                'status'         => 'autorizado',
+                'message'        => 'Factura generada, firmada y autorizada correctamente.',
+                'xml_firmado'    => $signedXmlPath,
+                'xml_autorizado' => $authResult['path'],
                 'invoice_id'     => $invoice->id,
                 'invoice_number' => $invoice->number,
             ], 201);

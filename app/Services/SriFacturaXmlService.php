@@ -149,7 +149,7 @@ class SriFacturaXmlService
 
         return [
             'xml_path' => $xmlPath,
-            'access_key' => $claveAcceso,
+            'claveAcceso' => $claveAcceso,
         ];
     }
 
