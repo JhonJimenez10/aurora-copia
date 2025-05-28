@@ -55,51 +55,61 @@ class SriAuthorizationService
             throw new Exception("SRI Recepción: {$estadoRecep}");
         }
 
-        // 2) Autorización
-        $authResp = $this->autorizacionClient
-            ->autorizacionComprobante(['claveAccesoComprobante' => $accessKey]);
-        $auth  = $authResp
-            ->RespuestaAutorizacionComprobante
-            ->autorizaciones
-            ->autorizacion
-            ->estado;
+        // 2) Autorización con reintentos
+        $authData = null;
+        $maxAttempts = 3;
+        $attempt = 0;
 
-        // Si NO es AUTORIZADO, guardamos y lanzamos con detalle
-        if ($auth !== 'AUTORIZADO') {
-            // 2.1) crear carpeta de no autorizados
-            if (! File::isDirectory($this->noAutorizadosDir)) {
-                File::makeDirectory($this->noAutorizadosDir, 0755, true);
-            }
-            // 2.2) guardamos el XML raw para inspección
-            $rejPath = $this->noAutorizadosDir . DIRECTORY_SEPARATOR
-                . "{$accessKey}-{$auth}.xml";
-            File::put($rejPath, $this->autorizacionClient->__getLastResponse());
+        while ($attempt < $maxAttempts && !$authData) {
+            $attempt++;
+            $authResp = $this->autorizacionClient
+                ->autorizacionComprobante(['claveAccesoComprobante' => $accessKey]);
 
-            // 2.3) extraemos el mensaje de rechazo
-            $mensajes = $authResp
+            $authData = $authResp
                 ->RespuestaAutorizacionComprobante
                 ->autorizaciones
                 ->autorizacion
-                ->mensajes
-                ->mensaje;
+                ?? null;
 
-            // Puede venir como array o como objeto único
-            $detalles = [];
-            foreach ((array) $mensajes as $m) {
-                $detalles[] = "[{$m->identificador}] {$m->mensaje}"
-                    . ($m->informacionAdicional ? " ({$m->informacionAdicional})" : '');
+            if (!$authData) {
+                Log::warning("Intento {$attempt}: autorización aún no disponible para clave {$accessKey}");
+                sleep(1); // Esperar antes de volver a intentar
             }
-            $detalleTexto = implode('; ', $detalles);
-
-            throw new \Exception(
-                "SRI Autorización: {$auth}. " . $detalleTexto
-            );
         }
 
-        // 3) Si autorizó, guardamos igual que antes en 'autorizados'
+        if (!$authData || !isset($authData->estado)) {
+            $rejPath = $this->noAutorizadosDir . DIRECTORY_SEPARATOR . "{$accessKey}-NO-RESPONSE.xml";
+            File::put($rejPath, $this->autorizacionClient->__getLastResponse());
+            throw new Exception("SRI: No se recibió respuesta de autorización tras {$maxAttempts} intentos.");
+        }
+
+        $auth = $authData->estado;
+
+        if ($auth !== 'AUTORIZADO') {
+            if (! File::isDirectory($this->noAutorizadosDir)) {
+                File::makeDirectory($this->noAutorizadosDir, 0755, true);
+            }
+
+            $rejPath = $this->noAutorizadosDir . DIRECTORY_SEPARATOR . "{$accessKey}-{$auth}.xml";
+            File::put($rejPath, $this->autorizacionClient->__getLastResponse());
+
+            $mensajes = $authData->mensajes->mensaje ?? null;
+            $detalles = [];
+
+            foreach ((array) $mensajes as $m) {
+                $detalles[] = "[{$m->identificador}] {$m->mensaje}"
+                    . (!empty($m->informacionAdicional) ? " ({$m->informacionAdicional})" : '');
+            }
+
+            $detalleTexto = $detalles ? implode('; ', $detalles) : 'Respuesta sin mensajes detallados.';
+            throw new Exception("SRI Autorización: {$auth}. {$detalleTexto}");
+        }
+
+        // Guardar XML autorizado
         if (! File::isDirectory($this->autorizadosDir)) {
             File::makeDirectory($this->autorizadosDir, 0755, true);
         }
+
         $okPath = $this->autorizadosDir . DIRECTORY_SEPARATOR . "{$accessKey}.xml";
         File::put($okPath, $this->autorizacionClient->__getLastResponse());
 

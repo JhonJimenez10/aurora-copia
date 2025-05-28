@@ -18,7 +18,7 @@ return new class extends Migration {
             $table->string('phone', 20)->nullable();
             $table->string('email', 100)->nullable();
             $table->string('signature', 255)->nullable(); // ruta del .p12
-            $table->string('signature_password', 100)->nullable();
+            $table->string('signature_password', 255)->nullable();
             $table->timestamps();
         });
     }

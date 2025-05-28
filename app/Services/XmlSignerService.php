@@ -14,44 +14,45 @@ class XmlSignerService
      */
     public function sign(string $xmlPath, string $idFactura): string
     {
-        // 1) Ruta al script CLI que acabamos de corregir
+        $invoice = \App\Models\Invoice::with('enterprise')->findOrFail($idFactura);
+        $enterprise = $invoice->enterprise;
+
+        if (!$enterprise || !$enterprise->signature || !$enterprise->signature_password) {
+            throw new \Exception("Certificado digital no configurado para la empresa.");
+        }
+
+        // Ruta al certificado real en disco
+        $certificatePath = storage_path('app/private/' . $enterprise->signature);
+        $certificatePassword = $enterprise->signature_password;
+
         $rutaFirmador = base_path('app/Services/firmador.php');
-        $signedDir    = base_path('app/Services/facturas_firmados');
+        $signedDir = 'C:/facturas/facturas_firmados';
 
-        if (! file_exists($xmlPath)) {
-            throw new Exception("Archivo XML no encontrado: {$xmlPath}");
+        if (!file_exists($xmlPath)) {
+            throw new \Exception("Archivo XML no encontrado: {$xmlPath}");
         }
 
-        // Aseguro que exista la carpeta donde firmamos
-        if (! is_dir($signedDir) && ! mkdir($signedDir, 0755, true)) {
-            throw new Exception("No se pudo crear directorio de firmados: {$signedDir}");
+        if (!is_dir($signedDir)) {
+            mkdir($signedDir, 0755, true);
         }
 
-        // 2) Construyo el comando usando el mismo binario de PHP
+        // Comando CLI con los parámetros de certificado y contraseña
         $php = PHP_BINARY;
-        $cmd = escapeshellarg($php)
-            . ' ' . escapeshellarg($rutaFirmador)
-            . ' ' . escapeshellarg($xmlPath)
-            . ' ' . escapeshellarg($idFactura)
-            . ' 2>&1';
+        $cmd = escapeshellarg($php) . ' ' .
+            escapeshellarg($rutaFirmador) . ' ' .
+            escapeshellarg($xmlPath) . ' ' .
+            escapeshellarg($certificatePath) . ' ' .
+            escapeshellarg($certificatePassword) . ' 2>&1';
 
         exec($cmd, $output, $status);
 
-        // 3) Compruebo error de ejecución
         if ($status !== 0) {
-            throw new Exception(
-                "El firmador devolvió status={$status}:\n" .
-                    implode("\n", $output)
-            );
+            throw new \Exception("Error en firma (status={$status}):\n" . implode("\n", $output));
         }
 
-        // 4) Ruta al XML firmado
         $archivoFirmado = "{$signedDir}/" . basename($xmlPath);
-        if (! file_exists($archivoFirmado)) {
-            throw new Exception(
-                "No se encontró el archivo firmado en: {$archivoFirmado}\n" .
-                    "Salida del firmador:\n" . implode("\n", $output)
-            );
+        if (!file_exists($archivoFirmado)) {
+            throw new \Exception("Archivo firmado no encontrado: {$archivoFirmado}");
         }
 
         return $archivoFirmado;

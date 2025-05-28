@@ -17,7 +17,10 @@ return new class extends Migration {
             $table->string('establishment', 10);  // ej. "001"
             $table->string('emission_point', 10);   // ej. "001"
             $table->integer('sequential')->default(0);
-            $table->string('number')->unique();     // formato completo ej. "001-001-000000001"
+            // podrá repetirse en distintas empresas, pero no dentro de la misma.
+            $table->string('number');
+            $table->unique(['enterprise_id', 'number']);
+
 
             $table->string('invoice_type', 2)->default('FC'); // FC, FE, NC, ND
             $table->date('issue_date');
@@ -50,6 +53,11 @@ return new class extends Migration {
     }
     public function down(): void
     {
+        Schema::table('invoices', function (Blueprint $table) {
+            $table->dropUnique(['enterprise_id', 'number']);
+            $table->dropUnique(['access_key']); // También si quieres ser explícito
+        });
+
         Schema::dropIfExists('invoices');
     }
 };

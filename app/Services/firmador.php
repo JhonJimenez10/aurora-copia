@@ -692,44 +692,42 @@ class SignDOcumentToSRI extends Sign
 }
 // Sólo debe haber UNA vez este bloque, **después** de la declaración de las clases.
 if (php_sapi_name() === 'cli') {
-    if ($argc < 3) {
-        fwrite(STDERR, "Uso: php firmador.php [xml_path] [id_factura]\n");
+    if ($argc < 4) {
+        fwrite(STDERR, "Uso: php firmador.php [xml_path] [cert_path] [cert_password]\n");
         exit(1);
     }
 
     $xmlPath         = $argv[1];
-    $idFactura       = $argv[2];
-    $rutafirmados    = __DIR__ . '/facturas_firmados/';
-    // Ajusta AQUÍ a la ruta real de tu certificado .p12:
-    $pathCertificate = 'C:/certs/JAIME_RENATO_ESQUIVEL_CAMPOVERDE_0102431582_140324123427.p12';
-    $p12Password     = 'cejx2324';
+    $pathCertificate = $argv[2];
+    $p12Password     = $argv[3];
+    $signedDir       = 'C:/facturas/facturas_firmados';
+    $nombreFile      = basename($xmlPath);
+    $rutaSalida      = $signedDir . '/' . $nombreFile;
 
-    if (! is_dir($rutafirmados) && ! mkdir($rutafirmados, 0755, true)) {
-        fwrite(STDERR, "❌ No se pudo crear el directorio: $rutafirmados\n");
+    if (!file_exists($xmlPath)) {
+        fwrite(STDERR, "❌ El XML no existe: $xmlPath\n");
         exit(1);
     }
 
-    if (! file_exists($xmlPath)) {
-        fwrite(STDERR, "❌ El archivo XML no existe: $xmlPath\n");
+    if (!file_exists($pathCertificate)) {
+        fwrite(STDERR, "❌ Certificado no encontrado: $pathCertificate\n");
         exit(1);
     }
-
-    $contenido  = file_get_contents($xmlPath);
-    $nombreFile = basename($xmlPath);
-    $rutaSalida = $rutafirmados . $nombreFile;
 
     try {
+        $contenido = file_get_contents($xmlPath);
         $signer = new SignDOcumentToSRI('factura', $pathCertificate, $p12Password);
         $signer->GuardarEn = $rutaSalida;
         $signer->sign($contenido);
 
         if (file_exists($rutaSalida)) {
-            fwrite(STDOUT, "✅ Firmado exitosamente: $rutaSalida\n");
+            fwrite(STDOUT, "✅ Firmado: $rutaSalida\n");
             exit(0);
         }
-        throw new \Exception("No se encontró el XML firmado en: $rutaSalida");
+
+        throw new \Exception("XML firmado no encontrado: $rutaSalida");
     } catch (\Exception $e) {
-        fwrite(STDERR, "❌ Error en el firmador: " . $e->getMessage() . "\n");
+        fwrite(STDERR, "❌ Error firmando XML: " . $e->getMessage() . "\n");
         exit(1);
     }
 }

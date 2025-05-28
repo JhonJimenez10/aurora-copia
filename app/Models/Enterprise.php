@@ -18,6 +18,7 @@ class Enterprise extends Model
         'id' => 'string',
     ];
     protected $fillable = [
+        'id',
         'ruc',
         'name',
         'commercial_name',
