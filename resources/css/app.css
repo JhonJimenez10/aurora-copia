@@ -66,3 +66,23 @@
     @apply bg-background text-foreground;
   }
 }
+@keyframes slide-x {
+  0% { left: 3%; }
+  50% { left: 75%; }
+  100% { left: 3%; }
+}
+
+.animate-slide-x {
+  animation: slide-x 4s ease-in-out infinite;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+
+.shadow-glow {
+  box-shadow:
+    0 0 8px 2px rgba(255, 255, 255, 0.3),
+    0 0 20px 6px rgba(255, 255, 255, 0.15);
+  filter: blur(0.3px);
+}

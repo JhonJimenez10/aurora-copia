@@ -28,13 +28,17 @@ export default function Login({ status, canResetPassword }: { status?: string; c
       {/* Branding Section */}
       <div className="flex flex-col items-center justify-center w-full md:w-1/2 p-8 bg-gradient-to-br from-purple-600 via-violet-500 to-indigo-600 text-white">
         <div className="max-w-md mx-auto text-center">
-          <div className="mb-6 bg-white/10 p-4 rounded-full backdrop-blur-sm">
-            <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
+          {/* Sol animado con estela */}
+          <div className="relative w-72 h-20 rounded-full bg-white/10 mx-auto overflow-hidden mb-6 flex items-center">
+            <div className="absolute animate-slide-x w-16 h-16 rounded-full bg-white/20 flex items-center justify-center shadow-glow">
               <svg viewBox="0 0 24 24" fill="none" className="w-10 h-10 text-white" stroke="currentColor" strokeWidth="2">
                 <path d="M12 4V2M12 20v2M6.34 6.34L4.93 4.93M17.66 17.66l1.41 1.41M4 12H2M20 12h2M6.34 17.66l-1.41 1.41M17.66 6.34l1.41-1.41M14 12a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
           </div>
+
+
+
           <h1 className="text-4xl md:text-5xl font-bold mb-2">AURORA EXPRESS</h1>
           <p className="text-lg text-white/80 mb-8">Sistema de gestión inteligente</p>
           <p className="text-white/70">Plataforma avanzada para optimizar sus operaciones empresariales con tecnología de vanguardia</p>
@@ -45,13 +49,21 @@ export default function Login({ status, canResetPassword }: { status?: string; c
       <div className="flex items-center justify-center w-full md:w-1/2 p-8 bg-white">
         <div className="w-full max-w-md space-y-6">
           <Head title="Iniciar sesión" />
-
+          {/* Logo encima del formulario */}
+          <div className="flex justify-center mb-4">
+            <img
+              src="/favicon.png"
+              alt="Aurora Express Logo"
+              className="w-44 h-44" // Aumentado de w-16 h-16 a w-24 h-24
+            />
+          </div>
           {status && <div className="mb-4 text-sm font-medium text-green-600">{status}</div>}
 
-          <div>
+          <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900">Bienvenido de nuevo</h2>
             <p className="text-gray-600">Ingrese sus credenciales para acceder</p>
           </div>
+
 
           <form onSubmit={submit} className="space-y-6">
             <div className="space-y-4">

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\EnterpriseController;
 use App\Http\Controllers\SenderController;
@@ -43,6 +44,8 @@ require __DIR__ . '/auth.php';
 
 // Grupo con middleware EnsureSudo
 Route::middleware(['auth', EnsureSudo::class])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
     Route::resource('enterprises', EnterpriseController::class);
     // Ruta específica para búsqueda de Senders
     Route::get('/senders/search', [SenderController::class, 'search'])->name('senders.search');

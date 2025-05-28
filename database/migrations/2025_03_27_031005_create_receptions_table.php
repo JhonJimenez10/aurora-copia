@@ -9,6 +9,7 @@ return new class extends Migration {
     {
         Schema::create('receptions', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->uuid('enterprise_id');
             $table->string('number', 20); // Ej: "001-100"
             $table->string('route', 255);
             $table->dateTime('date_time');
@@ -38,6 +39,10 @@ return new class extends Migration {
             $table->timestamps();
 
             // Claves foráneas
+            $table->foreign('enterprise_id')
+                ->references('id')
+                ->on('enterprises')
+                ->restrictOnDelete();
             $table->foreign('sender_id')
                 ->references('id')
                 ->on('senders')

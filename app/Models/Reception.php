@@ -18,6 +18,7 @@ class Reception extends Model
         'id' => 'string',
     ];
     protected $fillable = [
+        'enterprise_id',
         'number',
         'route',
         'date_time',
@@ -75,5 +76,9 @@ class Reception extends Model
     public function invoice()
     {
         return $this->hasOne(Invoice::class, 'reception_id');
+    }
+    public function enterprise()
+    {
+        return $this->belongsTo(Enterprise::class);
     }
 }
