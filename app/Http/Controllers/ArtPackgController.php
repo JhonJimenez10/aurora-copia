@@ -50,7 +50,9 @@ class ArtPackgController extends Controller
 
     public function edit($id)
     {
-        $artPackg = ArtPackg::findOrFail($id);
+        $artPackg = ArtPackg::where('enterprise_id', Auth::user()->enterprise_id)
+            ->findOrFail($id);
+
 
         return Inertia::render('ArtPackg/Edit', [
             'art_packg' => $artPackg,
@@ -59,7 +61,9 @@ class ArtPackgController extends Controller
 
     public function update(Request $request, $id)
     {
-        $artPackg = ArtPackg::findOrFail($id);
+        $artPackg = ArtPackg::where('enterprise_id', Auth::user()->enterprise_id)
+            ->findOrFail($id);
+
 
         // Solo actualiza los campos permitidos (no enterprise_id)
         $validated = $request->validate([
@@ -76,7 +80,9 @@ class ArtPackgController extends Controller
 
     public function destroy($id)
     {
-        $artPackg = ArtPackg::findOrFail($id);
+        $artPackg = ArtPackg::where('enterprise_id', Auth::user()->enterprise_id)
+            ->findOrFail($id);
+
         $artPackg->delete();
 
         return redirect()->route('art_packgs.index')->with('success', 'Artículo eliminado correctamente.');

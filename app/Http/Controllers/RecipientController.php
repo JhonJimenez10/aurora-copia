@@ -5,28 +5,39 @@ namespace App\Http\Controllers;
 use App\Models\Recipient;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class RecipientController extends Controller
 {
     public function index()
     {
-        $recipients = Recipient::all();
+        $enterpriseId = Auth::user()->enterprise_id;
+        $recipients = Recipient::where('enterprise_id', $enterpriseId)->get();
 
         return Inertia::render('Recipient/Index', [
             'recipients' => $recipients,
         ]);
     }
+    public function create()
+    {
+        return Inertia::render('Recipient/Create');
+    }
 
     public function search(Request $request)
     {
-        $query = $request->input('identification');
+        $enterpriseId = Auth::user()->enterprise_id;
+        $identification = $request->query('identification');
 
-        $recipients = Recipient::where('identification', 'LIKE', "%{$query}%")
-            ->orWhere('full_name', 'LIKE', "%{$query}%")
-            ->limit(20)
-            ->get();
+        $query = Recipient::where('enterprise_id', $enterpriseId);
 
-        return response()->json($recipients);
+        if ($identification) {
+            $query->where(function ($q) use ($identification) {
+                $q->where('identification', 'like', "%{$identification}%")
+                    ->orWhere('full_name', 'like', "%{$identification}%");
+            });
+        }
+
+        return response()->json($query->limit(20)->get());
     }
 
     public function storeJson(Request $request)
@@ -47,6 +58,8 @@ class RecipientController extends Controller
             'blocked' => 'required|boolean',
             'alert' => 'required|boolean',
         ]);
+        $validated['enterprise_id'] = Auth::user()->enterprise_id;
+
 
         $recipient = Recipient::create($validated);
 
@@ -58,10 +71,7 @@ class RecipientController extends Controller
 
 
 
-    public function create()
-    {
-        return Inertia::render('Recipient/Create');
-    }
+
 
     public function store(Request $request)
     {
@@ -81,6 +91,7 @@ class RecipientController extends Controller
             'blocked' => 'required|boolean',
             'alert' => 'required|boolean',
         ]);
+        $validated['enterprise_id'] = Auth::user()->enterprise_id;
 
         Recipient::create($validated);
 
@@ -89,7 +100,9 @@ class RecipientController extends Controller
 
     public function edit($id)
     {
-        $recipient = Recipient::findOrFail($id);
+        $recipient = Recipient::where('enterprise_id', Auth::user()->enterprise_id)
+            ->findOrFail($id);
+
 
         return Inertia::render('Recipient/Edit', [
             'recipient' => $recipient,
@@ -98,7 +111,9 @@ class RecipientController extends Controller
 
     public function update(Request $request, $id)
     {
-        $recipient = Recipient::findOrFail($id);
+        $recipient = Recipient::where('enterprise_id', Auth::user()->enterprise_id)
+            ->findOrFail($id);
+
 
         $validated = $request->validate([
             'country' => 'sometimes|required|string|max:100',
@@ -124,7 +139,9 @@ class RecipientController extends Controller
 
     public function destroy($id)
     {
-        $recipient = Recipient::findOrFail($id);
+        $recipient = Recipient::where('enterprise_id', Auth::user()->enterprise_id)
+            ->findOrFail($id);
+
         $recipient->delete();
 
         return redirect()->route('recipients.index')->with('success', 'Recipient deleted successfully.');

@@ -18,6 +18,7 @@ class Sender extends Model
         'id' => 'string',
     ];
     protected $fillable = [
+        'enterprise_id',
         'country',
         'id_type',
         'identification',
@@ -54,5 +55,9 @@ class Sender extends Model
     public function invoices()
     {
         return $this->hasMany(Invoice::class, 'sender_id');
+    }
+    public function enterprise()
+    {
+        return $this->belongsTo(Enterprise::class);
     }
 }

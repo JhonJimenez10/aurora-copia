@@ -9,6 +9,7 @@ return new class extends Migration {
     {
         Schema::create('recipients', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->uuid('enterprise_id');
             $table->string('country', 100);
             $table->string('id_type', 50);
             $table->string('identification', 50);
@@ -24,6 +25,8 @@ return new class extends Migration {
             $table->boolean('blocked')->default(false);
             $table->boolean('alert')->default(false);
             $table->timestamps();
+
+            $table->foreign('enterprise_id')->references('id')->on('enterprises')->cascadeOnDelete();
         });
     }
     public function down(): void

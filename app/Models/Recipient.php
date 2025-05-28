@@ -18,6 +18,7 @@ class Recipient extends Model
         'id' => 'string',
     ];
     protected $fillable = [
+        'enterprise_id',
         'country',
         'id_type',
         'identification',
@@ -49,5 +50,9 @@ class Recipient extends Model
     public function receptions()
     {
         return $this->hasMany(Reception::class, 'recipient_id');
+    }
+    public function enterprise()
+    {
+        return $this->belongsTo(Enterprise::class);
     }
 }

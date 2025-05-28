@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Sender;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
 class SenderController extends Controller
 {
     public function index()
     {
-        $senders = Sender::all();
+        $enterpriseId = Auth::user()->enterprise_id;
+        $senders = Sender::where('enterprise_id', $enterpriseId)->get();
 
         return Inertia::render('Sender/Index', [
             'senders' => $senders,
@@ -27,21 +29,21 @@ class SenderController extends Controller
      */
     public function search(Request $request)
     {
-        // Lee el parámetro 'identification' de la query string
+        $enterpriseId = Auth::user()->enterprise_id;
         $identification = $request->query('identification');
 
-        // Si no llega nada, devuelve todos los remitentes
-        if (!$identification) {
-            $senders = Sender::all();
-        } else {
-            // Si llega algo, busca coincidencia parcial en identification o en full_name
-            $senders = Sender::where('identification', 'like', "%{$identification}%")
-                ->orWhere('full_name', 'like', "%{$identification}%")
-                ->get();
+        $query = Sender::where('enterprise_id', $enterpriseId);
+
+        if ($identification) {
+            $query->where(function ($q) use ($identification) {
+                $q->where('identification', 'like', "%{$identification}%")
+                    ->orWhere('full_name', 'like', "%{$identification}%");
+            });
         }
 
-        return response()->json($senders);
+        return response()->json($query->get());
     }
+
 
     /**
      * Almacena un Sender vía JSON (sin redirección).
@@ -64,6 +66,7 @@ class SenderController extends Controller
             'blocked'        => 'required|boolean',
             'alert'          => 'required|boolean',
         ]);
+        $validated['enterprise_id'] = Auth::user()->enterprise_id;
 
         $sender = Sender::create($validated);
 
@@ -94,6 +97,7 @@ class SenderController extends Controller
             'blocked'        => 'required|boolean',
             'alert'          => 'required|boolean',
         ]);
+        $validated['enterprise_id'] = Auth::user()->enterprise_id;
 
         Sender::create($validated);
 
@@ -102,7 +106,9 @@ class SenderController extends Controller
 
     public function edit($id)
     {
-        $sender = Sender::findOrFail($id);
+        $sender = Sender::where('enterprise_id', Auth::user()->enterprise_id)
+            ->findOrFail($id);
+
 
         return Inertia::render('Sender/Edit', [
             'sender' => $sender,
@@ -111,7 +117,9 @@ class SenderController extends Controller
 
     public function update(Request $request, $id)
     {
-        $sender = Sender::findOrFail($id);
+        $sender = Sender::where('enterprise_id', Auth::user()->enterprise_id)
+            ->findOrFail($id);
+
 
         $validated = $request->validate([
             'country'        => 'sometimes|required|string|max:100',
@@ -137,7 +145,9 @@ class SenderController extends Controller
 
     public function destroy($id)
     {
-        $sender = Sender::findOrFail($id);
+        $sender = Sender::where('enterprise_id', Auth::user()->enterprise_id)
+            ->findOrFail($id);
+
         $sender->delete();
 
         return redirect()->route('senders.index')->with('success', 'Sender deleted successfully.');

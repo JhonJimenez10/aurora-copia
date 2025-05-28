@@ -46,7 +46,9 @@ class ArtPackageController extends Controller
 
     public function edit($id)
     {
-        $artPackage = ArtPackage::findOrFail($id);
+        $artPackage = ArtPackage::where('enterprise_id', Auth::user()->enterprise_id)
+            ->findOrFail($id);
+
 
         return Inertia::render('ArtPackage/Edit', [
             'art_package' => $artPackage,
@@ -55,7 +57,9 @@ class ArtPackageController extends Controller
 
     public function update(Request $request, $id)
     {
-        $artPackage = ArtPackage::findOrFail($id);
+        $artPackage = ArtPackage::where('enterprise_id', Auth::user()->enterprise_id)
+            ->findOrFail($id);
+
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:100',
@@ -73,7 +77,9 @@ class ArtPackageController extends Controller
 
     public function destroy($id)
     {
-        $artPackage = ArtPackage::findOrFail($id);
+        $artPackage = ArtPackage::where('enterprise_id', Auth::user()->enterprise_id)
+            ->findOrFail($id);
+
         $artPackage->delete();
 
         return redirect()->route('art_packages.index')->with('success', 'Artículo eliminado correctamente.');
