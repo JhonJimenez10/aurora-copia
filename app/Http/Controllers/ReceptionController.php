@@ -40,21 +40,41 @@ class ReceptionController extends Controller
         return response()->json($reception);
     }
 
-    public function getNextNumber()
+    public function getNextNumber(Request $request)
     {
-        $last = Reception::latest('created_at')->first();
-        $seq = $last
-            ? ((int) preg_replace('/[^0-9]/', '', explode('-', $last->number)[2] ?? '0') + 1)
-            : 1;
+        $enterpriseId = $request->query('enterprise_id') ?? auth()->user()->enterprise_id;
 
-        $number = '001-001-' . str_pad($seq, 9, '0', STR_PAD_LEFT);
+        if (!$enterpriseId) {
+            return response()->json(['error' => 'No se especificó una empresa válida.'], 400);
+        }
 
-        return response()->json(['number' => $number]);
+        $lastReception = Reception::where('enterprise_id', $enterpriseId)
+            ->orderByDesc('created_at')
+            ->first();
+
+        $nextSequential = 1;
+
+        if ($lastReception) {
+            $lastNumber = $lastReception->number;
+            $lastSeq = (int) preg_replace('/[^0-9]/', '', explode('-', $lastNumber)[2] ?? '0');
+            $nextSequential = $lastSeq + 1;
+        }
+
+        $formattedNumber = '001-001-' . str_pad($nextSequential, 9, '0', STR_PAD_LEFT);
+
+        return response()->json(['number' => $formattedNumber]);
     }
+
 
     public function store(Request $request)
     {
         try {
+            if (!auth()->check() || !auth()->user()->enterprise_id) {
+                return response()->json([
+                    'error' => 'Usuario no tiene empresa asignada o no está autenticado.'
+                ], 400);
+            }
+
             $validated = $request->validate([
                 // Campos de la recepción
                 'number'        => 'required|string|max:20',
@@ -97,27 +117,28 @@ class ReceptionController extends Controller
                 'additionals.*.unit_price'     => 'required|numeric',
             ]);
 
-            // Creo la recepción
-            $sender    = Sender::findOrFail($validated['sender_id']);
-            $validated['id'] = Str::uuid();
+            $sender = Sender::findOrFail($validated['sender_id']);
+
+            $validated['id']            = Str::uuid();
+            $validated['enterprise_id'] = auth()->user()->enterprise_id;
+
             $reception = Reception::create($validated);
 
-            // Prefijo para barcodes
             $lastDigits = substr($reception->number, -4);
-            $prefix     = strtoupper(
+            $prefix = strtoupper(
                 substr($sender->state ?? '', 0, 2) .
-                    substr($sender->city  ?? '', 0, 2)
+                    substr($sender->city ?? '', 0, 2)
             );
 
-            // Guardo paquetes
+            // Paquetes
             foreach ($validated['packages'] as $idx => $pkg) {
                 $barcodeCode = $prefix . $lastDigits . '.' . ($idx + 1);
 
                 $package = Package::create([
                     'reception_id'   => $reception->id,
-                    'art_package_id' => $pkg['art_package_id']  ?? null,
+                    'art_package_id' => $pkg['art_package_id'] ?? null,
                     'service_type'   => $pkg['service_type'],
-                    'content'        => $pkg['content']         ?? null,
+                    'content'        => $pkg['content'] ?? null,
                     'pounds'         => $pkg['pounds'],
                     'kilograms'      => $pkg['kilograms'],
                     'total'          => $pkg['total'],
@@ -126,39 +147,38 @@ class ReceptionController extends Controller
                     'barcode'        => $barcodeCode,
                 ]);
 
-                // Si tiene ítems, los guardo también
-                if (! empty($pkg['items'])) {
+                if (!empty($pkg['items'])) {
                     foreach ($pkg['items'] as $item) {
                         PackageItem::create([
                             'package_id'     => $package->id,
                             'art_package_id' => $item['art_package_id'] ?? null,
-                            'quantity'       => $item['quantity']       ?? 1,
-                            'unit'           => $item['unit']           ?? 'UND',
-                            'volume'         => $item['volume']         ?? false,
-                            'length'         => $item['length']         ?? 0,
-                            'width'          => $item['width']          ?? 0,
-                            'height'         => $item['height']         ?? 0,
-                            'weight'         => $item['weight']         ?? 0,
-                            'pounds'         => $item['pounds']         ?? 0,
-                            'kilograms'      => $item['kilograms']      ?? 0,
-                            'unit_price'     => $item['unit_price']     ?? 0,
-                            'total'          => $item['total']          ?? 0,
-                            'decl_val'       => $item['decl_val']       ?? 0,
-                            'ins_val'        => $item['ins_val']        ?? 0,
+                            'quantity'       => $item['quantity'] ?? 1,
+                            'unit'           => $item['unit'] ?? 'UND',
+                            'volume'         => $item['volume'] ?? false,
+                            'length'         => $item['length'] ?? 0,
+                            'width'          => $item['width'] ?? 0,
+                            'height'         => $item['height'] ?? 0,
+                            'weight'         => $item['weight'] ?? 0,
+                            'pounds'         => $item['pounds'] ?? 0,
+                            'kilograms'      => $item['kilograms'] ?? 0,
+                            'unit_price'     => $item['unit_price'] ?? 0,
+                            'total'          => $item['total'] ?? 0,
+                            'decl_val'       => $item['decl_val'] ?? 0,
+                            'ins_val'        => $item['ins_val'] ?? 0,
                         ]);
                     }
                 }
             }
 
-            // Guardo adicionales
+            // Adicionales
             foreach ($validated['additionals'] as $add) {
                 Additional::create([
-                    'id'            => Str::uuid(),
-                    'reception_id'  => $reception->id,
-                    'art_packg_id'  => $add['article'],
-                    'quantity'      => $add['quantity'],
-                    'unit_price'    => $add['unit_price'],
-                    'total'         => $add['quantity'] * $add['unit_price'],
+                    'id'           => Str::uuid(),
+                    'reception_id' => $reception->id,
+                    'art_packg_id' => $add['article'],
+                    'quantity'     => $add['quantity'],
+                    'unit_price'   => $add['unit_price'],
+                    'total'        => $add['quantity'] * $add['unit_price'],
                 ]);
             }
 
@@ -168,12 +188,14 @@ class ReceptionController extends Controller
             ], 201);
         } catch (\Exception $e) {
             Log::error('❌ Error al guardar recepción: ' . $e->getMessage());
+
             return response()->json([
                 'error'   => 'Error interno al guardar recepción',
                 'details' => $e->getMessage(),
             ], 500);
         }
     }
+
 
     public function edit($id)
     {

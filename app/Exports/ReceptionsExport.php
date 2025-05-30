@@ -15,16 +15,18 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
 {
     protected $startDate;
     protected $endDate;
-
-    public function __construct(string $startDate, string $endDate)
+    protected $enterpriseId;
+    public function __construct(string $startDate, string $endDate, string $enterpriseId)
     {
         $this->startDate = $startDate;
         $this->endDate   = $endDate;
+        $this->enterpriseId = $enterpriseId;
     }
 
     public function collection(): Collection
     {
         $receptions = Reception::with(['sender', 'recipient', 'packages.artPackage'])
+            ->where('enterprise_id', $this->enterpriseId)
             ->whereDate('date_time', '>=', $this->startDate)
             ->whereDate('date_time', '<=', $this->endDate)
             ->get();

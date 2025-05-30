@@ -43,7 +43,6 @@ class InvoiceController extends Controller
             $emissionPoint = '001';
             $number        = sprintf('%s-%s-%09d', $establishment, $emissionPoint, $sequential);
 
-
             // 3) Crear encabezado de factura
             $invoice = Invoice::create([
                 'id'             => Str::uuid(),
@@ -116,42 +115,69 @@ class InvoiceController extends Controller
             $result     = $xmlService->generate($invoice);
             $xmlPath    = $result['xml_path'];
             $claveAcceso = $result['claveAcceso'];
-            //Actualizamos la factura con la clave de acceso SRI correcta
             $invoice->update([
                 'access_key' => $claveAcceso,
                 'sri_status' => 'GENERATED',
             ]);
+
             // 7) Firmo el XML
             $signer        = new XmlSignerService();
             $signedXmlPath = $signer->sign($xmlPath, $invoice->id);
-
-            // 8) Guardo la ruta al XML firmado
             $invoice->update(['xml_url' => $signedXmlPath]);
 
-            // 9) ==> AUTORIZACIÓN SRI
-            $authorizer    = new SriAuthorizationService();
-            $authResult    = $authorizer->authorize($signedXmlPath, $claveAcceso);
-            $authResp      = $authResult['response']
-                ->RespuestaAutorizacionComprobante
-                ->autorizaciones
-                ->autorizacion;
+            // 8) Intento autorizar con reintentos
+            $authorizer = new SriAuthorizationService();
+            $maxAttempts = 3;
+            $authorized = false;
+            $attempt = 0;
+            $authResult = null;
+            $authResp = null;
 
-            // 10) Guardo datos y ruta del XML autorizado
-            $invoice->update([
-                'auth_xml_url' => $authResult['path'],
-                'auth_number'  => $authResp->numeroAutorizacion,
-                'auth_date'    => Carbon::parse($authResp->fechaAutorizacion),
-                'sri_status'   => 'AUTHORIZED',
-            ]);
-            // 8) Responder al frontend
-            return response()->json([
-                'status'         => 'autorizado',
-                'message'        => 'Factura generada, firmada y autorizada correctamente.',
-                'xml_firmado'    => $signedXmlPath,
-                'xml_autorizado' => $authResult['path'],
-                'invoice_id'     => $invoice->id,
-                'invoice_number' => $invoice->number,
-            ], 201);
+            while (! $authorized && $attempt < $maxAttempts) {
+                try {
+                    $authResult = $authorizer->authorize($signedXmlPath, $claveAcceso);
+                    $authResp = $authResult['response']
+                        ->RespuestaAutorizacionComprobante
+                        ->autorizaciones
+                        ->autorizacion;
+                    $authorized = true;
+                } catch (\Exception $e) {
+                    $attempt++;
+                    sleep(2);
+                    Log::warning("Intento {$attempt} fallido de autorización SRI para factura {$invoice->number}: {$e->getMessage()}");
+                }
+            }
+
+            if ($authorized && isset($authResp->numeroAutorizacion)) {
+                $invoice->update([
+                    'auth_xml_url' => $authResult['path'],
+                    'auth_number'  => $authResp->numeroAutorizacion,
+                    'auth_date'    => Carbon::parse($authResp->fechaAutorizacion),
+                    'sri_status'   => 'AUTHORIZED',
+                ]);
+
+                return response()->json([
+                    'status'         => 'autorizado',
+                    'message'        => 'Factura generada, firmada y autorizada correctamente.',
+                    'xml_firmado'    => $signedXmlPath,
+                    'xml_autorizado' => $authResult['path'],
+                    'invoice_id'     => $invoice->id,
+                    'invoice_number' => $invoice->number,
+                ], 201);
+            } else {
+                $invoice->update([
+                    'sri_status' => 'SIGNED',
+                    'auth_number' => null,
+                    'auth_date'   => null,
+                ]);
+
+                return response()->json([
+                    'status'      => 'error',
+                    'message'     => 'Factura firmada pero no autorizada por el SRI. Intente nuevamente más tarde.',
+                    'invoice_id'  => $invoice->id,
+                    'xml_firmado' => $signedXmlPath,
+                ], 202);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
 

@@ -37,6 +37,7 @@ import { useEffect } from "react";
 import axios from "axios";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/Components/ui/dialog";
 import { v4 as uuidv4 } from 'uuid'; 
+import { usePage } from "@inertiajs/react";
 interface Person {
   id: string;
   identification: string;
@@ -105,6 +106,9 @@ interface PackageRow {
 }
 
 export default function ShippingInterface() {
+
+  const { auth } = usePage().props as any;
+  const enterpriseId = auth.user.enterprise_id;
   const [currentTab, setCurrentTab] = useState("sender");
 
   // datos sender/recipient...
@@ -130,7 +134,13 @@ export default function ShippingInterface() {
 
   // otros estados (número, fecha, rutas, adicionales, pago...)
   const [receptionNumber, setReceptionNumber] = useState("000-001");
-  useEffect(() => { axios.get("/receptions/next-number").then(res => setReceptionNumber(res.data.number)); }, []);
+  useEffect(() => {
+    if (enterpriseId) {
+      axios
+        .get(`/receptions/next-number?enterprise_id=${enterpriseId}`)
+        .then(res => setReceptionNumber(res.data.number));
+    }
+  }, [enterpriseId]);  
   const today = new Date().toISOString().split("T")[0];
   const [receptionDate, setReceptionDate] = useState(today);
   const [route, setRoute] = useState("ecu-us");

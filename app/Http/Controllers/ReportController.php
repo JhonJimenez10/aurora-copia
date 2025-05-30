@@ -18,6 +18,7 @@ class ReportController extends Controller
 
         if ($start && $end) {
             $receptions = Reception::with(['sender', 'recipient', 'packages.artPackage'])
+                ->where('enterprise_id', auth()->user()->enterprise_id)
                 ->whereDate('date_time', '>=', $start)
                 ->whereDate('date_time', '<=', $end)
                 ->get();
@@ -41,7 +42,7 @@ class ReportController extends Controller
         $end   = $request->end_date;
 
         return Excel::download(
-            new ReceptionsExport($start, $end),
+            new ReceptionsExport($start, $end, auth()->user()->enterprise_id),
             "envios_{$start}_{$end}.xlsx"
         );
     }
