@@ -1,86 +1,117 @@
 <?php
 
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\EnterpriseController;
-use App\Http\Controllers\SenderController;
-use App\Http\Controllers\RecipientController;
-use App\Http\Controllers\ReceptionController;
-use App\Http\Controllers\PackageController;
-use App\Http\Controllers\AdditionalController;
-use App\Http\Controllers\ArtPackageController;
-use App\Http\Controllers\ArtPackgController;
-use App\Http\Controllers\InvoiceController;
-use App\Http\Controllers\InvDetailController;
-use App\Http\Controllers\PackageItemController;
-use App\Http\Controllers\ReportController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\UserController;
-use App\Http\Middleware\EnsureSudo;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
 
-// Ruta principal de la app
-Route::get('/', function () {
-    if (Auth::check()) {
-        return redirect()->route('dashboard');
-    }
-    return redirect()->route('login');
-});
+// Controladores
+use App\Http\Controllers\{
+    DashboardController,
+    ProfileController,
+    EnterpriseController,
+    SenderController,
+    RecipientController,
+    ReceptionController,
+    PackageController,
+    AdditionalController,
+    ArtPackageController,
+    ArtPackgController,
+    InvoiceController,
+    InvDetailController,
+    PackageItemController,
+    ReportController,
+    RoleController,
+    UserController
+};
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+use App\Http\Middleware\EnsureSudo;
 
+// Ruta raíz
+Route::get('/', fn() => Auth::check() ? redirect()->route('dashboard') : redirect()->route('login'));
+
+// Dashboard
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])->name('dashboard');
+
+// Perfil
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// Autenticación (Login, Register, etc.)
+// Auth (login, registro, etc.)
 require __DIR__ . '/auth.php';
 
-// Grupo con middleware EnsureSudo
+// -----------------------------
+// RUTAS ESPECIALES PREVIAS A RESOURCE
+// -----------------------------
+Route::get('/receptions/next-number', [ReceptionController::class, 'getNextNumber'])
+    ->middleware('auth')->name('receptions.nextNumber');
+
+Route::get('/art_packgs/list/json', [ArtPackgController::class, 'listJson'])
+    ->middleware('auth')->name('art_packgs.list.json');
+
+// -----------------------------
+// RUTAS SOLO PARA SUDO
+// -----------------------------
 Route::middleware(['auth', EnsureSudo::class])->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
     Route::resource('enterprises', EnterpriseController::class);
-    // Ruta específica para búsqueda de Senders
-    Route::get('/senders/search', [SenderController::class, 'search'])->name('senders.search');
-    // Rutas para Sender
-    Route::post('/senders-json', [SenderController::class, 'storeJson'])->name('senders.storeJson');
+    Route::resource('users', UserController::class);
+    Route::resource('roles', RoleController::class);
+});
+
+// -----------------------------
+// RUTAS PARA ADMIN Y SUDO
+// -----------------------------
+Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('senders', SenderController::class);
-    Route::get('/recipients/search', [RecipientController::class, 'search'])->name('recipients.search');
-    Route::post('/recipients-json', [RecipientController::class, 'storeJson'])->name('recipients.storeJson');
     Route::resource('recipients', RecipientController::class);
-    // Ruta para retornar artículos de la empresa autenticada (para el modal)
-    Route::get('/art_packages/list/json', [ArtPackageController::class, 'listJson'])->name('art_packages.list.json');
-    // Ruta para retornar artículos de embalaje autenticada (para el modal)
-    Route::get('/receptions/{id}/all-package-tickets.pdf', [ReceptionController::class, 'generateAllPackageTicketsPdf']);
-    Route::get('/receptions/{reception}/packages/{package}/ticket.pdf', [ReceptionController::class, 'generatePackageTicketPdf']);
-
-    Route::get('/art_packgs/list/json', [ArtPackgController::class, 'listJson'])->name('art_packgs.list.json');
-    Route::get('/receptions/next-number', [ReceptionController::class, 'getNextNumber'])->name('receptions.nextNumber');
-    Route::get('/receptions/{id}/ticket.pdf', [ReceptionController::class, 'generateTicketPdf']);
-
     Route::resource('receptions', ReceptionController::class);
+    Route::resource('art_packages', ArtPackageController::class);
+    Route::resource('art_packgs', ArtPackgController::class);
     Route::post('/package-items', [PackageItemController::class, 'store'])->name('package_items.store');
     Route::resource('packages', PackageController::class);
     Route::resource('additionals', AdditionalController::class);
-    Route::resource('art_packages', ArtPackageController::class);
 
-    Route::resource('art_packgs', ArtPackgController::class);
-    Route::resource('invoices', InvoiceController::class);
-    Route::resource('inv_details', InvDetailController::class);
-    Route::resource('roles', RoleController::class);
-    Route::resource('users', UserController::class);
-
+    // Reportes
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+});
 
-    Route::post('/receptions/{id}/invoice', [InvoiceController::class, 'createInvoice'])->name('receptions.invoice');
+// -----------------------------
+// RUTAS PARA CUSTOMER
+// -----------------------------
+Route::middleware(['auth', 'customer'])->group(function () {
+    Route::get('/cliente/receptions', [ReceptionController::class, 'index'])->name('receptions.index.customer');
+});
+
+// -----------------------------
+// RUTAS COMPARTIDAS ENTRE TODOS LOS ROLES (auth)
+// SUDO + ADMIN + CUSTOMER
+// -----------------------------
+Route::middleware(['auth'])->group(function () {
+    // Remitentes
+    Route::get('/senders/search', [SenderController::class, 'search'])->name('senders.search');
+    Route::post('/senders-json', [SenderController::class, 'storeJson'])->name('senders.storeJson');
+
+    // Destinatarios
+    Route::get('/recipients/search', [RecipientController::class, 'search'])->name('recipients.search');
+    Route::post('/recipients-json', [RecipientController::class, 'storeJson'])->name('recipients.storeJson');
+    // Facturación electrónica
     Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
     Route::get('/invoices/{invoice}/xml-download', [InvoiceController::class, 'downloadXml'])->name('invoices.downloadXml');
+    Route::resource('invoices', InvoiceController::class);
+    Route::resource('inv_details', InvDetailController::class);
+    // Crear recepción y facturas
+    Route::post('/receptions', [ReceptionController::class, 'store'])->name('receptions.store.shared');
+    Route::post('/receptions/{id}/invoice', [InvoiceController::class, 'createInvoice'])->name('receptions.invoice');
+
+    // Tickets
+    Route::get('/receptions/{id}/ticket.pdf', [ReceptionController::class, 'generateTicketPdf'])->name('receptions.ticket');
+    Route::get('/receptions/{id}/all-package-tickets.pdf', [ReceptionController::class, 'generateAllPackageTicketsPdf'])->name('receptions.all_tickets');
+    Route::get('/receptions/{reception}/packages/{package}/ticket.pdf', [ReceptionController::class, 'generatePackageTicketPdf'])->name('receptions.package_ticket');
+
+    // Artículos para combo
+    Route::get('/art_packgs/list/json', [ArtPackgController::class, 'listJson'])->name('art_packgs.list.json');
+    Route::get('/art_packages/list/json', [ArtPackageController::class, 'listJson'])->name('art_packages.list.json');
 });

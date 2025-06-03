@@ -127,7 +127,7 @@ class InvoiceController extends Controller
 
             // 8) Intento autorizar con reintentos
             $authorizer = new SriAuthorizationService();
-            $maxAttempts = 3;
+            $maxAttempts = 5;
             $authorized = false;
             $attempt = 0;
             $authResult = null;
@@ -143,8 +143,8 @@ class InvoiceController extends Controller
                     $authorized = true;
                 } catch (\Exception $e) {
                     $attempt++;
-                    sleep(2);
                     Log::warning("Intento {$attempt} fallido de autorización SRI para factura {$invoice->number}: {$e->getMessage()}");
+                    sleep(4); // o incluso 5
                 }
             }
 

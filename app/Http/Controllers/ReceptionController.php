@@ -42,28 +42,36 @@ class ReceptionController extends Controller
 
     public function getNextNumber(Request $request)
     {
-        $enterpriseId = $request->query('enterprise_id') ?? auth()->user()->enterprise_id;
+        try {
+            $enterpriseId = $request->query('enterprise_id') ?? auth()->user()?->enterprise_id;
 
-        if (!$enterpriseId) {
-            return response()->json(['error' => 'No se especificó una empresa válida.'], 400);
+            if (!$enterpriseId) {
+                return response()->json(['error' => 'No se especificó una empresa válida.'], 400);
+            }
+
+            $lastReception = Reception::where('enterprise_id', $enterpriseId)
+                ->orderByDesc('created_at')
+                ->first();
+
+            $nextSequential = 1;
+
+            if ($lastReception && preg_match('/\d{3}-\d{3}-(\d{9})/', $lastReception->number, $matches)) {
+                $lastSeq = (int) $matches[1];
+                $nextSequential = $lastSeq + 1;
+            }
+
+            $formattedNumber = sprintf('001-001-%09d', $nextSequential);
+
+            return response()->json(['number' => $formattedNumber]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => 'Error interno al generar el número',
+                'message' => $e->getMessage(),
+            ], 500);
         }
-
-        $lastReception = Reception::where('enterprise_id', $enterpriseId)
-            ->orderByDesc('created_at')
-            ->first();
-
-        $nextSequential = 1;
-
-        if ($lastReception) {
-            $lastNumber = $lastReception->number;
-            $lastSeq = (int) preg_replace('/[^0-9]/', '', explode('-', $lastNumber)[2] ?? '0');
-            $nextSequential = $lastSeq + 1;
-        }
-
-        $formattedNumber = '001-001-' . str_pad($nextSequential, 9, '0', STR_PAD_LEFT);
-
-        return response()->json(['number' => $formattedNumber]);
     }
+
+
 
 
     public function store(Request $request)

@@ -3,8 +3,6 @@ import { Link, usePage } from "@inertiajs/react"
 import {
   Send,
   ReceiptText,
-  Package,
-  Gift,
   Building2,
   Users,
   ChevronLeft,
@@ -23,6 +21,7 @@ import {
 import { Button } from "@/Components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/Components/ui/sheet"
 import { cn } from "@/lib/utils"
+import type { PageProps } from "@/types"
 
 type NavItem = {
   title: string
@@ -32,44 +31,65 @@ type NavItem = {
 }
 
 export default function SidebarNavigation() {
+  const { props } = usePage<PageProps>()
+  const userRole = props.auth?.role
+  console.log("ROL:", userRole);
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
   const { url } = usePage()
 
   const toggleSidebar = () => setIsCollapsed(!isCollapsed)
 
-  const navItems: NavItem[] = [
-    { title: "Empresas", href: "/enterprises", icon: <Building2 className="h-5 w-5" /> },
-    { title: "Usuarios", href: "/users", icon: <Users className="h-5 w-5" /> },
-    { title: "Envíos", href: "/receptions", icon: <Plane className="h-5 w-5" /> },
-    {
-      title: "Clientes",
-      icon: <Users2 className="h-5 w-5" />,
-      children: [
-        { title: "Remitentes", href: "/senders", icon: <Send className="h-4 w-4" /> },
-        { title: "Destinatarios", href: "/recipients", icon: <ReceiptText className="h-4 w-4" /> },
-      ],
-    },
-    {
-      title: "Artículos",
-      icon: <Boxes className="h-5 w-5" />,
-      children: [
-        { title: "Por Agencia", href: "/art_packages", icon: <PackageCheck className="h-4 w-4" /> },
-        { title: "Embalaje", href: "/art_packgs", icon: <PackagePlus className="h-4 w-4" /> },
-      ],
-    },
-    {
-      title: "Reportes",
-      icon: <BarChart3 className="h-5 w-5" />, 
-      children: [
-        {
-          title: "Envíos",
-          href: "/reports",
-          icon: <ReceiptText className="h-4 w-4" />,
-        },
-      ],
-    },
-  ]
+  // ⚙️ Ítems de navegación según rol
+  const navItems: NavItem[] = []
+
+  if (userRole === "Sudo") {
+    navItems.push(
+      { title: "Empresas", href: "/enterprises", icon: <Building2 className="h-5 w-5" /> },
+      { title: "Usuarios", href: "/users", icon: <Users className="h-5 w-5" /> }
+    )
+  }
+
+  if (userRole === "Sudo" || userRole === "Admin") {
+    navItems.push(
+      { title: "Envíos", href: "/receptions", icon: <Plane className="h-5 w-5" /> },
+      {
+        title: "Clientes",
+        icon: <Users2 className="h-5 w-5" />,
+        children: [
+          { title: "Remitentes", href: "/senders", icon: <Send className="h-4 w-4" /> },
+          { title: "Destinatarios", href: "/recipients", icon: <ReceiptText className="h-4 w-4" /> },
+        ],
+      },
+      {
+        title: "Artículos",
+        icon: <Boxes className="h-5 w-5" />,
+        children: [
+          { title: "Por Agencia", href: "/art_packages", icon: <PackageCheck className="h-4 w-4" /> },
+          { title: "Embalaje", href: "/art_packgs", icon: <PackagePlus className="h-4 w-4" /> },
+        ],
+      },
+      {
+        title: "Reportes",
+        icon: <BarChart3 className="h-5 w-5" />,
+        children: [
+          {
+            title: "Envíos",
+            href: "/reports",
+            icon: <ReceiptText className="h-4 w-4" />,
+          },
+        ],
+      }
+    )
+  }
+
+  if (userRole === "Customer") {
+    navItems.push({
+      title: "Envíos",
+      href: "/cliente/receptions",
+      icon: <Plane className="h-5 w-5" />,
+    })
+  }
 
   const renderNavItem = (item: NavItem) => {
     const isActive = item.href && url.startsWith(item.href)
@@ -159,8 +179,7 @@ export default function SidebarNavigation() {
           isCollapsed ? "w-[70px]" : "w-[240px]"
         )}
       >
-        <div className={cn("h-16 flex items-center px-4 border-b border-purple-800 font-medium", isCollapsed && "justify-center")}
-        >
+        <div className={cn("h-16 flex items-center px-4 border-b border-purple-800 font-medium", isCollapsed && "justify-center")}>
           {!isCollapsed && "Panel de Administración"}
         </div>
         <div className="flex flex-col flex-1 overflow-y-auto">
