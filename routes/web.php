@@ -20,7 +20,8 @@ use App\Http\Controllers\{
     PackageItemController,
     ReportController,
     RoleController,
-    UserController
+    UserController,
+    BulkImportController
 };
 
 use App\Http\Middleware\EnsureSudo;
@@ -72,6 +73,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/package-items', [PackageItemController::class, 'store'])->name('package_items.store');
     Route::resource('packages', PackageController::class);
     Route::resource('additionals', AdditionalController::class);
+    // Carga Masiva (dinámico por módulo)
+    Route::get('/bulk-import/{type}', [BulkImportController::class, 'viewByType'])->name('bulk-import.view');
+    Route::get('/bulk-import/{type}/example', [BulkImportController::class, 'downloadExample'])->name('bulk-import.example');
+    Route::post('/bulk-import/{type}', [BulkImportController::class, 'importData'])->name('bulk-import.import');
 
     // Reportes
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
