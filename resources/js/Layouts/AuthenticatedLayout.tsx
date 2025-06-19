@@ -61,11 +61,11 @@ export default function AuthenticatedLayout({
                                 >
                                     <Avatar className="h-6 w-6">
                                         <AvatarFallback>
-                                            {user.name?.charAt(0)}
+                                            {user?.name?.charAt(0)}
                                         </AvatarFallback>
                                     </Avatar>
                                     <span className="hidden md:inline-flex">
-                                        {user.name}
+                                        {user?.name}
                                     </span>
                                 </Button>
                             </DropdownMenuTrigger>
