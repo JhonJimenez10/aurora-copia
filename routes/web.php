@@ -60,36 +60,6 @@ Route::middleware(['auth', EnsureSudo::class])->group(function () {
     Route::resource('users', UserController::class);
     Route::resource('roles', RoleController::class);
 });
-
-// -----------------------------
-// RUTAS PARA ADMIN Y SUDO
-// -----------------------------
-Route::middleware(['auth', 'admin'])->group(function () {
-    Route::resource('senders', SenderController::class);
-    Route::resource('recipients', RecipientController::class);
-    Route::resource('receptions', ReceptionController::class);
-    Route::resource('art_packages', ArtPackageController::class);
-    Route::resource('art_packgs', ArtPackgController::class);
-    Route::post('/package-items', [PackageItemController::class, 'store'])->name('package_items.store');
-    Route::resource('packages', PackageController::class);
-    Route::resource('additionals', AdditionalController::class);
-    // Carga Masiva (dinámico por módulo)
-    Route::get('/bulk-import/{type}', [BulkImportController::class, 'viewByType'])->name('bulk-import.view');
-    Route::get('/bulk-import/{type}/example', [BulkImportController::class, 'downloadExample'])->name('bulk-import.example');
-    Route::post('/bulk-import/{type}', [BulkImportController::class, 'importData'])->name('bulk-import.import');
-
-    // Reportes
-    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
-});
-
-// -----------------------------
-// RUTAS PARA CUSTOMER
-// -----------------------------
-Route::middleware(['auth', 'customer'])->group(function () {
-    Route::get('/cliente/receptions', [ReceptionController::class, 'index'])->name('receptions.index.customer');
-});
-
 // -----------------------------
 // RUTAS COMPARTIDAS ENTRE TODOS LOS ROLES (auth)
 // SUDO + ADMIN + CUSTOMER
@@ -119,4 +89,34 @@ Route::middleware(['auth'])->group(function () {
     // Artículos para combo
     Route::get('/art_packgs/list/json', [ArtPackgController::class, 'listJson'])->name('art_packgs.list.json');
     Route::get('/art_packages/list/json', [ArtPackageController::class, 'listJson'])->name('art_packages.list.json');
+});
+
+
+// -----------------------------
+// RUTAS PARA ADMIN Y SUDO
+// -----------------------------
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::resource('senders', SenderController::class);
+    Route::resource('recipients', RecipientController::class);
+    Route::resource('receptions', ReceptionController::class);
+    Route::resource('art_packages', ArtPackageController::class);
+    Route::resource('art_packgs', ArtPackgController::class);
+    Route::post('/package-items', [PackageItemController::class, 'store'])->name('package_items.store');
+    Route::resource('packages', PackageController::class);
+    Route::resource('additionals', AdditionalController::class);
+    // Carga Masiva (dinámico por módulo)
+    Route::get('/bulk-import/{type}', [BulkImportController::class, 'viewByType'])->name('bulk-import.view');
+    Route::get('/bulk-import/{type}/example', [BulkImportController::class, 'downloadExample'])->name('bulk-import.example');
+    Route::post('/bulk-import/{type}', [BulkImportController::class, 'importData'])->name('bulk-import.import');
+
+    // Reportes
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+});
+
+// -----------------------------
+// RUTAS PARA CUSTOMER
+// -----------------------------
+Route::middleware(['auth', 'customer'])->group(function () {
+    Route::get('/cliente/receptions', [ReceptionController::class, 'index'])->name('receptions.index.customer');
 });

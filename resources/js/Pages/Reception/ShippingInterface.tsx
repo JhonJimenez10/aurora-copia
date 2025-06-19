@@ -48,6 +48,28 @@ import {
 } from "@/Components/ui/dialog";
 import { v4 as uuidv4 } from "uuid";
 import { usePage } from "@inertiajs/react";
+// ⏫  (después de los imports, antes del componente)
+const agencyAddressDefaults: Record<string, Partial<Person>> = {
+    QUEENS: {
+        postal_code: "11368",
+        city: "QUEENS",
+        canton: "USA",
+        state: "NEW YORK",
+    },
+    MIAMI: {
+        postal_code: "33101",
+        city: "MIAMI",
+        canton: "USA",
+        state: "FLORIDA",
+    },
+    "LOS ANGELES": {
+        postal_code: "90001",
+        city: "LOS ANGELES",
+        canton: "USA",
+        state: "CALIFORNIA",
+    },
+};
+
 interface Person {
     id: string;
     identification: string;
@@ -119,7 +141,10 @@ export default function ShippingInterface() {
     const { auth } = usePage().props as any;
     const enterpriseId = auth.user.enterprise_id;
     const [currentTab, setCurrentTab] = useState("sender");
-
+    // ⏬  dentro del componente:
+    const [recipientDefaults, setRecipientDefaults] = useState<Partial<Person>>(
+        {}
+    );
     // datos sender/recipient...
     const [sender, setSender] = useState<Person>({
         id: "",
@@ -891,18 +916,27 @@ export default function ShippingInterface() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() =>
+                                                    disabled={!agencyDest}
+                                                    onClick={() => {
+                                                        if (!agencyDest) return;
+                                                        setRecipientDefaults(
+                                                            agencyAddressDefaults[
+                                                                agencyDest
+                                                            ] ?? {}
+                                                        );
                                                         setShowRecipientModal(
                                                             true
-                                                        )
-                                                    }
+                                                        );
+                                                    }}
                                                 >
                                                     <Plus className="w-4 h-4 text-green-500" />
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 <p className="text-[10px]">
-                                                    Agregar
+                                                    {agencyDest
+                                                        ? "Agregar"
+                                                        : "Selecciona una agencia primero"}
                                                 </p>
                                             </TooltipContent>
                                         </Tooltip>
@@ -1582,6 +1616,7 @@ export default function ShippingInterface() {
                     setEditingPackageIndex(null);
                 }}
                 onSave={handleSavePackage}
+                artPackgOptions={artPackgOptions}
             />
 
             {/* Modal para CREAR un Sender */}
@@ -1601,6 +1636,7 @@ export default function ShippingInterface() {
                 open={showRecipientModal}
                 onClose={setShowRecipientModal}
                 onRecipientCreated={handleRecipientCreated}
+                defaultValues={recipientDefaults}
             />
             <RecipientSearchModal
                 open={showRecipientSearch}
