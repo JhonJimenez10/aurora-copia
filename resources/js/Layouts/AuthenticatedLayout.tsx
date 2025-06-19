@@ -19,7 +19,7 @@ export default function AuthenticatedLayout({
     children,
 }: PropsWithChildren<{ header?: ReactNode }>) {
     const { post } = useForm();
-    const user = usePage().props.auth.user;
+    const user = usePage().props.auth?.user ?? null;
 
     const logout = (e: React.FormEvent) => {
         e.preventDefault();
