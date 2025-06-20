@@ -14,12 +14,11 @@ class SriFacturaXmlService
         $claveAcceso = $this->generateAccessKey($invoice);
 
         // NUEVA ruta: C:\facturas\facturas
-        $xmlDir = 'C:/facturas/facturas';
-        if (!file_exists($xmlDir)) {
+        $xmlDir = storage_path(config('sri.dir_xml_origen'));
+        if (!is_dir($xmlDir)) {
             mkdir($xmlDir, 0755, true);
         }
-
-        $xmlPath = "{$xmlDir}/{$claveAcceso}.xml";
+        $xmlPath = $xmlDir . DIRECTORY_SEPARATOR . "{$claveAcceso}.xml";
 
         try {
             $xml = new DOMDocument('1.0', 'UTF-8');

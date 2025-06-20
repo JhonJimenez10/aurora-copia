@@ -26,11 +26,10 @@ class SriAuthorizationService
             ['trace' => 1, 'exceptions' => true]
         );
 
-        $this->autorizadosDir    = config('sri.autorizados_dir')
-            ?: storage_path('app/autorizados');
-        $this->noAutorizadosDir  = config('sri.no_autorizados_dir')
-            ?: storage_path('app/no_autorizados');
+        $this->autorizadosDir   = storage_path(config('sri.dir_xml_autorizados'));
+        $this->noAutorizadosDir = storage_path(config('sri.dir_xml_no_autorizados'));
     }
+
 
     /**
      * Envía el XML firmado al SRI y retorna ruta + objeto de respuesta.
@@ -52,7 +51,16 @@ class SriAuthorizationService
         $recv = $this->recepcionClient->validarComprobante(['xml' => $xmlContent]);
         $estadoRecep = $recv->RespuestaRecepcionComprobante->estado;
         if ($estadoRecep !== 'RECIBIDA') {
-            throw new Exception("SRI Recepción: {$estadoRecep}");
+            $mensajes = $recv->RespuestaRecepcionComprobante->comprobantes->comprobante->mensajes->mensaje ?? null;
+
+            $errores = [];
+            foreach ((array) $mensajes as $msg) {
+                $errores[] = "[{$msg->identificador}] {$msg->mensaje}" .
+                    (!empty($msg->informacionAdicional) ? " ({$msg->informacionAdicional})" : '');
+            }
+
+            $detalle = $errores ? implode('; ', $errores) : 'Sin detalle del SRI.';
+            throw new \Exception("SRI Recepción: {$estadoRecep}. {$detalle}");
         }
 
         // 2) Autorización con reintentos

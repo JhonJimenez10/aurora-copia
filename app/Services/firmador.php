@@ -1,6 +1,14 @@
 <?php
 
 declare(strict_types=1);
+
+date_default_timezone_set('America/Guayaquil');
+
+// Carga Laravel para tener acceso a helpers como storage_path(), config(), env(), etc.
+require dirname(__DIR__, 2) . '/vendor/autoload.php';
+$app = require dirname(__DIR__, 2) . '/bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
 date_default_timezone_set('America/Guayaquil');
 
 
@@ -690,44 +698,57 @@ class SignDOcumentToSRI extends Sign
             $this->getTag('SoftwareSecurityCode', 0)->nodeValue = hash('sha384', "{$this->softwareID}{$this->pin}{$this->getTag('ID', 0)->nodeValue}");
     }
 }
-// Sólo debe haber UNA vez este bloque, **después** de la declaración de las clases.
-if (php_sapi_name() === 'cli') {
-    if ($argc < 4) {
-        fwrite(STDERR, "Uso: php firmador.php [xml_path] [cert_path] [cert_password]\n");
+if (php_sapi_name() !== 'cli') {
+    fwrite(STDERR, "Este script solo se ejecuta por CLI.\n");
+    exit(1);
+}
+
+if ($argc < 4) {
+    fwrite(STDERR, "Uso: php firmador.php [xml_path] [cert_path] [cert_password]\n");
+    exit(1);
+}
+
+$xmlPath         = $argv[1];
+$pathCertificate = $argv[2];
+$p12Password     = $argv[3];
+
+// Carpeta de salida -> storage_path(config('sri.dir_xml_firmados'))
+$signedDir  = storage_path(config('sri.dir_xml_firmados'));
+$nombreFile = basename($xmlPath);
+$rutaSalida = $signedDir . DIRECTORY_SEPARATOR . $nombreFile;
+
+// Validaciones
+foreach (
+    [
+        [$xmlPath,         "XML no existe"],
+        [$pathCertificate, "Certificado no encontrado"],
+    ] as [$file, $msg]
+) {
+    if (!file_exists($file)) {
+        fwrite(STDERR, "❌ {$msg}: {$file}\n");
         exit(1);
     }
+}
 
-    $xmlPath         = $argv[1];
-    $pathCertificate = $argv[2];
-    $p12Password     = $argv[3];
-    $signedDir       = 'C:/facturas/facturas_firmados';
-    $nombreFile      = basename($xmlPath);
-    $rutaSalida      = $signedDir . '/' . $nombreFile;
-
-    if (!file_exists($xmlPath)) {
-        fwrite(STDERR, "❌ El XML no existe: $xmlPath\n");
-        exit(1);
+try {
+    // Asegura carpeta
+    if (!is_dir($signedDir)) {
+        mkdir($signedDir, 0755, true);
     }
 
-    if (!file_exists($pathCertificate)) {
-        fwrite(STDERR, "❌ Certificado no encontrado: $pathCertificate\n");
-        exit(1);
+    // Firma
+    $contenido = file_get_contents($xmlPath);
+    $signer    = new SignDOcumentToSRI('factura', $pathCertificate, $p12Password);
+    $signer->GuardarEn = $rutaSalida;
+    $signer->sign($contenido);
+
+    if (file_exists($rutaSalida)) {
+        fwrite(STDOUT, "✅ Firmado: {$rutaSalida}\n");
+        exit(0);
     }
 
-    try {
-        $contenido = file_get_contents($xmlPath);
-        $signer = new SignDOcumentToSRI('factura', $pathCertificate, $p12Password);
-        $signer->GuardarEn = $rutaSalida;
-        $signer->sign($contenido);
-
-        if (file_exists($rutaSalida)) {
-            fwrite(STDOUT, "✅ Firmado: $rutaSalida\n");
-            exit(0);
-        }
-
-        throw new \Exception("XML firmado no encontrado: $rutaSalida");
-    } catch (\Exception $e) {
-        fwrite(STDERR, "❌ Error firmando XML: " . $e->getMessage() . "\n");
-        exit(1);
-    }
+    throw new Exception("XML firmado no encontrado: {$rutaSalida}");
+} catch (\Exception $e) {
+    fwrite(STDERR, "❌ Error firmando XML: " . $e->getMessage() . "\n");
+    exit(1);
 }
