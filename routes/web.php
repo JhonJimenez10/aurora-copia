@@ -21,7 +21,8 @@ use App\Http\Controllers\{
     ReportController,
     RoleController,
     UserController,
-    BulkImportController
+    BulkImportController,
+    AgencyDestController
 };
 
 use App\Http\Middleware\EnsureSudo;
@@ -112,6 +113,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Reportes
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+
+    Route::resource('agencies_dest', AgencyDestController::class);
 });
 
 // -----------------------------

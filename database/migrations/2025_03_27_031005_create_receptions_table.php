@@ -14,45 +14,53 @@ return new class extends Migration {
             $table->string('route', 255);
             $table->dateTime('date_time');
             $table->string('agency_origin', 100);
-            $table->string('agency_dest', 100); // agencia_destino
 
-            // Relaciones con remitente y destinatario
+            // Ahora agency_dest es una clave UUID que referencia a agencies_dest
+            $table->uuid('agency_dest');
+
             $table->uuid('sender_id');
             $table->uuid('recipient_id');
 
-            // Totales y conceptos (almacena los montos)
-            $table->decimal('pkg_total', 10, 2)->default(0);    // paquetes
-            $table->decimal('ins_pkg', 10, 2)->default(0);        // seguro_paquetes
-            $table->decimal('packaging', 10, 2)->default(0);       // embalaje
-            $table->decimal('ship_ins', 10, 2)->default(0);        // seguro_envio
-            $table->decimal('clearance', 10, 2)->default(0);       // desaduanizacion
-            $table->decimal('trans_dest', 10, 2)->default(0);      // transporte_destino
-            $table->decimal('transmit', 10, 2)->default(0);        // transmision
+            $table->decimal('pkg_total', 10, 2)->default(0);
+            $table->decimal('ins_pkg', 10, 2)->default(0);
+            $table->decimal('packaging', 10, 2)->default(0);
+            $table->decimal('ship_ins', 10, 2)->default(0);
+            $table->decimal('clearance', 10, 2)->default(0);
+            $table->decimal('trans_dest', 10, 2)->default(0);
+            $table->decimal('transmit', 10, 2)->default(0);
             $table->decimal('subtotal', 10, 2)->default(0);
-            $table->decimal('vat15', 10, 2)->default(0);           // IVA 15%
+            $table->decimal('vat15', 10, 2)->default(0);
             $table->decimal('total', 10, 2)->default(0);
 
-            $table->string('pay_method', 50)->nullable();         // forma_cobro
-            $table->decimal('cash_recv', 10, 2)->default(0);        // efectivo_recibido
+            $table->string('pay_method', 50)->nullable();
+            $table->decimal('cash_recv', 10, 2)->default(0);
             $table->decimal('change', 10, 2)->default(0);
 
             $table->timestamps();
 
-            // Claves foráneas
+            // Relaciones foráneas
             $table->foreign('enterprise_id')
                 ->references('id')
                 ->on('enterprises')
                 ->restrictOnDelete();
+
             $table->foreign('sender_id')
                 ->references('id')
                 ->on('senders')
                 ->restrictOnDelete();
+
             $table->foreign('recipient_id')
                 ->references('id')
                 ->on('recipients')
                 ->restrictOnDelete();
+
+            $table->foreign('agency_dest')
+                ->references('id')
+                ->on('agencies_dest')
+                ->restrictOnDelete(); // puedes usar cascadeOnDelete si lo deseas
         });
     }
+
     public function down(): void
     {
         Schema::dropIfExists('receptions');

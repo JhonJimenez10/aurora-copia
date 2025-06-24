@@ -99,6 +99,11 @@ export default function SidebarNavigation() {
                 ],
             },
             {
+                title: "Agencias Destino",
+                href: "/agencies_dest",
+                icon: <Building2 className="h-4 w-4" />,
+            },
+            {
                 title: "Carga Masiva",
                 icon: <FileUp className="h-5 w-5" />,
                 children: [

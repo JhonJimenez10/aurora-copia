@@ -81,4 +81,8 @@ class Reception extends Model
     {
         return $this->belongsTo(Enterprise::class);
     }
+    public function agencyDest()
+    {
+        return $this->belongsTo(AgencyDest::class, 'agency_dest');
+    }
 }
