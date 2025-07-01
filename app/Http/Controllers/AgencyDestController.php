@@ -83,4 +83,26 @@ class AgencyDestController extends Controller
 
         return redirect()->route('agencies_dest.index')->with('success', 'Agencia eliminada correctamente.');
     }
+    public function listByEnterprise(Request $request)
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return response()->json(['error' => 'No autenticado'], 403);
+        }
+
+        try {
+            $agencies = AgencyDest::where('enterprise_id', $user->enterprise_id)
+                ->select('id', 'name', 'trade_name', 'address', 'phone', 'city', 'state', 'postal_code')
+                ->get();
+
+            return response()->json($agencies);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => 'Error interno',
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
+    }
 }

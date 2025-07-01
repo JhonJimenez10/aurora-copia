@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/Components/ui/tabs";
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
+import { Info } from "lucide-react";
+
 import {
     Select,
     SelectContent,
@@ -136,8 +138,22 @@ interface PackageRow {
     declarado: string;
     asegurado: string;
 }
+interface AgencyDest {
+    id: string;
+    name: string;
+    code_letters: string;
+    trade_name: string | null;
+    address: string | null;
+    phone: string | null;
+    postal_code: string | null;
+    city: string | null;
+    state: string | null;
+    available_us: boolean;
+}
 
 export default function ShippingInterface() {
+    const [agencyOptions, setAgencyOptions] = useState<AgencyDest[]>([]);
+
     const { auth } = usePage().props as any;
     const enterpriseId = auth.user.enterprise_id;
     const [currentTab, setCurrentTab] = useState("sender");
@@ -145,6 +161,16 @@ export default function ShippingInterface() {
     const [recipientDefaults, setRecipientDefaults] = useState<Partial<Person>>(
         {}
     );
+    useEffect(() => {
+        if (enterpriseId) {
+            axios
+                .get("/agencies_dest/list/json")
+                .then((res) => setAgencyOptions(res.data))
+                .catch((err) => {
+                    console.error("Error al cargar agencias:", err);
+                });
+        }
+    }, [enterpriseId]);
     // datos sender/recipient...
     const [sender, setSender] = useState<Person>({
         id: "",
@@ -667,21 +693,102 @@ export default function ShippingInterface() {
                         <Label className="mb-0.5 font-medium">
                             Ag. destino
                         </Label>
-                        <Select
-                            value={agencyDest}
-                            onValueChange={setAgencyDest}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Seleccionar destino" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="QUEENS">QUEENS</SelectItem>
-                                <SelectItem value="MIAMI">MIAMI</SelectItem>
-                                <SelectItem value="LOS ANGELES">
-                                    LOS ANGELES
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="flex items-start gap-2">
+                            <Select
+                                value={agencyDest}
+                                onValueChange={setAgencyDest}
+                            >
+                                <SelectTrigger className="w-full bg-[#6b21a8] text-white border border-purple-700 rounded-md h-8">
+                                    <SelectValue placeholder="Seleccionar destino" />
+                                </SelectTrigger>
+
+                                <SelectContent className="bg-[#1e1e2f] border border-purple-700 text-white shadow-lg z-50">
+                                    {agencyOptions.map((agency) => (
+                                        <SelectItem
+                                            key={agency.id}
+                                            value={agency.id}
+                                            className="hover:bg-purple-700 focus:bg-purple-800 cursor-pointer transition-colors px-2 py-1 text-sm"
+                                        >
+                                            {agency.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            {/* Ícono con tooltip */}
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span className="mt-1 cursor-pointer text-purple-400 hover:text-purple-200 transition">
+                                            <Info className="w-4 h-4" />
+                                        </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-[#1e1e2f] text-white border border-purple-700 shadow-md text-xs max-w-[250px]">
+                                        {(() => {
+                                            const agency = agencyOptions.find(
+                                                (a) => a.id === agencyDest
+                                            );
+                                            if (!agency)
+                                                return "Selecciona una agencia para ver detalles.";
+
+                                            return (
+                                                <>
+                                                    <div>
+                                                        <strong>Nombre:</strong>{" "}
+                                                        {agency.name}
+                                                    </div>
+                                                    <div>
+                                                        <strong>
+                                                            Comercial:
+                                                        </strong>{" "}
+                                                        {agency.trade_name ||
+                                                            "N/A"}
+                                                    </div>
+                                                    <div>
+                                                        <strong>
+                                                            Dirección:
+                                                        </strong>{" "}
+                                                        {agency.address ||
+                                                            "N/A"}
+                                                    </div>
+                                                    <div>
+                                                        <strong>
+                                                            Teléfono:
+                                                        </strong>{" "}
+                                                        {agency.phone || "N/A"}
+                                                    </div>
+                                                    <div>
+                                                        <strong>
+                                                            Código postal:
+                                                        </strong>{" "}
+                                                        {agency.postal_code ||
+                                                            "N/A"}
+                                                    </div>
+                                                    <div>
+                                                        <strong>Ciudad:</strong>{" "}
+                                                        {agency.city || "N/A"}
+                                                    </div>
+                                                    <div>
+                                                        <strong>
+                                                            Provincia:
+                                                        </strong>{" "}
+                                                        {agency.state || "N/A"}
+                                                    </div>
+                                                    <div>
+                                                        <strong>
+                                                            Disponible US:
+                                                        </strong>{" "}
+                                                        {agency.available_us
+                                                            ? "Sí"
+                                                            : "No"}
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
                     </div>
                 </div>
 
@@ -1536,17 +1643,33 @@ export default function ShippingInterface() {
                                                             setPayMethod
                                                         }
                                                     >
-                                                        <SelectTrigger className="w-24">
+                                                        <SelectTrigger className="w-26 bg-[#6b21a8] text-white border border-purple-700 rounded-md h-8">
                                                             <SelectValue placeholder="Seleccione" />
                                                         </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="EFECTIVO">
+
+                                                        <SelectContent className="bg-[#1e1e2f] border border-purple-700 text-white shadow-lg z-50">
+                                                            <SelectItem
+                                                                value="EFECTIVO"
+                                                                className="hover:bg-purple-700 focus:bg-purple-800 cursor-pointer transition-colors px-2 py-1 text-sm"
+                                                            >
                                                                 EFECTIVO
                                                             </SelectItem>
-                                                            <SelectItem value="TARJETA">
-                                                                TARJETA
+                                                            <SelectItem
+                                                                value="POR COBRAR"
+                                                                className="hover:bg-purple-700 focus:bg-purple-800 cursor-pointer transition-colors px-2 py-1 text-sm"
+                                                            >
+                                                                POR COBRAR
                                                             </SelectItem>
-                                                            <SelectItem value="TRANSFERENCIA">
+                                                            <SelectItem
+                                                                value="NOTA DE CREDITO"
+                                                                className="hover:bg-purple-700 focus:bg-purple-800 cursor-pointer transition-colors px-2 py-1 text-sm"
+                                                            >
+                                                                NOTA DE CREDITO
+                                                            </SelectItem>
+                                                            <SelectItem
+                                                                value="TRANSFERENCIA"
+                                                                className="hover:bg-purple-700 focus:bg-purple-800 cursor-pointer transition-colors px-2 py-1 text-sm"
+                                                            >
                                                                 TRANSFERENCIA
                                                             </SelectItem>
                                                         </SelectContent>

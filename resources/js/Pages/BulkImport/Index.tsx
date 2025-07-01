@@ -7,7 +7,12 @@ import type { PageProps } from "@/types"; // Asegúrate de que este archivo exis
 
 // ✨ Extendemos las props globales
 interface BulkImportPageProps extends PageProps {
-    type: "senders" | "recipients" | "art_packages" | "art_packgs";
+    type:
+        | "senders"
+        | "recipients"
+        | "art_packages"
+        | "art_packgs"
+        | "agencies_dest";
 }
 
 const MODULE_NAMES: Record<BulkImportPageProps["type"], string> = {
@@ -15,6 +20,7 @@ const MODULE_NAMES: Record<BulkImportPageProps["type"], string> = {
     recipients: "Destinatarios",
     art_packages: "Artículos por Agencia",
     art_packgs: "Artículos por Embalaje",
+    agencies_dest: "Agencias Destino",
 };
 
 export default function BulkImport() {

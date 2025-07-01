@@ -127,6 +127,11 @@ export default function SidebarNavigation() {
                         href: "/bulk-import/art_packgs",
                         icon: <PackagePlus className="h-4 w-4" />,
                     },
+                    {
+                        title: "Agencias Destino",
+                        href: "/bulk-import/agencies_dest",
+                        icon: <Building2 className="h-4 w-4" />,
+                    },
                 ],
             },
 

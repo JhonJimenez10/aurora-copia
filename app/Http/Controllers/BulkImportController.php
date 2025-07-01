@@ -12,12 +12,14 @@ use App\Imports\SendersImport;
 use App\Imports\RecipientsImport;
 use App\Imports\ArtPackagesImport;
 use App\Imports\ArtPackgsImport;
+use App\Imports\AgenciesDestImport; // al inicio
+
 
 class BulkImportController extends Controller
 {
     public function viewByType($type)
     {
-        if (!in_array($type, ['senders', 'recipients', 'art_packages', 'art_packgs'])) {
+        if (!in_array($type, ['senders', 'recipients', 'art_packages', 'art_packgs', 'agencies_dest'])) {
             abort(404);
         }
 
@@ -58,6 +60,10 @@ class BulkImportController extends Controller
                 break;
             case 'art_packgs':
                 Excel::import(new ArtPackgsImport($enterpriseId), $request->file('file'));
+                break;
+            // Dentro de importData():
+            case 'agencies_dest':
+                Excel::import(new AgenciesDestImport($enterpriseId), $request->file('file'));
                 break;
             default:
                 return back()->with('error', 'Importador no implementado para este módulo.');

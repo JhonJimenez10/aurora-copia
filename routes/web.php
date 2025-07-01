@@ -66,6 +66,8 @@ Route::middleware(['auth', EnsureSudo::class])->group(function () {
 // SUDO + ADMIN + CUSTOMER
 // -----------------------------
 Route::middleware(['auth'])->group(function () {
+    Route::get('/agencies_dest/list/json', [AgencyDestController::class, 'listByEnterprise']);
+
     // Remitentes
     Route::get('/senders/search', [SenderController::class, 'search'])->name('senders.search');
     Route::post('/senders-json', [SenderController::class, 'storeJson'])->name('senders.storeJson');
@@ -109,6 +111,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/bulk-import/{type}', [BulkImportController::class, 'viewByType'])->name('bulk-import.view');
     Route::get('/bulk-import/{type}/example', [BulkImportController::class, 'downloadExample'])->name('bulk-import.example');
     Route::post('/bulk-import/{type}', [BulkImportController::class, 'importData'])->name('bulk-import.import');
+
 
     // Reportes
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');

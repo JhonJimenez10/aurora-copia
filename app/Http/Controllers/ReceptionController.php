@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
 use Milon\Barcode\Facades\DNS1DFacade;
+use App\Models\AgencyDest;
 
 class ReceptionController extends Controller
 {
