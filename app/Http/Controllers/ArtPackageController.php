@@ -101,7 +101,7 @@ class ArtPackageController extends Controller
 
         $artPackages = ArtPackage::where('enterprise_id', $enterpriseId)
             ->where('canceled', false)
-            ->get(['id', 'name', 'translation', 'unit_price']);
+            ->get(['id', 'name', 'translation', 'unit_type', 'unit_price']);
 
         return response()->json($artPackages);
     }

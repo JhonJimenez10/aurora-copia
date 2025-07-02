@@ -69,7 +69,7 @@ export default function PackageModal({
             setRows([
                 {
                     cantidad: "1",
-                    unidad: "UND",
+                    unidad: "",
                     articulo_id: "",
                     articulo: "",
                     volumen: false,
@@ -131,7 +131,7 @@ export default function PackageModal({
             ...r,
             {
                 cantidad: "1",
-                unidad: "UND",
+                unidad: "",
                 articulo_id: "",
                 articulo: "",
                 volumen: false,
@@ -229,15 +229,9 @@ export default function PackageModal({
                                     </td>
                                     <td>
                                         <Input
-                                            className="h-7 text-center"
+                                            className="h-7 text-center bg-[#2a2a3d] opacity-80 cursor-not-allowed"
                                             value={row.unidad}
-                                            onChange={(e) =>
-                                                updateRow(
-                                                    i,
-                                                    "unidad",
-                                                    e.target.value
-                                                )
-                                            }
+                                            disabled
                                         />
                                     </td>
                                     <td>
