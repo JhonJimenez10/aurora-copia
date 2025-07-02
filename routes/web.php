@@ -66,6 +66,7 @@ Route::middleware(['auth', EnsureSudo::class])->group(function () {
 // SUDO + ADMIN + CUSTOMER
 // -----------------------------
 Route::middleware(['auth'])->group(function () {
+
     Route::get('/agencies_dest/list/json', [AgencyDestController::class, 'listByEnterprise']);
 
     // Remitentes
@@ -76,6 +77,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/recipients/search', [RecipientController::class, 'search'])->name('recipients.search');
     Route::post('/recipients-json', [RecipientController::class, 'storeJson'])->name('recipients.storeJson');
     // Facturación electrónica
+    Route::get('/invoices/{invoice}/ticket', [InvoiceController::class, 'pdfTicket'])->name('invoices.ticket');
     Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
     Route::get('/invoices/{invoice}/xml-download', [InvoiceController::class, 'downloadXml'])->name('invoices.downloadXml');
     Route::resource('invoices', InvoiceController::class);

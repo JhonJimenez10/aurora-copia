@@ -250,8 +250,7 @@ export default function PackageModal({
                                                         key={a.id}
                                                         value={a.id}
                                                     >
-                                                        {a.translation ||
-                                                            a.name}
+                                                        {a.name}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>

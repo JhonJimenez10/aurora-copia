@@ -232,4 +232,13 @@ class InvoiceController extends Controller
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+    public function pdfTicket($invoiceId)
+    {
+        $invoice = Invoice::with(['sender', 'reception', 'invDetails'])->findOrFail($invoiceId);
+
+        $pdf = Pdf::loadView('pdfs.ticket_invoice', compact('invoice'))
+            ->setPaper([0, 0, 226.77, 567.00]); // Aprox. 80mm x 200mm
+
+        return $pdf->stream("ticket-{$invoice->number}.pdf");
+    }
 }

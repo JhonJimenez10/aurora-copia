@@ -1868,6 +1868,22 @@ export default function ShippingInterface() {
                         >
                             Imprimir Tickets
                         </Button>
+                        {/* Descargar factura tipo ticket (PDF simple) */}
+                        {/* Descargar factura tipo ticket (PDF simple) */}
+                        <Button
+                            className="bg-indigo-600 hover:bg-indigo-700"
+                            disabled={!invoiceId}
+                            onClick={() => {
+                                if (invoiceId) {
+                                    window.open(
+                                        `/invoices/${invoiceId}/ticket`, // esta es tu ruta real
+                                        "_blank"
+                                    );
+                                }
+                            }}
+                        >
+                            Descargar Ticket
+                        </Button>
 
                         {/* Descargar factura en PDF */}
                         <Button
