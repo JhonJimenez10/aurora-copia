@@ -97,20 +97,35 @@ export default function PackageModal({
             prevRows.map((row, i) => {
                 if (i !== index) return row;
 
-                // creamos una copia del row con el campo actualizado
                 const updated = { ...row, [field]: value } as PackageRow;
 
-                // si cambió cantidad / precio / descuento, recalc subtotal y total
+                // Parsear cantidad como número
+                const qty = parseFloat(updated.cantidad) || 0;
+                const price = parseFloat(updated.unitario) || 0;
+                const disc = parseFloat(updated.descuento) || 0;
+
+                // Recalcular subtotal y total si cambia cantidad, unitario o descuento
                 if (
                     field === "cantidad" ||
                     field === "unitario" ||
                     field === "descuento"
                 ) {
-                    const qty = parseFloat(updated.cantidad) || 0;
-                    const price = parseFloat(updated.unitario) || 0;
-                    const disc = parseFloat(updated.descuento) || 0;
                     updated.subtotal = (qty * price).toFixed(2);
                     updated.total = Math.max(0, qty * price - disc).toFixed(2);
+                }
+
+                // ✅ Fijar peso según unidad
+                const unidad = updated.unidad.toUpperCase();
+
+                if (unidad === "LIBRAS") {
+                    // Si es LIBRAS, peso = cantidad
+                    updated.peso = qty.toFixed(2);
+                } else if (unidad === "UNIDAD") {
+                    // Si es UNIDAD, peso fijo de 0.22 (no depende de cantidad)
+                    updated.peso = "0.22";
+                } else {
+                    // Para otras unidades no definidas, dejar en 0
+                    updated.peso = "0";
                 }
 
                 return updated;
@@ -121,7 +136,7 @@ export default function PackageModal({
     const handleArticleSelect = (index: number, id: string) => {
         const art = articles.find((a) => a.id === id);
         updateRow(index, "articulo_id", id);
-        updateRow(index, "articulo", art?.translation || art?.name || "");
+        updateRow(index, "articulo", art?.name || "");
         updateRow(index, "unidad", art?.unit_type || "UND");
         updateRow(index, "unitario", art?.unit_price?.toString() || "0");
     };

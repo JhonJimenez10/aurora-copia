@@ -1562,19 +1562,79 @@ export default function ShippingInterface() {
 
                                 {/** Cálculos previos */}
                                 {(() => {
+                                    const round = (num: number) =>
+                                        Math.round(num * 100) / 100;
+
                                     const totalAdditionals = additionals.reduce(
                                         (acc, item) =>
                                             acc +
                                             item.quantity * item.unit_price,
                                         0
                                     );
-                                    const subtotal =
-                                        packageTotal + totalAdditionals;
-                                    const iva = subtotal * 0.15;
-                                    const totalFinal = subtotal + iva;
+
+                                    // 🔐 CALCULAR SEGURO DE ENVÍO con 15% para ORO/PLATA y 5% al resto
+                                    const totalSeguroPaquete = packages.reduce(
+                                        (accPkg, pkg) => {
+                                            // sumar seguros individualmente por item
+                                            const seguroPorItems =
+                                                pkg.items.reduce(
+                                                    (accItem, item) => {
+                                                        const name =
+                                                            item.name?.toLowerCase() ||
+                                                            "";
+                                                        const isOroPlata =
+                                                            name.includes(
+                                                                "oro"
+                                                            ) ||
+                                                            name.includes(
+                                                                "plata"
+                                                            );
+                                                        const tasa = isOroPlata
+                                                            ? 0.15
+                                                            : 0.05;
+                                                        return (
+                                                            accItem +
+                                                            item.ins_val * tasa
+                                                        );
+                                                    },
+                                                    0
+                                                );
+                                            return accPkg + seguroPorItems;
+                                        },
+                                        0
+                                    );
+                                    const totalPesoLbs = packages.reduce(
+                                        (acc, pkg) => acc + pkg.pounds,
+                                        0
+                                    );
+                                    const totalSeguroEnvio = totalPesoLbs * 0.1;
+                                    // 🚚 Desaduanización por tramos
+                                    let totalDesaduanizacion = 0;
+                                    if (
+                                        totalPesoLbs >= 1 &&
+                                        totalPesoLbs <= 17
+                                    ) {
+                                        totalDesaduanizacion = 6;
+                                    } else if (
+                                        totalPesoLbs >= 18 &&
+                                        totalPesoLbs <= 22
+                                    ) {
+                                        totalDesaduanizacion = 9;
+                                    } else if (totalPesoLbs > 22) {
+                                        totalDesaduanizacion = 12;
+                                    }
+                                    const subtotal = round(
+                                        packageTotal +
+                                            totalAdditionals +
+                                            totalSeguroPaquete +
+                                            totalSeguroEnvio +
+                                            totalDesaduanizacion
+                                    );
+                                    const iva = round(subtotal * 0.15);
+                                    const totalFinal = round(subtotal + iva);
                                     const cambio = Math.max(
                                         0,
-                                        efectivoRecibido - totalFinal
+                                        round(efectivoRecibido - totalFinal)
                                     );
 
                                     return (
@@ -1587,7 +1647,12 @@ export default function ShippingInterface() {
                                             </div>
                                             <div className="flex justify-between">
                                                 <span>Seguro de paquetes</span>
-                                                <span>$0.00</span>
+                                                <span>
+                                                    $
+                                                    {totalSeguroPaquete.toFixed(
+                                                        2
+                                                    )}
+                                                </span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span>Embalaje</span>
@@ -1600,11 +1665,21 @@ export default function ShippingInterface() {
                                             </div>
                                             <div className="flex justify-between">
                                                 <span>Seguro de envío</span>
-                                                <span>$0.00</span>
+                                                <span>
+                                                    $
+                                                    {totalSeguroEnvio.toFixed(
+                                                        2
+                                                    )}
+                                                </span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span>Desaduanización</span>
-                                                <span>$0.00</span>
+                                                <span>
+                                                    $
+                                                    {totalDesaduanizacion.toFixed(
+                                                        2
+                                                    )}
+                                                </span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span>Transporte destino</span>
