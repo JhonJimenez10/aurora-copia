@@ -13,12 +13,22 @@ class ArtPackgController extends Controller
     {
         $enterpriseId = Auth::user()->enterprise_id;
 
-        $artPackgs = ArtPackg::where('enterprise_id', $enterpriseId)->get();
+        $paginated = ArtPackg::where('enterprise_id', $enterpriseId)
+            ->orderBy('name')
+            ->paginate(10);
 
         return Inertia::render('ArtPackg/Index', [
-            'artPackgs' => $artPackgs,
+            'artPackgs' => $paginated->items(),
+            'pagination' => [
+                'current_page' => $paginated->currentPage(),
+                'last_page' => $paginated->lastPage(),
+                'per_page' => $paginated->perPage(),
+                'total' => $paginated->total(),
+                'links' => $paginated->linkCollection(),
+            ],
         ]);
     }
+
 
     public function create()
     {

@@ -12,12 +12,23 @@ class SenderController extends Controller
     public function index()
     {
         $enterpriseId = Auth::user()->enterprise_id;
-        $senders = Sender::where('enterprise_id', $enterpriseId)->get();
+
+        $paginated = Sender::where('enterprise_id', $enterpriseId)
+            ->orderBy('full_name')
+            ->paginate(10);
 
         return Inertia::render('Sender/Index', [
-            'senders' => $senders,
+            'senders' => $paginated->items(),
+            'pagination' => [
+                'current_page' => $paginated->currentPage(),
+                'last_page' => $paginated->lastPage(),
+                'per_page' => $paginated->perPage(),
+                'total' => $paginated->total(),
+                'links' => $paginated->linkCollection(),
+            ],
         ]);
     }
+
 
     public function create()
     {

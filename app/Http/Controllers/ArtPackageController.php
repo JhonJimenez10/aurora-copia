@@ -13,12 +13,22 @@ class ArtPackageController extends Controller
     {
         $enterpriseId = Auth::user()->enterprise_id;
 
-        $artPackages = ArtPackage::where('enterprise_id', $enterpriseId)->get();
+        $paginated = ArtPackage::where('enterprise_id', $enterpriseId)
+            ->orderBy('name')
+            ->paginate(10); // Puedes ajustar la cantidad por página
 
         return Inertia::render('ArtPackage/Index', [
-            'art_packages' => $artPackages,
+            'art_packages' => $paginated->items(), // Solo los ítems
+            'pagination' => [
+                'current_page' => $paginated->currentPage(),
+                'last_page' => $paginated->lastPage(),
+                'per_page' => $paginated->perPage(),
+                'total' => $paginated->total(),
+                'links' => $paginated->linkCollection(), // Para generar los botones como "1", "2", "Siguiente"
+            ],
         ]);
     }
+
 
     public function create()
     {

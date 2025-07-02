@@ -12,12 +12,23 @@ class RecipientController extends Controller
     public function index()
     {
         $enterpriseId = Auth::user()->enterprise_id;
-        $recipients = Recipient::where('enterprise_id', $enterpriseId)->get();
+
+        $paginated = Recipient::where('enterprise_id', $enterpriseId)
+            ->orderBy('full_name')
+            ->paginate(10);
 
         return Inertia::render('Recipient/Index', [
-            'recipients' => $recipients,
+            'recipients' => $paginated->items(),
+            'pagination' => [
+                'current_page' => $paginated->currentPage(),
+                'last_page' => $paginated->lastPage(),
+                'per_page' => $paginated->perPage(),
+                'total' => $paginated->total(),
+                'links' => $paginated->linkCollection(),
+            ],
         ]);
     }
+
     public function create()
     {
         return Inertia::render('Recipient/Create');

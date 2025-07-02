@@ -3,6 +3,7 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { PageProps } from "@/types";
 import { Button } from "@/Components/ui/button";
 import { useState } from "react";
+import Pagination from "@/Components/Pagination";
 
 interface AgencyDest {
     id: string;
@@ -17,7 +18,8 @@ interface AgencyDest {
 
 export default function AgencyDestIndex({
     agencies,
-}: PageProps<{ agencies: AgencyDest[] }>) {
+    pagination,
+}: PageProps<{ agencies: AgencyDest[]; pagination: any }>) {
     const [loading, setLoading] = useState(false);
 
     return (
@@ -41,7 +43,10 @@ export default function AgencyDestIndex({
                         </Link>
                     </div>
 
-                    <div className="overflow-auto rounded-lg border border-slate-700">
+                    {/* Paginación superior */}
+                    <Pagination pagination={pagination} />
+
+                    <div className="overflow-x-auto rounded-lg border border-slate-700">
                         <table className="min-w-full text-sm text-white table-auto">
                             <thead className="bg-purpleDark text-white">
                                 <tr>
@@ -98,34 +103,36 @@ export default function AgencyDestIndex({
                                         <td className="px-4 py-2">
                                             {agency.available_us ? "Sí" : "No"}
                                         </td>
-                                        <td className="px-4 py-2 space-x-2">
-                                            <Link
-                                                href={`/agencies_dest/${agency.id}/edit`}
-                                            >
-                                                <Button className="bg-purpleLight hover:bg-purpleDark text-white">
-                                                    Editar
+                                        <td className="px-4 py-2">
+                                            <div className="flex flex-wrap gap-2">
+                                                <Link
+                                                    href={`/agencies_dest/${agency.id}/edit`}
+                                                >
+                                                    <Button className="bg-purpleLight hover:bg-purpleDark text-white h-7 px-3 text-xs">
+                                                        Editar
+                                                    </Button>
+                                                </Link>
+                                                <Button
+                                                    className="bg-red-600 hover:bg-red-800 text-white h-7 px-3 text-xs"
+                                                    onClick={() => {
+                                                        if (
+                                                            confirm(
+                                                                "¿Deseas eliminar esta agencia?"
+                                                            )
+                                                        ) {
+                                                            router.delete(
+                                                                `/agencies_dest/${agency.id}`,
+                                                                {
+                                                                    preserveScroll:
+                                                                        true,
+                                                                }
+                                                            );
+                                                        }
+                                                    }}
+                                                >
+                                                    Eliminar
                                                 </Button>
-                                            </Link>
-                                            <Button
-                                                className="bg-red-600 hover:bg-red-800 text-white"
-                                                onClick={() => {
-                                                    if (
-                                                        confirm(
-                                                            "¿Deseas eliminar esta agencia?"
-                                                        )
-                                                    ) {
-                                                        router.delete(
-                                                            `/agencies_dest/${agency.id}`,
-                                                            {
-                                                                preserveScroll:
-                                                                    true,
-                                                            }
-                                                        );
-                                                    }
-                                                }}
-                                            >
-                                                Eliminar
-                                            </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -141,6 +148,11 @@ export default function AgencyDestIndex({
                                 )}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Paginación inferior */}
+                    <div className="mt-4">
+                        <Pagination pagination={pagination} />
                     </div>
                 </div>
             </div>

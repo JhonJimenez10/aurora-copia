@@ -13,12 +13,22 @@ class AgencyDestController extends Controller
     {
         $enterpriseId = Auth::user()->enterprise_id;
 
-        $agencies = AgencyDest::where('enterprise_id', $enterpriseId)->get();
+        $paginated = AgencyDest::where('enterprise_id', $enterpriseId)
+            ->orderBy('name')
+            ->paginate(10); // Puedes cambiar 10 por la cantidad que prefieras
 
         return Inertia::render('AgencyDest/Index', [
-            'agencies' => $agencies,
+            'agencies' => $paginated->items(),
+            'pagination' => [
+                'current_page' => $paginated->currentPage(),
+                'last_page' => $paginated->lastPage(),
+                'per_page' => $paginated->perPage(),
+                'total' => $paginated->total(),
+                'links' => $paginated->linkCollection(),
+            ],
         ]);
     }
+
 
     public function create()
     {
