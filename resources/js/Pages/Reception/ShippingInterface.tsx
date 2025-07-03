@@ -152,6 +152,9 @@ interface AgencyDest {
 }
 
 export default function ShippingInterface() {
+    //Boton y mostrar un loading
+    const [isSaving, setIsSaving] = useState(false);
+
     const [agencyOptions, setAgencyOptions] = useState<AgencyDest[]>([]);
 
     const { auth } = usePage().props as any;
@@ -428,7 +431,8 @@ export default function ShippingInterface() {
             packages,
             additionals,
         };
-
+        if (isSaving) return; // Evitar múltiples clics si ya está guardando
+        setIsSaving(true);
         try {
             // 3) Guardar recepción
             const receptionRes = await axios.post("/receptions", payload);
@@ -480,6 +484,8 @@ export default function ShippingInterface() {
             console.error("❌ Error completo:", err); // Agregado
             console.error("❌ Error al procesar:", err.response?.data || err);
             alert("Ocurrió un error al procesar la recepción o la factura.");
+        } finally {
+            setIsSaving(false); // ✅ Siempre volver a habilitar el botón
         }
     };
 
@@ -1572,10 +1578,8 @@ export default function ShippingInterface() {
                                         0
                                     );
 
-                                    // 🔐 CALCULAR SEGURO DE ENVÍO con 15% para ORO/PLATA y 5% al resto
                                     const totalSeguroPaquete = packages.reduce(
                                         (accPkg, pkg) => {
-                                            // sumar seguros individualmente por item
                                             const seguroPorItems =
                                                 pkg.items.reduce(
                                                     (accItem, item) => {
@@ -1603,12 +1607,13 @@ export default function ShippingInterface() {
                                         },
                                         0
                                     );
+
                                     const totalPesoLbs = packages.reduce(
                                         (acc, pkg) => acc + pkg.pounds,
                                         0
                                     );
                                     const totalSeguroEnvio = totalPesoLbs * 0.1;
-                                    // 🚚 Desaduanización por tramos
+
                                     let totalDesaduanizacion = 0;
                                     if (
                                         totalPesoLbs >= 1 &&
@@ -1623,20 +1628,33 @@ export default function ShippingInterface() {
                                     } else if (totalPesoLbs > 22) {
                                         totalDesaduanizacion = 12;
                                     }
-                                    const subtotal = round(
+
+                                    // 🟢 Subtotal base SIN transmisión
+                                    const subtotalBase = round(
                                         packageTotal +
                                             totalAdditionals +
                                             totalSeguroPaquete +
                                             totalSeguroEnvio +
                                             totalDesaduanizacion
                                     );
+
+                                    // ✅ Transmisión es el 1% del subtotal base
+                                    const transmision = round(
+                                        subtotalBase * 0.01
+                                    );
+
+                                    // 🔵 Subtotal final que sí incluye transmisión
+                                    const subtotal = round(
+                                        subtotalBase + transmision
+                                    );
+
                                     const iva = round(subtotal * 0.15);
                                     const totalFinal = round(subtotal + iva);
+
                                     const cambio = Math.max(
                                         0,
                                         round(efectivoRecibido - totalFinal)
                                     );
-
                                     return (
                                         <div className="space-y-1 text-sm">
                                             <div className="flex justify-between">
@@ -1687,7 +1705,10 @@ export default function ShippingInterface() {
                                             </div>
                                             <div className="flex justify-between">
                                                 <span>Transmisión</span>
-                                                <span>$0.00</span>
+                                                <span>
+                                                    ${transmision.toFixed(2)}
+                                                </span>{" "}
+                                                {/* ✅ Se muestra aquí */}
                                             </div>
                                             <div className="flex justify-between font-semibold">
                                                 <span>Subtotal</span>
@@ -1799,10 +1820,13 @@ export default function ShippingInterface() {
             </TooltipProvider>
             <div className="mt-4 flex justify-end">
                 <Button
-                    className="bg-green-600 hover:bg-green-700"
+                    className={`bg-green-600 hover:bg-green-700 ${
+                        isSaving ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                     onClick={handleSaveReception}
+                    disabled={isSaving}
                 >
-                    Guardar Recepción
+                    {isSaving ? "Guardando..." : "Guardar Recepción"}
                 </Button>
             </div>
             {/* MODAL DE PAQUETE (nuevo o edición) */}

@@ -30,7 +30,7 @@ class InvoiceController extends Controller
 
         try {
             // 1) Cargar datos de recepción
-            $reception    = Reception::with(['packages', 'additionals'])->findOrFail($receptionId);
+            $reception    = Reception::with(['packages.items', 'additionals'])->findOrFail($receptionId);
             $enterpriseId = Auth::user()->enterprise_id;
 
             // 2) Calcular secuencial y número
@@ -70,7 +70,7 @@ class InvoiceController extends Controller
 
             // 4) Detalles de paquetes
             foreach ($reception->packages as $pkg) {
-                $qty       = $pkg->quantity ?? 1;
+                $qty = collect($pkg->items)->sum('quantity'); // suma de todos los items
                 $unitPrice = $qty ? round($pkg->total / $qty, 2) : round($pkg->total, 2);
                 $subtotal  = round($unitPrice * $qty, 2);
                 $vatAmount = round($subtotal * 0.15, 2);
