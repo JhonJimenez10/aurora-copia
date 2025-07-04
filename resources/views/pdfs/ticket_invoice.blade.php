@@ -48,10 +48,11 @@
 <div class="container">
 
     {{-- ENCABEZADO --}}
-    <div class="bold">CUENCANITO EXPRESS – CUENCA CENTRO</div>
-    <div>CUENCANITO EXPRESS COURIER & CARGO</div>
-    <div>RUC: {{ $invoice->enterprise->ruc }}</div>
-    <div>GRAN COLOMBIA 3 76 Y VARGAS MACHUCA</div>
+    <div class="bold">{{ strtoupper($invoice->enterprise->name ?? 'NOMBRE EMPRESA') }}</div>
+    <div>{{ strtoupper($invoice->enterprise->commercial_name ?? 'COMERCIAL') }}</div>
+    <div>RUC: {{ $invoice->enterprise->ruc ?? '-' }}</div>
+    <div style="font-size: 9px;">{{ strtoupper($invoice->enterprise->matrix_address ?? 'DIRECCIÓN EMPRESA') }}</div>
+
 
     {{-- FACTURA Y FECHA --}}
     <div class="section left-align" style="font-size: 10px; margin-top: 4px;">
@@ -132,7 +133,7 @@
                 <tr>
                     <td>{{ number_format($weight, 2) }}</td>
                     <td>{{ $contentDescription }}</td>
-                    <td style="text-align: right;">{{ number_format($invoice->invDetails->sum('unit_price'), 2) }}</td>
+                    <td style="text-align: right;">{{ number_format($tarifa_paquetes, 2) }}</td>
                 </tr>
             </tbody>
         </table>

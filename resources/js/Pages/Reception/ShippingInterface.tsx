@@ -2007,7 +2007,6 @@ export default function ShippingInterface() {
                             Imprimir Tickets
                         </Button>
                         {/* Descargar factura tipo ticket (PDF simple) */}
-                        {/* Descargar factura tipo ticket (PDF simple) */}
                         <Button
                             className="bg-indigo-600 hover:bg-indigo-700"
                             disabled={!invoiceId}
@@ -2020,10 +2019,11 @@ export default function ShippingInterface() {
                                 }
                             }}
                         >
-                            Descargar Ticket
+                            Descargar Factura
                         </Button>
 
                         {/* Descargar factura en PDF */}
+                        {/* 
                         <Button
                             className="bg-yellow-600 hover:bg-yellow-700"
                             disabled={!invoiceId}
@@ -2038,6 +2038,7 @@ export default function ShippingInterface() {
                         >
                             Descargar Factura
                         </Button>
+                        */}
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -249,6 +249,12 @@ class InvoiceController extends Controller
         $weight = $reception->packages->sum('pounds');
         $declaredValue = $reception->packages->sum('decl_val');
         $contentDescription = $reception->packages->pluck('content')->filter()->implode(' + ');
+        $tarifaPaquetes = $reception->packages->sum(function ($package) {
+            return $package->packageItems->sum(function ($item) {
+                return $item->quantity * $item->unit_price;
+            });
+        });
+
 
         // Calcular valores adicionales desde la recepción
         $totalSeguroPaquetes = $reception->ins_pkg;
@@ -277,6 +283,7 @@ class InvoiceController extends Controller
             'subtotal_15' => $subtotal15,
             'vat' => $invoice->vat,
             'total' => $invoice->total,
+            'tarifa_paquetes' => $tarifaPaquetes,
         ]);
 
         return $pdf->stream('ticket-' . $invoice->number . '.pdf');
