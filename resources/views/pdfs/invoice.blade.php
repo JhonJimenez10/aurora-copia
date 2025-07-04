@@ -276,19 +276,27 @@
     </div>
     <div class="totals-box">
       <table class="totals">
-        <tr><td>SUBTOTAL 15%</td><td>{{ number_format($invoice->subtotal_15 ?? 0,2) }}</td></tr>
-        <tr><td>SUBTOTAL 0%</td><td>{{ number_format($invoice->subtotal_0 ?? 0,2) }}</td></tr>
-        <tr><td>SUBTOTAL NO OBJETO DE IVA</td><td>{{ number_format($invoice->subtotal_no_objeto_iva ?? 0,2) }}</td></tr>
-        <tr><td>SUBTOTAL EXENTO DE IVA</td><td>{{ number_format($invoice->subtotal_exento_iva ?? 0,2) }}</td></tr>
-        <tr><td>SUBTOTAL SIN IMPUESTOS</td><td>{{ number_format($invoice->subtotal_sin_impuestos ?? 0,2) }}</td></tr>
-        <tr><td>TOTAL DESCUENTO</td><td>{{ number_format($invoice->total_descuento ?? 0,2) }}</td></tr>
-        <tr><td>ICE</td><td>{{ number_format($invoice->ice ?? 0,2) }}</td></tr>
-        <tr><td>IVA 15%</td><td>{{ number_format($invoice->vat ?? 0,2) }}</td></tr>
-        <tr><td>TOTAL DEVOLUCIÓN IVA</td><td>{{ number_format($invoice->total_devolucion_iva ?? 0,2) }}</td></tr>
-        <tr><td>IRBPNR</td><td>{{ number_format($invoice->irbpnr ?? 0,2) }}</td></tr>
-        <tr><td>PROPINA</td><td>{{ number_format($invoice->propina ?? 0,2) }}</td></tr>
-        <tr><td><strong>VALOR TOTAL</strong></td><td><strong>{{ number_format($invoice->total ?? 0,2) }}</strong></td></tr>
-      </table>
+        <tr><td>SUBTOTAL 15%</td><td>{{ number_format($invoice->subtotal_15 ?? 0, 2) }}</td></tr>
+        <tr><td>SUBTOTAL 0%</td><td>{{ number_format($invoice->subtotal_0 ?? 0, 2) }}</td></tr>
+        <tr><td>SUBTOTAL NO OBJETO DE IVA</td><td>{{ number_format($invoice->subtotal_no_objeto_iva ?? 0, 2) }}</td></tr>
+        <tr><td>SUBTOTAL EXENTO DE IVA</td><td>{{ number_format($invoice->subtotal_exento_iva ?? 0, 2) }}</td></tr>
+        <tr><td>SUBTOTAL SIN IMPUESTOS</td><td>{{ number_format($invoice->subtotal_sin_impuestos ?? 0, 2) }}</td></tr>
+        <tr><td>TOTAL DESCUENTO</td><td>{{ number_format($invoice->total_descuento ?? 0, 2) }}</td></tr>
+
+        <!-- Nuevos conceptos -->
+        <tr><td>SEGURO DE PAQUETES</td><td>{{ number_format($invoice->total_seguro_paquetes ?? 0, 2) }}</td></tr>
+        <tr><td>SEGURO DE ENVÍO</td><td>{{ number_format($invoice->total_seguro_envio ?? 0, 2) }}</td></tr>
+        <tr><td>DESADUANIZACIÓN</td><td>{{ number_format($invoice->total_desaduanizacion ?? 0, 2) }}</td></tr>
+        <tr><td>TRANSMISIÓN</td><td>{{ number_format($invoice->total_transmision ?? 0, 2) }}</td></tr>
+
+        <tr><td>ICE</td><td>{{ number_format($invoice->ice ?? 0, 2) }}</td></tr>
+        <tr><td>IVA 15%</td><td>{{ number_format($invoice->vat ?? 0, 2) }}</td></tr>
+        <tr><td>TOTAL DEVOLUCIÓN IVA</td><td>{{ number_format($invoice->total_devolucion_iva ?? 0, 2) }}</td></tr>
+        <tr><td>IRBPNR</td><td>{{ number_format($invoice->irbpnr ?? 0, 2) }}</td></tr>
+        <tr><td>PROPINA</td><td>{{ number_format($invoice->propina ?? 0, 2) }}</td></tr>
+
+        <tr><td><strong>VALOR TOTAL</strong></td><td><strong>{{ number_format($invoice->total ?? 0, 2) }}</strong></td></tr>
+    </table>
     </div>
     <div class="clearfix"></div>
   </div>

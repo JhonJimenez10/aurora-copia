@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,7 +5,7 @@
   <style>
     body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #111; margin: 20px; }
     .center { text-align: center; }
-    .barcode-container { text-align: center; margin-bottom: 10px; }
+    .barcode-container { margin-bottom: 10px; }
     .barcode { display: inline-block; margin-bottom: 5px; }
     .bold { font-weight: bold; }
     .red { color: #d10000; }
@@ -19,6 +18,7 @@
     .details-table td { vertical-align: top; padding: 4px 6px; width: 50%; }
     .dual-section { display: table; width: 100%; margin-top: 15px; padding-top: 10px; border-top: 1px solid #aaa; }
     .dual-section .column { display: table-cell; width: 50%; vertical-align: top; padding: 0 10px; }
+    .barcode-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .page-break { page-break-after: always; }
   </style>
 </head>
@@ -28,13 +28,31 @@
   @php
     $package = $item['package'];
     $barcode = $item['barcode'];
+    $isPorCobrar = strtoupper($reception->pay_method) === 'POR COBRAR';
   @endphp
 
-  <div class="barcode-container">
-    <div class="barcode">{!! $barcode !!}</div>
-    <div class="bold">{{ $package->barcode ?? '---' }}</div>
-  </div>
+  {{-- Sección POR COBRAR + código de barras --}}
+  @if ($isPorCobrar)
+    <div class="barcode-row">
+      <div>
+        <div class="bold red" style="font-size: 18px;">POR COBRAR</div>
+        <div class="bold red" style="font-size: 16px;">
+          {{ number_format($package->total, 2) }} + recargos
+        </div>
+      </div>
+      <div class="barcode-container" style="text-align: right;">
+        <div class="barcode">{!! $barcode !!}</div>
+        <div class="bold">{{ $package->barcode ?? '---' }}</div>
+      </div>
+    </div>
+  @else
+    <div class="barcode-container center">
+      <div class="barcode">{!! $barcode !!}</div>
+      <div class="bold">{{ $package->barcode ?? '---' }}</div>
+    </div>
+  @endif
 
+  {{-- Datos generales --}}
   <table class="details-table">
     <tr>
       <td><span class="bold">No. Comprobante:</span> {{ $reception->number }}</td>
@@ -47,7 +65,6 @@
         })->toArray();
       @endphp
       <td><span class="bold">CONTENIDO:</span> {{ implode(', ', $contentNames) }}</td>
-
       <td><span class="bold">PESO LBS:</span> {{ number_format($package->weight, 2) }}</td>
     </tr>
     <tr>

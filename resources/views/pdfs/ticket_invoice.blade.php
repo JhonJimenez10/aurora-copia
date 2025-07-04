@@ -2,133 +2,225 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Ticket Factura {{ $invoice->number }}</title>
+    <title>Factura {{ $invoice->number }}</title>
     <style>
-        body {
-            font-family: monospace;
-            font-size: 11px;
-            margin: 0;
-            padding: 8px;
+        @page {
+            size: 74mm 280mm; /* ancho típico de un ticket */
+            margin: 5mm;
         }
-        .center { text-align: center; }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            margin: 0;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 250px;
+            margin: 0 auto;
+        }
+
         .bold { font-weight: bold; }
         .section { margin: 8px 0; }
-        table { width: 100%; border-collapse: collapse; }
-        td { vertical-align: top; }
-        .totals td { padding: 2px 0; }
-        .line { border-top: 1px dashed #000; margin: 4px 0; }
-        .small { font-size: 9px; }
-        .flex-between {
+        .line { border-top: 1px dashed #000; margin: 8px 0; }
+        .small { font-size: 9px; margin-top: 5px; }
+        .values { margin-top: 5px; }
+        .left-align { text-align: left; margin-top: 5px; }
+        .info-row { display: flex; justify-content: space-between; }
+        .signature {
+            margin-top: 12px;
             display: flex;
             justify-content: space-between;
+            text-align: center;
+        }
+        .signature div {
+            width: 45%;
+        }
+        .signature-line {
+            border-top: 1px solid #000;
+            margin-bottom: 3px;
         }
     </style>
 </head>
 <body>
-    {{-- ENCABEZADO --}}
-    <div class="center bold">CUENCANITO EXPRESS – CUENCA CENTRO</div>
-    <div class="center">CUENCANITO EXPRESS COURIER & CARGO</div>
-    <div class="center">RUC: {{ $invoice->enterprise->ruc }}</div>
-    <div class="center">GRAN COLOMBIA 3 76 Y VARGAS MACHUCA</div>
 
-    <div class="section">
-        <div><span class="bold">Factura o Guía Nro.:</span> {{ $invoice->number }}</div>
-        <div><span class="bold">Fecha:</span> {{ \Carbon\Carbon::parse($invoice->issue_date)->format('d M Y') }} {{ now()->format('H:i:s') }}</div>
+<div class="container">
+
+    {{-- ENCABEZADO --}}
+    <div class="bold">CUENCANITO EXPRESS – CUENCA CENTRO</div>
+    <div>CUENCANITO EXPRESS COURIER & CARGO</div>
+    <div>RUC: {{ $invoice->enterprise->ruc }}</div>
+    <div>GRAN COLOMBIA 3 76 Y VARGAS MACHUCA</div>
+
+    {{-- FACTURA Y FECHA --}}
+    <div class="section left-align" style="font-size: 10px; margin-top: 4px;">
+        <div>
+            <span class="bold">Factura o Guía Nro.:</span> {{ $invoice->number }}
+        </div>
+        <div>
+            <span class="bold">Fecha:</span> {{ \Carbon\Carbon::parse($invoice->issue_date)->format('d M Y H:i:s') }}
+        </div>
     </div>
 
     {{-- TRACKING --}}
     @if($invoice->reception?->tracking_code)
     <div class="section">
-        <div><span class="bold">Código tracking:</span> {{ $invoice->reception->tracking_code }}</div>
+        <div class="bold">Código tracking:</div>
+        <div>{{ $invoice->reception->tracking_code }}</div>
         <div>Estimado cliente para consultar el tracking de su envío ingrese a:</div>
         <div class="small">www.cuencanitoexpress.com/tracking.php</div>
     </div>
     @endif
 
     {{-- REMITENTE --}}
-    <div class="section">
+    <div class="section left-align">
         <div class="bold">Remitente:</div>
         <div>{{ $invoice->sender->full_name }}</div>
-        <div>C.I. / RUC: {{ $invoice->sender->identification }}</div>
-        <div>Dirección: {{ $invoice->sender->address }}</div>
-        <div>Teléfono: {{ $invoice->sender->phone }}</div>
-        <div>Código Postal: {{ $invoice->sender->postal_code }}</div>
+        <div><span class="bold">C.I. / RUC:</span> {{ $invoice->sender->identification }}</div>
+        <div><span class="bold">Dirección:</span> {{ $invoice->sender->address }}</div>
+        <div><span class="bold">Teléfono:</span> {{ $invoice->sender->phone }}</div>
+        <div><span class="bold">Código Postal:</span> {{ $invoice->sender->postal_code }}</div>
     </div>
 
     {{-- DESTINATARIO --}}
     @if($invoice->reception?->recipient)
-    <div class="section">
+    <div class="section left-align">
         <div class="bold">Destinatario:</div>
         <div>{{ $invoice->reception->recipient->full_name }}</div>
-        <div>C.I. / RUC: {{ $invoice->reception->recipient->identification }}</div>
-        <div>Dirección: {{ $invoice->reception->recipient->address }}</div>
-        <div>Teléfono: {{ $invoice->reception->recipient->phone }}</div>
-        <div>Código Postal: {{ $invoice->reception->recipient->postal_code }}</div>
+        <div><span class="bold">C.I. / RUC:</span> {{ $invoice->reception->recipient->identification }}</div>
+        <div><span class="bold">Dirección:</span> {{ $invoice->reception->recipient->address }}</div>
+        <div><span class="bold">Teléfono:</span> {{ $invoice->reception->recipient->phone }}</div>
+        <div><span class="bold">Código Postal:</span> {{ $invoice->reception->recipient->postal_code }}</div>
     </div>
     @endif
 
-    {{-- AGENCIA DESTINO --}}
+   {{-- AGENCIA DESTINO --}}
     @if($invoice->reception?->agencyDest)
-    <div class="section">
-        <div><span class="bold">Agencia destino:</span> {{ $invoice->reception->agencyDest->trade_name }}</div>
-        <div>Dirección: {{ $invoice->reception->agencyDest->address }}</div>
-        <div>Teléfono: {{ $invoice->reception->agencyDest->phone }}</div>
+    <div class="section left-align">
+        <div><span class="bold">Agencia destino:</span> {{ $invoice->reception->agencyDest->trade_name ?? '-' }}</div>
+        <div><span class="bold">Dirección:</span> {{ $invoice->reception->agencyDest->address ?? '-' }}</div>
+        <div><span class="bold">Teléfono:</span> {{ $invoice->reception->agencyDest->phone ?? '-' }}</div>
     </div>
     @endif
+
+
 
     {{-- SERVICIO --}}
-    <div class="section">
-        <div><span class="bold">Tipo de servicio:</span> {{ $invoice->reception?->shipping_type ?? 'PAQUETERIA INTERNACIONAL' }}</div>
+    <div class="section left-align">
+        <div><span class="bold">Tipo de servicio:</span> {{ $invoice->reception?->route ?? 'PAQUETERIA INTERNACIONAL' }}</div>
         <div><span class="bold">Tiempo de entrega:</span> 2 - 3 días</div>
-        <div><span class="bold">Valor declarado:</span> {{ number_format($invoice->reception?->declared_value ?? 0, 2) }}</div>
+        <div><span class="bold">Valor declarado:</span> {{ number_format($declaredValue, 2) }}</div>
     </div>
 
-    {{-- PESO Y CONTENIDO --}}
-    <div class="section flex-between">
-        <div><span class="bold">Peso:</span> {{ number_format($invoice->reception?->weight ?? 0, 2) }}</div>
-        <div><span class="bold">Tarifa:</span> {{ number_format($invoice->invDetails->first()->unit_price ?? 0, 2) }}</div>
+    {{-- PESO, CONTENIDO Y TARIFA --}}
+    <div class="section left-align" style="font-size: 10px;">
+        <table style="width: 100%; font-family: Arial, sans-serif;">
+            <colgroup>
+                <col style="width: 22%;">
+                <col style="width: 56%;">
+                <col style="width: 22%;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th style="text-align: left;">Peso</th>
+                    <th style="text-align: left;">Declaración del contenido</th>
+                    <th style="text-align: right;">Tarifa</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ number_format($weight, 2) }}</td>
+                    <td>{{ $contentDescription }}</td>
+                    <td style="text-align: right;">{{ number_format($invoice->invDetails->sum('unit_price'), 2) }}</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
-    <div><span class="bold">Declaración del contenido:</span> {{ $invoice->reception?->content_description }}</div>
 
-    {{-- DETALLE DE ADICIONALES --}}
-    <div class="section">
-        @foreach($invoice->invDetails as $detail)
-            @if($loop->first)
-                @continue
-            @endif
-            <div class="flex-between">
-                <div>{{ strtoupper($detail->description) }}</div>
-                <div>{{ number_format($detail->total, 2) }}</div>
-            </div>
-        @endforeach
+    {{-- ADICIONALES Y TOTALES --}}
+    <div class="section values">
+        <table style="width: 100%; font-family: Arial, sans-serif; border-collapse: collapse;">
+            <tbody>
+                @php
+                    $rows = [
+                        ['SEGURO PAQUETES', $total_seguro_paquetes],
+                        ['EMBALAJE', $total_embalaje],
+                        ['SEGURO ENVÍO', $total_seguro_envio],
+                        ['DESADUANIZACIÓN', $total_desaduanizacion],
+                        ['TRANSPORTE DESTINO', $total_transporte_destino],
+                        ['TRANSMISIÓN', $total_transmision],
+                        ['SUBTOTAL 0%', $subtotal_0],
+                        ['SUBTOTAL 15%', $subtotal_15],
+                        ['IVA 15%', $vat],
+                    ];
+                @endphp
+
+                @foreach($rows as [$label, $value])
+                    <tr>
+                        <td style="text-align: right; font-weight: bold; padding: 1px 0;">{{ $label }}</td>
+                        <td style="text-align: right; padding: 1px 0;">
+                            {{ number_format($value, 2) }}
+                        </td>
+                    </tr>
+                @endforeach
+
+                {{-- VALOR TOTAL con "POR COBRAR" --}}
+                <tr>
+                    <td style="text-align: left; font-weight: bold; padding: 1px 0;">
+                        @if(strtoupper($invoice->reception?->pay_method) === 'POR COBRAR')
+                            *POR COBRAR*
+                        @endif
+                    </td>
+                    <td style="text-align: right; font-weight: bold; padding: 1px 0;">
+                        {{ number_format($total, 2) }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
-    {{-- TOTALES --}}
-    <div class="line"></div>
-    <table class="totals">
-        <tr><td>SUBTOTAL 0%</td><td class="text-right">{{ number_format($invoice->subtotal_0 ?? 0, 2) }}</td></tr>
-        <tr><td>SUBTOTAL 15%</td><td class="text-right">{{ number_format($invoice->subtotal, 2) }}</td></tr>
-        <tr><td>IVA 15%</td><td class="text-right">{{ number_format($invoice->vat, 2) }}</td></tr>
-        <tr><td class="bold">VALOR TOTAL</td><td class="text-right bold">{{ number_format($invoice->total, 2) }}</td></tr>
-    </table>
-    <div class="line"></div>
+
+
+
 
     {{-- FIRMAS --}}
-    <div class="section flex-between">
-        <div class="center">(f) Operador</div>
-        <div class="center">(f) Cliente</div>
+    <div class="signature" style="margin-top: 40px;">
+        <table style="width: 100%; font-size: 9px;">
+            <tr>
+                <td style="text-align: center; width: 50%;">
+                    <div style="border-top: 1px solid #000; width: 90%; margin: 0 auto 2px auto;"></div>
+                    (f) Operador
+                </td>
+                <td style="text-align: center; width: 50%;">
+                    <div style="border-top: 1px solid #000; width: 90%; margin: 0 auto 2px auto;"></div>
+                    (f) Cliente
+                </td>
+            </tr>
+        </table>
     </div>
 
     {{-- CONDICIONES --}}
-    <div class="small">
-        <div class="bold">CONDICIONES GENERALES</div>
-        EL OPERADOR POSTAL, indemnizará al Usuario, en caso de daño, pérdida, robo, hurto, explotación o avería y el retraso no justificado, aplicando lo dispuesto en el Reglamento de Títulos Habilitantes y de la Gestión del Sector Postal, expedido por el Ministerio de Telecomunicaciones y la Sociedad de la Información.<br><br>
+    <div class="section left-align" style="font-size: 8px; line-height: 1.2; margin-top: 8px;">
+        <div class="bold" style="text-align: center; font-size: 9px; margin-bottom: 2px;">CONDICIONES GENERALES</div>
 
-        EL OPERADOR POSTAL, declara en este instrumento que los datos de los clientes se encuentran protegidos por la Ley, salvo pedido expreso de autoridad competente o judicial.<br><br>
-
-        EL REMITENTE podrá recuperar los envíos postales no entregados al destinatario y el Operador Postal tiene la obligación de entregar los mismos, una vez cumplido el tiempo o custodia del Operador podrá realizar el procedimiento para destruir los envíos como rezagadas establecido en el Reglamento de Títulos Habilitantes y de la Gestión del Sector Postal.<br><br>
-
-        EL USUARIO podrá solicitar información, reclamos, quejas y sugerencias a través del portal institucional, en cumplimiento de lo establecido en el Reglamento de Títulos Habilitantes y de la Gestión del Sector Postal.
+        <div style="margin-bottom: 0;">
+            <span class="bold">EL OPERADOR POSTAL</span>, indemnizará al Usuario, en caso de daño, pérdida, robo, hurto, explotación o avería y el retraso no justificado, aplicando lo dispuesto en el Reglamento de Títulos Habilitantes y de la Gestión del Sector Postal, expedido por el Ministerio de Telecomunicaciones y la Sociedad de la Información.
+        </div>
+        <div style="margin-bottom: 0;">
+            <span class="bold">EL OPERADOR POSTAL</span> declara en este instrumento que los datos de los clientes se encuentran protegidos por la Ley, salvo pedido expreso de autoridad competente o judicial.
+        </div>
+        <div style="margin-bottom: 0;">
+            <span class="bold">EL REMITENTE</span> podrá recuperar los envíos postales no entregados al destinatario y el Operador Postal tiene la obligación de entregarlos. Cumplido el tiempo de custodia, podrá destruir los envíos como rezagados.
+        </div>
+        <div style="margin-bottom: 0;">
+            <span class="bold">EL USUARIO</span> podrá presentar reclamos y sugerencias a través del portal institucional, aplicando lo dispuesto por el Ministerio de Telecomunicaciones y la Sociedad de la Información.
+        </div>
     </div>
+
+
+
+</div>
+
 </body>
 </html>

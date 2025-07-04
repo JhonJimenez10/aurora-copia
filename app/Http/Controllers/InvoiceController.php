@@ -232,13 +232,53 @@ class InvoiceController extends Controller
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
-    public function pdfTicket($invoiceId)
+    public function generateTicket($invoiceId)
     {
-        $invoice = Invoice::with(['sender', 'reception', 'invDetails'])->findOrFail($invoiceId);
+        $invoice = Invoice::with([
+            'enterprise',
+            'sender',
+            'reception.recipient',
+            'reception.agencyDest',
+            'reception.packages.packageItems',
+            'invDetails'
+        ])->findOrFail($invoiceId);
 
-        $pdf = Pdf::loadView('pdfs.ticket_invoice', compact('invoice'))
-            ->setPaper([0, 0, 226.77, 567.00]); // Aprox. 80mm x 200mm
+        $reception = $invoice->reception;
 
-        return $pdf->stream("ticket-{$invoice->number}.pdf");
+        // Calcular datos del resumen de paquetes
+        $weight = $reception->packages->sum('pounds');
+        $declaredValue = $reception->packages->sum('decl_val');
+        $contentDescription = $reception->packages->pluck('content')->filter()->implode(' + ');
+
+        // Calcular valores adicionales desde la recepción
+        $totalSeguroPaquetes = $reception->ins_pkg;
+        $totalEmbalaje = $reception->packaging;
+        $totalSeguroEnvio = $reception->ship_ins;
+        $totalDesaduanizacion = $reception->clearance;
+        $totalTransporteDestino = $reception->trans_dest;
+        $totalTransmision = $reception->transmit;
+
+        // Calcular subtotales 0% y 15%
+        $subtotal15 = $invoice->subtotal;
+        $subtotal0 = 0; // Por ahora fijo en 0
+
+        $pdf = Pdf::loadView('pdfs.ticket_invoice', [
+            'invoice' => $invoice,
+            'weight' => $weight,
+            'declaredValue' => $declaredValue,
+            'contentDescription' => $contentDescription,
+            'total_seguro_paquetes' => $totalSeguroPaquetes,
+            'total_embalaje' => $totalEmbalaje,
+            'total_seguro_envio' => $totalSeguroEnvio,
+            'total_desaduanizacion' => $totalDesaduanizacion,
+            'total_transporte_destino' => $totalTransporteDestino,
+            'total_transmision' => $totalTransmision,
+            'subtotal_0' => $subtotal0,
+            'subtotal_15' => $subtotal15,
+            'vat' => $invoice->vat,
+            'total' => $invoice->total,
+        ]);
+
+        return $pdf->stream('ticket-' . $invoice->number . '.pdf');
     }
 }

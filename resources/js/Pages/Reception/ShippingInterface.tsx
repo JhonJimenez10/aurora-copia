@@ -371,15 +371,52 @@ export default function ShippingInterface() {
     };
 
     const handleSaveReception = async () => {
-        // 1) cálculos y validaciones previas
-        const packagingTotal = additionals.reduce(
-            (acc, a) => acc + a.quantity * a.unit_price,
+        // Cálculos globales
+        const round = (num: number) => Math.round(num * 100) / 100;
+
+        const totalAdditionals = additionals.reduce(
+            (acc, item) => acc + item.quantity * item.unit_price,
             0
         );
-        const subtotal = packageTotal + packagingTotal;
-        const vat = subtotal * 0.15;
-        const total = subtotal + vat;
-        const change = Math.max(0, efectivoRecibido - total);
+
+        const totalSeguroPaquete = packages.reduce((accPkg, pkg) => {
+            const seguroPorItems = pkg.items.reduce((accItem, item) => {
+                const name = item.name?.toLowerCase() || "";
+                const isOroPlata =
+                    name.includes("oro") || name.includes("plata");
+                const tasa = isOroPlata ? 0.15 : 0.05;
+                return accItem + item.ins_val * tasa;
+            }, 0);
+            return accPkg + seguroPorItems;
+        }, 0);
+
+        const totalPesoLbs = packages.reduce((acc, pkg) => acc + pkg.pounds, 0);
+        const totalSeguroEnvio = totalPesoLbs * 0.1;
+
+        let totalDesaduanizacion = 0;
+        if (totalPesoLbs > 0 && totalPesoLbs <= 1) {
+            totalDesaduanizacion = 3.5;
+        } else if (totalPesoLbs > 1 && totalPesoLbs <= 17) {
+            totalDesaduanizacion = 6;
+        } else if (totalPesoLbs > 17 && totalPesoLbs <= 22) {
+            totalDesaduanizacion = 9;
+        } else if (totalPesoLbs > 22) {
+            totalDesaduanizacion = 12;
+        }
+
+        const subtotalBase = round(
+            packageTotal +
+                totalAdditionals +
+                totalSeguroPaquete +
+                totalSeguroEnvio +
+                totalDesaduanizacion
+        );
+
+        const transmision = round(subtotalBase * 0.01);
+        const subtotal = round(subtotalBase + transmision);
+        const vat = round(subtotal * 0.15);
+        const total = round(subtotal + vat);
+        const change = Math.max(0, round(efectivoRecibido - total));
 
         if (!agencyDest) {
             alert("Por favor seleccione una agencia de destino.");
@@ -416,12 +453,12 @@ export default function ShippingInterface() {
             sender_id: sender.id,
             recipient_id: recipient.id,
             pkg_total: packages.reduce((acc, p) => acc + p.total, 0),
-            ins_pkg: 0,
-            packaging: packagingTotal,
-            ship_ins: 0,
-            clearance: 0,
+            ins_pkg: totalSeguroPaquete,
+            packaging: totalAdditionals,
+            ship_ins: totalSeguroEnvio,
+            clearance: totalDesaduanizacion,
             trans_dest: 0,
-            transmit: 0,
+            transmit: transmision,
             subtotal,
             vat15: vat,
             total,
@@ -1615,13 +1652,15 @@ export default function ShippingInterface() {
                                     const totalSeguroEnvio = totalPesoLbs * 0.1;
 
                                     let totalDesaduanizacion = 0;
-                                    if (
-                                        totalPesoLbs >= 1 &&
+                                    if (totalPesoLbs > 0 && totalPesoLbs <= 1) {
+                                        totalDesaduanizacion = 3.5;
+                                    } else if (
+                                        totalPesoLbs > 1 &&
                                         totalPesoLbs <= 17
                                     ) {
                                         totalDesaduanizacion = 6;
                                     } else if (
-                                        totalPesoLbs >= 18 &&
+                                        totalPesoLbs > 17 &&
                                         totalPesoLbs <= 22
                                     ) {
                                         totalDesaduanizacion = 9;
