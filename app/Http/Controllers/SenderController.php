@@ -29,15 +29,11 @@ class SenderController extends Controller
         ]);
     }
 
-
     public function create()
     {
         return Inertia::render('Sender/Create');
     }
 
-    /**
-     * Búsqueda de Senders (remitentes) por identificación o listado completo si no hay query.
-     */
     public function search(Request $request)
     {
         $enterpriseId = Auth::user()->enterprise_id;
@@ -55,10 +51,6 @@ class SenderController extends Controller
         return response()->json($query->get());
     }
 
-
-    /**
-     * Almacena un Sender vía JSON (sin redirección).
-     */
     public function storeJson(Request $request)
     {
         $validated = $request->validate([
@@ -77,6 +69,15 @@ class SenderController extends Controller
             'blocked'        => 'required|boolean',
             'alert'          => 'required|boolean',
         ]);
+
+        // ✅ Validación de cédula
+        if ($validated['id_type'] === 'CEDULA' && !$this->isValidEcuadorianCedula($validated['identification'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'La cédula ingresada no es válida.',
+            ], 422);
+        }
+
         $validated['enterprise_id'] = Auth::user()->enterprise_id;
 
         $sender = Sender::create($validated);
@@ -87,9 +88,6 @@ class SenderController extends Controller
         ]);
     }
 
-    /**
-     * Almacena un Sender de forma tradicional (con redirección).
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -108,6 +106,12 @@ class SenderController extends Controller
             'blocked'        => 'required|boolean',
             'alert'          => 'required|boolean',
         ]);
+
+        // ✅ Validación de cédula
+        if ($validated['id_type'] === 'CEDULA' && !$this->isValidEcuadorianCedula($validated['identification'])) {
+            return redirect()->back()->withErrors(['identification' => 'La cédula ingresada no es válida.'])->withInput();
+        }
+
         $validated['enterprise_id'] = Auth::user()->enterprise_id;
 
         Sender::create($validated);
@@ -120,7 +124,6 @@ class SenderController extends Controller
         $sender = Sender::where('enterprise_id', Auth::user()->enterprise_id)
             ->findOrFail($id);
 
-
         return Inertia::render('Sender/Edit', [
             'sender' => $sender,
         ]);
@@ -130,7 +133,6 @@ class SenderController extends Controller
     {
         $sender = Sender::where('enterprise_id', Auth::user()->enterprise_id)
             ->findOrFail($id);
-
 
         $validated = $request->validate([
             'country'        => 'sometimes|required|string|max:100',
@@ -162,5 +164,36 @@ class SenderController extends Controller
         $sender->delete();
 
         return redirect()->route('senders.index')->with('success', 'Sender deleted successfully.');
+    }
+
+    /**
+     * Validación de cédula ecuatoriana
+     */
+    private function isValidEcuadorianCedula($cedula)
+    {
+        if (!preg_match('/^\d{10}$/', $cedula)) {
+            return false;
+        }
+
+        $regionCode = (int)substr($cedula, 0, 2);
+        if ($regionCode < 1 || $regionCode > 24) {
+            return false;
+        }
+
+        $digits = str_split($cedula);
+        $sum = 0;
+        for ($i = 0; $i < 9; $i++) {
+            $num = (int)$digits[$i];
+            if ($i % 2 === 0) {
+                $num *= 2;
+                if ($num > 9) {
+                    $num -= 9;
+                }
+            }
+            $sum += $num;
+        }
+
+        $verifier = (10 - ($sum % 10)) % 10;
+        return $verifier == (int)$digits[9];
     }
 }

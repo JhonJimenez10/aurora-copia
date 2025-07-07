@@ -94,6 +94,7 @@ interface PackageItem {
     total: number;
     decl_val: number;
     ins_val: number;
+    perfumeDesc?: string;
     items: PackageItemDetail[];
 }
 
@@ -566,7 +567,11 @@ export default function ShippingInterface() {
     // GUARDAR o ACTUALIZAR PAQUETE DESDE EL MODAL
     // … dentro de ShippingInterface.tsx …
 
-    const handleSavePackage = (rows: PackageRow[]) => {
+    const handleSavePackage = (
+        rows: PackageRow[],
+        serviceType: string,
+        perfumeDesc: string
+    ) => {
         // construyo el detalle igual que antes
         const details: PackageItemDetail[] = rows.map((r) => ({
             art_package_id: r.articulo_id,
@@ -609,13 +614,14 @@ export default function ShippingInterface() {
                     ? packages[editingPackageIndex].id
                     : uuidv4(),
             art_package_id: rows[0].articulo_id,
-            service_type: rows[0].unidad,
+            service_type: serviceType,
             content: contenido, // ← aquí ya tienes lo que viste en el modal
             pounds: totalLbs,
             kilograms: totalLbs * 0.453592,
             total: totalTotal,
             decl_val: totalDecl,
             ins_val: totalIns,
+            perfumeDesc: perfumeDesc,
             items: details,
         };
 
@@ -1876,7 +1882,9 @@ export default function ShippingInterface() {
                     setShowPackageModal(false);
                     setEditingPackageIndex(null);
                 }}
-                onSave={handleSavePackage}
+                onSave={(rows, serviceType, perfumeDesc) =>
+                    handleSavePackage(rows, serviceType, perfumeDesc)
+                }
                 artPackgOptions={artPackgOptions}
             />
 

@@ -12,7 +12,7 @@ return new class extends Migration {
             $table->uuid('enterprise_id');
             $table->string('country', 100);
             $table->string('id_type', 50);
-            $table->string('identification', 50);
+            $table->string('identification', 50)->nullable();
             $table->string('full_name', 100);
             $table->string('address', 255)->nullable();
             $table->string('phone', 50)->nullable();

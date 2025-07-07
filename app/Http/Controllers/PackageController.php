@@ -40,6 +40,7 @@ class PackageController extends Controller
             'decl_val'       => 'required|numeric',
             'ins_val'        => 'required|numeric',
             'barcode'        => 'nullable|string|max:30',
+            'perfumeDesc'    => 'nullable|string|max:255', // ✅ Nueva columna
         ]);
 
         Package::create($validated);
@@ -73,6 +74,7 @@ class PackageController extends Controller
             'decl_val'       => 'sometimes|required|numeric',
             'ins_val'        => 'sometimes|required|numeric',
             'barcode'        => 'nullable|string|max:30',
+            'perfumeDesc'    => 'nullable|string|max:255', // ✅ Nueva columna
         ]);
 
         $package->update($validated);

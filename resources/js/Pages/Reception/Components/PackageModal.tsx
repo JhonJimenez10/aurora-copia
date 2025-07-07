@@ -37,7 +37,11 @@ interface PackageModalProps {
     open: boolean;
     initialRows?: PackageRow[];
     onClose: () => void;
-    onSave: (rows: PackageRow[]) => void;
+    onSave: (
+        rows: PackageRow[],
+        serviceType: string,
+        perfumeDesc: string
+    ) => void;
     artPackgOptions: {
         id: string;
         name: string;
@@ -54,6 +58,8 @@ export default function PackageModal({
 }: PackageModalProps) {
     const [articles, setArticles] = useState<any[]>([]);
     const [rows, setRows] = useState<PackageRow[]>([]);
+    const [serviceType, setServiceType] = useState<string>("PAQUETE");
+    const [perfumeDesc, setPerfumeDesc] = useState<string>("");
 
     useEffect(() => {
         if (!open) return;
@@ -170,7 +176,7 @@ export default function PackageModal({
     };
 
     const handleAccept = () => {
-        onSave(rows);
+        onSave(rows, serviceType, perfumeDesc);
         onClose();
     };
 
@@ -193,6 +199,47 @@ export default function PackageModal({
                             <X className="w-5 h-5 text-white" />
                         </Button>
                     </div>
+                </div>
+                <div className="mb-4 grid grid-cols-1 gap-4">
+                    <div>
+                        <label className="text-sm font-semibold text-purple-300 mb-1 block">
+                            Tipo de servicio
+                        </label>
+                        <Select
+                            value={serviceType}
+                            onValueChange={(v) => setServiceType(v)}
+                        >
+                            <SelectTrigger className="bg-[#2a2a3d] text-white h-8">
+                                <SelectValue placeholder="Seleccionar" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#2a2a3d] text-white">
+                                {[
+                                    "CARGA",
+                                    "PAQUETE",
+                                    "PERFUMERIA",
+                                    "SOBRE",
+                                ].map((opt) => (
+                                    <SelectItem key={opt} value={opt}>
+                                        {opt}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {serviceType === "PERFUMERIA" && (
+                        <div>
+                            <label className="text-sm font-semibold text-purple-300 mb-1 block">
+                                Detalle de perfumería
+                            </label>
+                            <Input
+                                value={perfumeDesc}
+                                onChange={(e) => setPerfumeDesc(e.target.value)}
+                                placeholder="Ingrese el detalle del perfume..."
+                                className="bg-[#2a2a3d] text-white h-8"
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="p-4 overflow-auto h-full">

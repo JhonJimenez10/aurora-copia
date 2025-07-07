@@ -30,6 +30,7 @@ class Package extends Model
         'decl_val',
         'ins_val',
         'barcode',
+        'perfumeDesc',
     ];
 
     protected static function boot()

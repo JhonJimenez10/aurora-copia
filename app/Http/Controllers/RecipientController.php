@@ -56,7 +56,7 @@ class RecipientController extends Controller
         $validated = $request->validate([
             'country' => 'required|string|max:100',
             'id_type' => 'required|string|max:50',
-            'identification' => 'required|string|max:50',
+            'identification' => 'nullable|string|max:50',
             'full_name' => 'required|string|max:100',
             'address' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
@@ -69,9 +69,17 @@ class RecipientController extends Controller
             'blocked' => 'required|boolean',
             'alert' => 'required|boolean',
         ]);
+
+        if ($validated['id_type'] === 'CEDULA' && !empty($validated['identification'])) {
+            if (!$this->isValidEcuadorianCedula($validated['identification'])) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'La cédula ingresada no es válida.',
+                ], 422);
+            }
+        }
+
         $validated['enterprise_id'] = Auth::user()->enterprise_id;
-
-
         $recipient = Recipient::create($validated);
 
         return response()->json([
@@ -80,16 +88,12 @@ class RecipientController extends Controller
         ]);
     }
 
-
-
-
-
     public function store(Request $request)
     {
         $validated = $request->validate([
             'country' => 'required|string|max:100',
             'id_type' => 'required|string|max:50',
-            'identification' => 'required|string|max:50',
+            'identification' => 'nullable|string|max:50',
             'full_name' => 'required|string|max:100',
             'address' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
@@ -102,8 +106,14 @@ class RecipientController extends Controller
             'blocked' => 'required|boolean',
             'alert' => 'required|boolean',
         ]);
-        $validated['enterprise_id'] = Auth::user()->enterprise_id;
 
+        if ($validated['id_type'] === 'CEDULA' && !empty($validated['identification'])) {
+            if (!$this->isValidEcuadorianCedula($validated['identification'])) {
+                return redirect()->back()->withErrors(['identification' => 'La cédula ingresada no es válida.'])->withInput();
+            }
+        }
+
+        $validated['enterprise_id'] = Auth::user()->enterprise_id;
         Recipient::create($validated);
 
         return redirect()->route('recipients.index')->with('success', 'Recipient created successfully.');
@@ -113,7 +123,6 @@ class RecipientController extends Controller
     {
         $recipient = Recipient::where('enterprise_id', Auth::user()->enterprise_id)
             ->findOrFail($id);
-
 
         return Inertia::render('Recipient/Edit', [
             'recipient' => $recipient,
@@ -125,11 +134,10 @@ class RecipientController extends Controller
         $recipient = Recipient::where('enterprise_id', Auth::user()->enterprise_id)
             ->findOrFail($id);
 
-
         $validated = $request->validate([
             'country' => 'sometimes|required|string|max:100',
             'id_type' => 'sometimes|required|string|max:50',
-            'identification' => 'sometimes|required|string|max:50',
+            'identification' => 'nullable|string|max:50',
             'full_name' => 'sometimes|required|string|max:100',
             'address' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
@@ -142,6 +150,12 @@ class RecipientController extends Controller
             'blocked' => 'sometimes|required|boolean',
             'alert' => 'sometimes|required|boolean',
         ]);
+
+        if (($validated['id_type'] ?? $recipient->id_type) === 'CEDULA' && !empty($validated['identification'])) {
+            if (!$this->isValidEcuadorianCedula($validated['identification'])) {
+                return redirect()->back()->withErrors(['identification' => 'La cédula ingresada no es válida.'])->withInput();
+            }
+        }
 
         $recipient->update($validated);
 
@@ -156,5 +170,36 @@ class RecipientController extends Controller
         $recipient->delete();
 
         return redirect()->route('recipients.index')->with('success', 'Recipient deleted successfully.');
+    }
+
+    /**
+     * Valida la cédula ecuatoriana (10 dígitos, región válida y dígito verificador correcto)
+     */
+    private function isValidEcuadorianCedula($cedula)
+    {
+        if (!preg_match('/^\d{10}$/', $cedula)) {
+            return false;
+        }
+
+        $regionCode = (int)substr($cedula, 0, 2);
+        if ($regionCode < 1 || $regionCode > 24) {
+            return false;
+        }
+
+        $digits = str_split($cedula);
+        $sum = 0;
+        for ($i = 0; $i < 9; $i++) {
+            $num = (int)$digits[$i];
+            if ($i % 2 === 0) {
+                $num *= 2;
+                if ($num > 9) {
+                    $num -= 9;
+                }
+            }
+            $sum += $num;
+        }
+
+        $verifier = (10 - ($sum % 10)) % 10;
+        return $verifier == (int)$digits[9];
     }
 }

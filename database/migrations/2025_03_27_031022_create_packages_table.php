@@ -19,7 +19,7 @@ return new class extends Migration {
             $table->decimal('decl_val', 10, 2)->default(0);
             $table->decimal('ins_val', 10, 2)->default(0);
             $table->string('barcode', 30)->nullable();
-
+            $table->string('perfumeDesc', 255)->nullable();
             $table->timestamps();
 
             $table->foreign('reception_id')

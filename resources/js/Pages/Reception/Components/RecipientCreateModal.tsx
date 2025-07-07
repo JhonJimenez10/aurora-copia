@@ -69,7 +69,7 @@ export default function RecipientCreateModal({
         blocked: false,
         alert: false,
     };
-    const { data, setData, post, processing, errors, reset } =
+    const { data, setData, post, processing, errors, reset, setError } =
         useForm<RecipientFormData>({ ...base, ...defaultValues });
     useEffect(() => {
         if (open) {
@@ -81,14 +81,45 @@ export default function RecipientCreateModal({
     }, [defaultValues, open]);
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // ✅ Validar solo si hay algo escrito y el tipo es CEDULA
+        if (data.id_type === "CEDULA" && data.identification.trim() !== "") {
+            const cedulaRegex = /^\d{10}$/;
+            if (!cedulaRegex.test(data.identification)) {
+                setError(
+                    "identification",
+                    "La cédula debe tener exactamente 10 dígitos numéricos."
+                );
+                return;
+            }
+        }
+
         try {
             const response = await axios.post("/recipients-json", data);
-            onRecipientCreated(response.data.recipient); // ✅ usa el recipient creado
+            onRecipientCreated(response.data.recipient);
             reset();
-            onClose(false); // ✅ cierra el modal sin redirigir
-        } catch (error) {
+            onClose(false);
+        } catch (error: any) {
             console.error("Error al guardar el destinatario:", error);
-            alert("Hubo un error al guardar el destinatario ❌");
+
+            if (error.response && error.response.status === 422) {
+                const responseData = error.response.data;
+
+                if (responseData.message) {
+                    setError("identification", responseData.message);
+                }
+
+                if (responseData.errors) {
+                    for (const field in responseData.errors) {
+                        setError(field, responseData.errors[field][0]);
+                    }
+                }
+            } else {
+                setError(
+                    "identification",
+                    "Error inesperado al guardar el destinatario ❌"
+                );
+            }
         }
     };
 
@@ -139,14 +170,18 @@ export default function RecipientCreateModal({
                         <div>
                             <Label className="text-sm">Identificación</Label>
                             <Input
-                                className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
+                                className={`text-sm bg-[#2a2a3d] text-white border ${
+                                    errors.identification
+                                        ? "border-red-500"
+                                        : "border-gray-600"
+                                }`}
                                 value={data.identification}
                                 onChange={(e) =>
                                     setData("identification", e.target.value)
                                 }
                             />
                             {errors.identification && (
-                                <p className="text-red-500 text-xs">
+                                <p className="text-red-500 text-xs mt-1">
                                     {errors.identification}
                                 </p>
                             )}
@@ -182,8 +217,8 @@ export default function RecipientCreateModal({
                                     <SelectValue placeholder="Seleccionar país" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-[#2a2a3d] text-white">
-                                    <SelectItem value="ECUADOR">
-                                        ECUADOR
+                                    <SelectItem value="ESTADOS UNIDOS">
+                                        ESTADOS UNIDOS
                                     </SelectItem>
                                 </SelectContent>
                             </Select>

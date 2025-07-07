@@ -117,6 +117,7 @@ class ReceptionController extends Controller
                 'packages.*.total'             => 'required|numeric',
                 'packages.*.decl_val'          => 'required|numeric',
                 'packages.*.ins_val'           => 'required|numeric',
+                'packages.*.perfumeDesc'       => 'nullable|string|max:255',
                 'packages.*.items'             => 'nullable|array',
 
                 // Adicionales
@@ -154,6 +155,7 @@ class ReceptionController extends Controller
                     'decl_val'       => $pkg['decl_val'],
                     'ins_val'        => $pkg['ins_val'],
                     'barcode'        => $barcodeCode,
+                    'perfumeDesc'   => $pkg['perfumeDesc'] ?? null,
                 ]);
 
                 if (!empty($pkg['items'])) {
