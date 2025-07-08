@@ -169,7 +169,7 @@
                 {{-- VALOR TOTAL con "POR COBRAR" --}}
                 <tr>
                     <td style="text-align: left; font-weight: bold; padding: 1px 0;">
-                        @if(strtoupper($invoice->reception?->pay_method) === 'POR COBRAR')
+                        @if(in_array(strtoupper($invoice->reception?->pay_method), ['POR COBRAR', 'TRANSFERENCIA']))
                             *POR COBRAR*
                         @endif
                     </td>

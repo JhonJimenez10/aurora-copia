@@ -28,7 +28,7 @@
   @php
     $package = $item['package'];
     $barcode = $item['barcode'];
-    $isPorCobrar = strtoupper($reception->pay_method) === 'POR COBRAR';
+    $isPorCobrar = in_array(strtoupper($reception->pay_method), ['POR COBRAR', 'TRANSFERENCIA']);
   @endphp
 
   {{-- Sección POR COBRAR + código de barras --}}
