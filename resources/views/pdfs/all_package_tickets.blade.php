@@ -3,22 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #111; margin: 20px; }
+    @page {
+        margin-top: 0mm; /* elimina margen superior de la página */
+    }
+
+    body {
+        font-family: DejaVu Sans, sans-serif;
+        font-size: 12px;
+        color: #111;
+        margin: 2 10px 5px 10px; /* elimina margen superior */
+    }
+
     .center { text-align: center; }
-    .barcode-container { margin-bottom: 10px; }
-    .barcode { display: inline-block; margin-bottom: 5px; }
+    .barcode-container { margin-top: 0; margin-bottom: 4px; }
+    .barcode { display: inline-block; margin-bottom: 0; transform: scale(0.8); transform-origin: top left; }
     .bold { font-weight: bold; }
     .red { color: #d10000; }
-    .section { margin-top: 15px; padding-top: 10px; border-top: 1px solid #aaa; }
-    .section-title { background-color: #f2f2f2; font-weight: bold; font-size: 13px; padding: 4px 6px; border-left: 4px solid #333; margin-bottom: 5px; }
-    .info-line { margin: 2px 0; }
-    .icon { display: inline-block; width: 14px; font-weight: bold; margin-right: 4px; text-align: center; }
-    .bridgeport-title { text-align: center; font-size: 16px; font-weight: bold; margin-top: 10px; }
-    .details-table { width: 100%; margin: 10px 0; border-collapse: collapse; }
-    .details-table td { vertical-align: top; padding: 4px 6px; width: 50%; }
-    .dual-section { display: table; width: 100%; margin-top: 15px; padding-top: 10px; border-top: 1px solid #aaa; }
-    .dual-section .column { display: table-cell; width: 50%; vertical-align: top; padding: 0 10px; }
-    .barcode-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .section { margin-top: 8px; padding-top: 6px; border-top: 1px solid #aaa; }
+    .section-title { background-color: #f2f2f2; font-weight: bold; font-size: 13px; padding: 2px 4px; border-left: 4px solid #333; margin-bottom: 3px; }
+    .info-line { margin: 1px 0; }
+    .icon { display: inline-block; width: 12px; font-weight: bold; margin-right: 3px; text-align: center; }
+    .bridgeport-title { text-align: center; font-size: 22px; font-weight: bold; margin-top: 8px; }
+    .details-table { width: 100%; margin: 6px 0; border-collapse: collapse; }
+    .details-table td { vertical-align: top; padding: 2px 4px; width: 50%; }
+    .dual-section { display: table; width: 100%; margin-top: 8px; padding-top: 6px; border-top: 1px solid #aaa; }
+    .dual-section .column { display: table-cell; width: 50%; vertical-align: top; padding: 0 6px; }
     .page-break { page-break-after: always; }
   </style>
 </head>
@@ -29,26 +38,23 @@
     $package = $item['package'];
     $barcode = $item['barcode'];
     $isPorCobrar = in_array(strtoupper($reception->pay_method), ['POR COBRAR', 'TRANSFERENCIA']);
+    $weightLbs = is_numeric($package->pounds) ? floatval($package->pounds) : 0;
+    $weightKgs = $weightLbs * 0.453592;
   @endphp
 
-  {{-- Sección POR COBRAR + código de barras --}}
+  {{-- Código de barras pegado arriba --}}
+  <div class="barcode-container center" style="padding-top: 0;">
+    <div class="barcode">{!! $barcode !!}</div>
+    <div class="bold">{{ $package->barcode ?? '---' }}</div>
+  </div>
+
+  {{-- POR COBRAR --}}
   @if ($isPorCobrar)
-    <div class="barcode-row">
-      <div>
-        <div class="bold red" style="font-size: 18px;">POR COBRAR</div>
-        <div class="bold red" style="font-size: 16px;">
-          {{ number_format($package->total, 2) }} + recargos
-        </div>
+    <div class="center" style="margin-bottom: 6px;">
+      <div class="bold red" style="font-size: 16px;">POR COBRAR</div>
+      <div class="bold red" style="font-size: 14px;">
+        {{ number_format($package->total, 2) }} + recargos
       </div>
-      <div class="barcode-container" style="text-align: right;">
-        <div class="barcode">{!! $barcode !!}</div>
-        <div class="bold">{{ $package->barcode ?? '---' }}</div>
-      </div>
-    </div>
-  @else
-    <div class="barcode-container center">
-      <div class="barcode">{!! $barcode !!}</div>
-      <div class="bold">{{ $package->barcode ?? '---' }}</div>
     </div>
   @endif
 
@@ -65,11 +71,11 @@
         })->toArray();
       @endphp
       <td><span class="bold">CONTENIDO:</span> {{ implode(', ', $contentNames) }}</td>
-      <td><span class="bold">PESO LBS:</span> {{ number_format($package->weight, 2) }}</td>
+      <td><span class="bold">PESO LBS:</span> {{ number_format($weightLbs, 2) }}</td>
     </tr>
     <tr>
       <td><span class="bold">AL COBRO:</span> <span class="red">${{ number_format($package->total, 2) }}</span></td>
-      <td><span class="bold">PESO KGS:</span> {{ number_format($package->weight * 0.453592, 2) }}</td>
+      <td><span class="bold">PESO KGS:</span> {{ number_format($weightKgs, 2) }}</td>
     </tr>
   </table>
 
