@@ -25,6 +25,7 @@ import {
     MoreHorizontal,
     Paperclip,
     Plus,
+    Minus,
 } from "lucide-react";
 import { Provider as TooltipProvider } from "@radix-ui/react-tooltip";
 import {
@@ -258,7 +259,7 @@ export default function ShippingInterface() {
     const [additionals, setAdditionals] = useState<AdditionalItem[]>([
         { quantity: 0, unit: "", article: "", unit_price: 0 },
     ]);
-    const [payMethod, setPayMethod] = useState<string>("efectivo");
+    const [payMethod, setPayMethod] = useState<string>("EFECTIVO");
     const [efectivoRecibido, setEfectivoRecibido] = useState(0);
     const [showSenderModal, setShowSenderModal] = useState(false);
     const [showSearchModal, setShowSearchModal] = useState(false);
@@ -423,7 +424,7 @@ export default function ShippingInterface() {
             alert("Por favor seleccione una agencia de destino.");
             return;
         }
-        if (efectivoRecibido < total) {
+        if (payMethod === "EFECTIVO" && efectivoRecibido < total) {
             alert(
                 `El efectivo recibido ($${efectivoRecibido.toFixed(
                     2
@@ -431,6 +432,7 @@ export default function ShippingInterface() {
             );
             return;
         }
+
         if (!sender.id) {
             alert("Debe seleccionar un remitente.");
             return;
@@ -441,6 +443,10 @@ export default function ShippingInterface() {
         }
         if (packages.length === 0) {
             alert("Debe agregar al menos un paquete.");
+            return;
+        }
+        if (!payMethod || payMethod.trim() === "") {
+            alert("Por favor seleccione una forma de cobro.");
             return;
         }
 
@@ -641,6 +647,72 @@ export default function ShippingInterface() {
     // Nuevo estado para modal y PDF
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [pdfUrl, setPdfUrl] = useState("");
+    // Effect para atajos en teclado de eliminar, crear y editar por secciones de apartdos.
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (!event.altKey) return;
+
+            switch (currentTab) {
+                case "packages":
+                    if (event.key.toLowerCase() === "q") {
+                        event.preventDefault();
+                        if (packages.length > 0) {
+                            setPackages((prev) => prev.slice(0, -1)); // Elimina el último paquete
+                        }
+                    }
+                    if (event.key.toLowerCase() === "a") {
+                        event.preventDefault();
+                        setEditingPackageIndex(null);
+                        setPackageRowsForEdit(undefined);
+                        setShowPackageModal(true); // Abre modal para agregar paquete
+                    }
+                    if (event.key.toLowerCase() === "m") {
+                        event.preventDefault();
+                        if (packages.length > 0) {
+                            openEditPackageModal(packages.length - 1); // Edita el último paquete
+                        }
+                    }
+                    break;
+
+                case "sender":
+                    if (event.key.toLowerCase() === "a") {
+                        event.preventDefault();
+                        setShowSenderModal(true); // Abre modal para agregar remitente
+                    }
+                    break;
+
+                case "recipient":
+                    if (event.key.toLowerCase() === "a") {
+                        event.preventDefault();
+                        if (!agencyDest) return;
+                        setRecipientDefaults(
+                            agencyAddressDefaults[agencyDest] ?? {}
+                        );
+                        setShowRecipientModal(true); // Abre modal para agregar destinatario
+                    }
+                    break;
+
+                case "additionals":
+                    if (event.key.toLowerCase() === "a") {
+                        event.preventDefault();
+                        addAdditional(); // Agrega adicional
+                    }
+                    if (event.key.toLowerCase() === "q") {
+                        event.preventDefault();
+                        if (additionals.length > 0) {
+                            removeAdditional(additionals.length - 1); // Elimina el último adicional
+                        }
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [currentTab, packages, additionals, agencyDest]);
 
     return (
         <div className="max-w-6xl mx-auto p-4 bg-[#1e1e2f] text-white border border-purple-700 rounded-xl shadow-xl text-xs">
@@ -1230,24 +1302,35 @@ export default function ShippingInterface() {
                                     <Label className="text-sm text-blue-400 font-semibold">
                                         Paquetes
                                     </Label>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() =>
-                                                    setShowPackageModal(true)
-                                                }
-                                            >
-                                                <Plus className="w-4 h-4 text-green-500" />
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p className="text-[10px]">
-                                                Agregar
-                                            </p>
-                                        </TooltipContent>
-                                    </Tooltip>
+                                    <div className="flex items-center space-x-2">
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => {
+                                                        // Iniciar modal con datos nulos
+                                                        setEditingPackageIndex(
+                                                            null
+                                                        );
+                                                        setPackageRowsForEdit(
+                                                            undefined
+                                                        );
+                                                        setShowPackageModal(
+                                                            true
+                                                        );
+                                                    }}
+                                                >
+                                                    <Plus className="w-4 h-4 text-green-500" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p className="text-[10px]">
+                                                    Agregar paquete
+                                                </p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
                                 </div>
 
                                 <div className="overflow-auto border rounded border-purple-700">
@@ -1255,22 +1338,25 @@ export default function ShippingInterface() {
                                         <thead className="bg-[#2a2a3d] text-[10px] uppercase text-purple-300 tracking-wider">
                                             <tr>
                                                 <th className="px-2 py-2 border-b border-purple-700">
-                                                    Tipo Servicio
+                                                    Tipo
                                                 </th>
                                                 <th className="px-2 py-2 border-b border-purple-700">
                                                     Contenido
                                                 </th>
                                                 <th className="px-2 py-2 border-b border-purple-700 text-right">
-                                                    Peso (lbs)
+                                                    Lbs
                                                 </th>
                                                 <th className="px-2 py-2 border-b border-purple-700 text-right">
-                                                    Peso (kg)
+                                                    Kg
                                                 </th>
                                                 <th className="px-2 py-2 border-b border-purple-700 text-right">
                                                     Valor
                                                 </th>
                                                 <th className="px-2 py-2 border-b border-purple-700 text-right">
-                                                    V.Declarado
+                                                    V.Dec.
+                                                </th>
+                                                <th className="px-2 py-2 border-b border-purple-700 text-center">
+                                                    −
                                                 </th>
                                             </tr>
                                         </thead>
@@ -1278,7 +1364,7 @@ export default function ShippingInterface() {
                                             {packages.length === 0 ? (
                                                 <tr>
                                                     <td
-                                                        colSpan={6}
+                                                        colSpan={7}
                                                         className="text-center text-muted-foreground py-3"
                                                     >
                                                         No hay paquetes añadidos
@@ -1288,13 +1374,8 @@ export default function ShippingInterface() {
                                             ) : (
                                                 packages.map((pkg, idx) => (
                                                     <tr
-                                                        key={idx}
-                                                        onClick={() =>
-                                                            openEditPackageModal(
-                                                                idx
-                                                            )
-                                                        }
-                                                        className="border-t border-purple-800 even:bg-[#27273a] hover:bg-[#33334d] transition-all cursor-pointer"
+                                                        key={pkg.id || idx}
+                                                        className="border-t border-purple-800 even:bg-[#27273a] hover:bg-[#33334d] transition-all"
                                                     >
                                                         <td className="px-2 py-2">
                                                             {pkg.service_type}
@@ -1324,13 +1405,43 @@ export default function ShippingInterface() {
                                                                 2
                                                             )}
                                                         </td>
+                                                        <td className="px-2 py-2 text-center space-x-1">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() =>
+                                                                    openEditPackageModal(
+                                                                        idx
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Edit className="w-4 h-4 text-blue-400" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() =>
+                                                                    setPackages(
+                                                                        packages.filter(
+                                                                            (
+                                                                                _,
+                                                                                i
+                                                                            ) =>
+                                                                                i !==
+                                                                                idx
+                                                                        )
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Minus className="w-4 h-4 text-red-500" />
+                                                            </Button>
+                                                        </td>
                                                     </tr>
                                                 ))
                                             )}
                                         </tbody>
                                     </table>
                                 </div>
-
                                 {/* Fila SUBTOTAL / DESCUENTO / TOTAL */}
                                 <div className="flex justify-end mt-3 pr-1">
                                     <div className="w-full md:w-[320px] space-y-1">
@@ -1780,9 +1891,19 @@ export default function ShippingInterface() {
                                                     </Label>
                                                     <Select
                                                         value={payMethod}
-                                                        onValueChange={
-                                                            setPayMethod
-                                                        }
+                                                        onValueChange={(
+                                                            value
+                                                        ) => {
+                                                            setPayMethod(value);
+                                                            if (
+                                                                value !==
+                                                                "EFECTIVO"
+                                                            ) {
+                                                                setEfectivoRecibido(
+                                                                    0
+                                                                ); // Opcional: limpia el efectivo recibido
+                                                            }
+                                                        }}
                                                     >
                                                         <SelectTrigger className="w-26 bg-[#6b21a8] text-white border border-purple-700 rounded-md h-8">
                                                             <SelectValue placeholder="Seleccione" />
@@ -1802,12 +1923,6 @@ export default function ShippingInterface() {
                                                                 POR COBRAR
                                                             </SelectItem>
                                                             <SelectItem
-                                                                value="NOTA DE CREDITO"
-                                                                className="hover:bg-purple-700 focus:bg-purple-800 cursor-pointer transition-colors px-2 py-1 text-sm"
-                                                            >
-                                                                NOTA DE CREDITO
-                                                            </SelectItem>
-                                                            <SelectItem
                                                                 value="TRANSFERENCIA"
                                                                 className="hover:bg-purple-700 focus:bg-purple-800 cursor-pointer transition-colors px-2 py-1 text-sm"
                                                             >
@@ -1816,6 +1931,7 @@ export default function ShippingInterface() {
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
+
                                                 <div className="flex justify-between items-center">
                                                     <Label className="font-medium">
                                                         Efectivo recibido
@@ -1825,6 +1941,10 @@ export default function ShippingInterface() {
                                                         className="w-24 text-right"
                                                         min={0}
                                                         value={efectivoRecibido}
+                                                        disabled={
+                                                            payMethod !==
+                                                            "EFECTIVO"
+                                                        }
                                                         onChange={(e) => {
                                                             const value =
                                                                 parseFloat(
@@ -1846,6 +1966,7 @@ export default function ShippingInterface() {
                                                         }}
                                                     />
                                                 </div>
+
                                                 <div className="flex justify-between items-center text-pink-500 font-semibold">
                                                     <Label className="font-medium">
                                                         CAMBIO

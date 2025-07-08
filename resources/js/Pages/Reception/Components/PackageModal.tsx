@@ -63,35 +63,32 @@ export default function PackageModal({
 
     useEffect(() => {
         if (!open) return;
-        // cargar catálogo
         fetch("/art_packages/list/json")
             .then((r) => r.json())
             .then((data) => setArticles(data));
-
-        // inicializar filas:
-        if (initialRows && initialRows.length > 0) {
-            setRows(initialRows);
-        } else {
-            setRows([
-                {
-                    cantidad: "1",
-                    unidad: "",
-                    articulo_id: "",
-                    articulo: "",
-                    volumen: false,
-                    largo: "0",
-                    ancho: "0",
-                    altura: "0",
-                    peso: "0",
-                    unitario: "0",
-                    subtotal: "0",
-                    descuento: "0",
-                    total: "0",
-                    declarado: "0",
-                    asegurado: "0",
-                },
-            ]);
-        }
+        setRows(
+            initialRows && initialRows.length > 0
+                ? initialRows
+                : [
+                      {
+                          cantidad: "1",
+                          unidad: "",
+                          articulo_id: "",
+                          articulo: "",
+                          volumen: false,
+                          largo: "0",
+                          ancho: "0",
+                          altura: "0",
+                          peso: "0",
+                          unitario: "0",
+                          subtotal: "0",
+                          descuento: "0",
+                          total: "0",
+                          declarado: "0",
+                          asegurado: "0",
+                      },
+                  ]
+        );
     }, [open, initialRows]);
 
     const updateRow = (
@@ -99,41 +96,23 @@ export default function PackageModal({
         field: keyof PackageRow,
         value: string | boolean
     ) => {
-        setRows((prevRows) =>
-            prevRows.map((row, i) => {
+        setRows((prev) =>
+            prev.map((row, i) => {
                 if (i !== index) return row;
-
                 const updated = { ...row, [field]: value } as PackageRow;
-
-                // Parsear cantidad como número
                 const qty = parseFloat(updated.cantidad) || 0;
                 const price = parseFloat(updated.unitario) || 0;
                 const disc = parseFloat(updated.descuento) || 0;
-
-                // Recalcular subtotal y total si cambia cantidad, unitario o descuento
-                if (
-                    field === "cantidad" ||
-                    field === "unitario" ||
-                    field === "descuento"
-                ) {
+                if (["cantidad", "unitario", "descuento"].includes(field)) {
                     updated.subtotal = (qty * price).toFixed(2);
                     updated.total = Math.max(0, qty * price - disc).toFixed(2);
                 }
-
-                // ✅ Fijar peso según unidad
-                const unidad = updated.unidad.toUpperCase();
-
-                if (unidad === "LIBRAS") {
-                    // Si es LIBRAS, peso = cantidad
-                    updated.peso = qty.toFixed(2);
-                } else if (unidad === "UNIDAD") {
-                    // Si es UNIDAD, peso fijo de 0.22 (no depende de cantidad)
-                    updated.peso = "0.22";
-                } else {
-                    // Para otras unidades no definidas, dejar en 0
-                    updated.peso = "0";
-                }
-
+                updated.peso =
+                    updated.unidad.toUpperCase() === "LIBRAS"
+                        ? qty.toFixed(2)
+                        : updated.unidad.toUpperCase() === "UNIDAD"
+                        ? "0.22"
+                        : "0";
                 return updated;
             })
         );
@@ -147,7 +126,7 @@ export default function PackageModal({
         updateRow(index, "unitario", art?.unit_price?.toString() || "0");
     };
 
-    const addRow = () => {
+    const addRow = () =>
         setRows((r) => [
             ...r,
             {
@@ -168,13 +147,8 @@ export default function PackageModal({
                 asegurado: "0",
             },
         ]);
-    };
-
-    const removeRow = (idx: number) => {
-        if (rows.length <= 1) return;
-        setRows((r) => r.filter((_, i) => i !== idx));
-    };
-
+    const removeRow = (idx: number) =>
+        rows.length > 1 && setRows((r) => r.filter((_, i) => i !== idx));
     const handleAccept = () => {
         onSave(rows, serviceType, perfumeDesc);
         onClose();
@@ -200,8 +174,9 @@ export default function PackageModal({
                         </Button>
                     </div>
                 </div>
-                <div className="mb-4 grid grid-cols-1 gap-4">
-                    <div>
+
+                <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4 px-4">
+                    <div className="max-w-[200px]">
                         <label className="text-sm font-semibold text-purple-300 mb-1 block">
                             Tipo de servicio
                         </label>
@@ -226,7 +201,6 @@ export default function PackageModal({
                             </SelectContent>
                         </Select>
                     </div>
-
                     {serviceType === "PERFUMERIA" && (
                         <div>
                             <label className="text-sm font-semibold text-purple-300 mb-1 block">
@@ -242,9 +216,9 @@ export default function PackageModal({
                     )}
                 </div>
 
-                <div className="p-4 overflow-auto h-full">
-                    <table className="min-w-full text-xs text-left border-collapse">
-                        <thead className="bg-[#2a2a3d] text-[10px] uppercase text-purple-300 tracking-wider sticky top-0 z-10">
+                <div className="p-2 overflow-auto h-[55vh]">
+                    <table className="min-w-[900px] text-[11px] text-left border-collapse">
+                        <thead className="bg-[#2a2a3d] text-[10px] uppercase text-purple-300 sticky top-0 z-10">
                             <tr>
                                 {[
                                     "Cantidad",
@@ -263,7 +237,7 @@ export default function PackageModal({
                                 ].map((h, i) => (
                                     <th
                                         key={i}
-                                        className="px-2 py-2 border-b border-purple-700 text-center whitespace-nowrap"
+                                        className="px-1 py-1 border-b border-purple-700 text-center"
                                     >
                                         {h}
                                     </th>
@@ -278,7 +252,7 @@ export default function PackageModal({
                                 >
                                     <td>
                                         <Input
-                                            className="h-7 text-center"
+                                            className="h-6 text-center text-[11px]"
                                             value={row.cantidad}
                                             onChange={(e) =>
                                                 updateRow(
@@ -291,7 +265,7 @@ export default function PackageModal({
                                     </td>
                                     <td>
                                         <Input
-                                            className="h-7 text-center bg-[#2a2a3d] opacity-80 cursor-not-allowed"
+                                            className="h-6 text-center bg-[#2a2a3d] opacity-80 cursor-not-allowed text-[11px]"
                                             value={row.unidad}
                                             disabled
                                         />
@@ -303,7 +277,7 @@ export default function PackageModal({
                                                 handleArticleSelect(i, v)
                                             }
                                         >
-                                            <SelectTrigger className="h-7 bg-[#2a2a3d] text-white">
+                                            <SelectTrigger className="h-6 bg-[#2a2a3d] text-white text-[11px]">
                                                 <SelectValue placeholder="Seleccionar" />
                                             </SelectTrigger>
                                             <SelectContent className="bg-[#2a2a3d] text-white">
@@ -331,7 +305,7 @@ export default function PackageModal({
                                             <td key={f}>
                                                 <Input
                                                     disabled={!row.volumen}
-                                                    className="h-7 text-center"
+                                                    className="h-6 text-center text-[11px]"
                                                     value={
                                                         row[
                                                             f as keyof PackageRow
@@ -351,14 +325,14 @@ export default function PackageModal({
                                     <td>
                                         <Input
                                             disabled
-                                            className="h-7 text-center opacity-50"
+                                            className="h-6 text-center opacity-50 text-[11px]"
                                             value={row.unitario}
                                         />
                                     </td>
                                     <td className="text-center">{row.total}</td>
                                     <td>
                                         <Input
-                                            className="h-7 text-center"
+                                            className="h-6 text-center text-[11px]"
                                             value={row.declarado}
                                             onChange={(e) =>
                                                 updateRow(
@@ -371,7 +345,7 @@ export default function PackageModal({
                                     </td>
                                     <td>
                                         <Input
-                                            className="h-7 text-center"
+                                            className="h-6 text-center text-[11px]"
                                             value={row.asegurado}
                                             onChange={(e) =>
                                                 updateRow(
@@ -404,13 +378,10 @@ export default function PackageModal({
                         <tfoot>
                             <tr className="bg-[#1e1e2f] border-t border-purple-700">
                                 <td colSpan={6}></td>
-                                <td className="px-2 py-2 text-right text-purple-300 font-semibold">
+                                <td className="px-2 py-1 text-right text-purple-300 font-semibold">
                                     LIBRAS:
                                 </td>
-                                <td
-                                    colSpan={1}
-                                    className="px-2 py-2 text-right font-bold"
-                                >
+                                <td className="px-2 py-1 text-right font-bold">
                                     {rows
                                         .reduce(
                                             (a, r) =>
@@ -419,10 +390,10 @@ export default function PackageModal({
                                         )
                                         .toFixed(2)}
                                 </td>
-                                <td className="px-2 py-2 text-right text-purple-300 font-semibold">
+                                <td className="px-2 py-1 text-right text-purple-300 font-semibold">
                                     KILOS:
                                 </td>
-                                <td className="px-2 py-2 text-right font-bold">
+                                <td className="px-2 py-1 text-right font-bold">
                                     {(
                                         rows.reduce(
                                             (a, r) =>
@@ -431,10 +402,10 @@ export default function PackageModal({
                                         ) / 2.20462
                                     ).toFixed(2)}
                                 </td>
-                                <td className="px-2 py-2 text-right text-purple-300 font-semibold">
+                                <td className="px-2 py-1 text-right text-purple-300 font-semibold">
                                     TOTAL:
                                 </td>
-                                <td className="px-2 py-2 text-right font-bold">
+                                <td className="px-2 py-1 text-right font-bold">
                                     {rows
                                         .reduce(
                                             (a, r) =>
