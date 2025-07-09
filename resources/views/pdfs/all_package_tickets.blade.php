@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <style>
     @page {
-        margin-top: 0mm; /* elimina margen superior de la página */
+        margin-top: 0mm; 
     }
 
     body {
         font-family: DejaVu Sans, sans-serif;
         font-size: 12px;
         color: #111;
-        margin: 2 10px 5px 10px; /* elimina margen superior */
+        margin: 2 10px 5px 10px; 
     }
 
     .center { text-align: center; }

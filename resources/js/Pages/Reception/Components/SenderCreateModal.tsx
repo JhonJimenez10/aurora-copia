@@ -267,19 +267,48 @@ export default function SenderCreateModal({
                             </div>
                         </div>
 
-                        {/* Email */}
-                        <div>
+                        {/* Email + Check */}
+                        <div className="md:col-span-2">
                             <Label className="text-sm">
                                 Correo electrónico
                             </Label>
-                            <Input
-                                type="email"
-                                className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
-                                value={data.email}
-                                onChange={(e) =>
-                                    setData("email", e.target.value)
-                                }
-                            />
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    type="email"
+                                    className="text-sm bg-[#2a2a3d] text-white border border-gray-600 flex-1"
+                                    value={data.email}
+                                    onChange={(e) =>
+                                        setData("email", e.target.value)
+                                    }
+                                    disabled={
+                                        data.email ===
+                                        "cliente@auroraexpresss.com"
+                                    }
+                                />
+                                <div className="flex items-center gap-1">
+                                    <input
+                                        type="checkbox"
+                                        checked={
+                                            data.email ===
+                                            "cliente@auroraexpresss.com"
+                                        }
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setData(
+                                                    "email",
+                                                    "cliente@auroraexpresss.com"
+                                                );
+                                            } else {
+                                                setData("email", "");
+                                            }
+                                        }}
+                                        className="h-4 w-4"
+                                    />
+                                    <Label className="text-sm">
+                                        Usar por defecto
+                                    </Label>
+                                </div>
+                            </div>
                             {errors.email && (
                                 <p className="text-red-500 text-xs">
                                     {errors.email}
