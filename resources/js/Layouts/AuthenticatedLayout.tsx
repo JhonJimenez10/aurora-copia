@@ -27,15 +27,15 @@ export default function AuthenticatedLayout({
     };
 
     return (
-        <div className="flex min-h-screen bg-[#0f172a] text-white">
+        <div className="flex min-h-screen bg-black text-white">
             {/* Sidebar lateral izquierdo */}
             <SidebarNavigation />
 
-            {/* Contenido principal a la derecha del sidebar */}
+            {/* Contenido principal */}
             <div className="flex-1 flex flex-col">
                 {/* Header superior */}
-                <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-purple-800 bg-[#1e293b] px-6">
-                    {/* Logo + Nombre empresa con redirección al dashboard */}
+                <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-red-700 bg-black px-6">
+                    {/* Logo + Nombre empresa */}
                     <Link
                         href={route("dashboard")}
                         className="flex items-center gap-2 hover:opacity-80 transition-opacity"
@@ -46,18 +46,18 @@ export default function AuthenticatedLayout({
                             className="h-10 w-10"
                         />
                         <span className="text-lg font-semibold text-white">
-                            Aurora Express
+                            COURIER EXPRESS
                         </span>
                     </Link>
 
-                    {/* Notificaciones + Perfil usuario */}
+                    {/* Notificaciones + Perfil */}
                     <div className="flex items-center gap-4 ml-auto">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="gap-2 h-8 border border-purple-700 bg-slate-800 text-white hover:bg-slate-700"
+                                    className="gap-2 h-8 border border-red-600 bg-black text-white hover:bg-red-700"
                                 >
                                     <Avatar className="h-6 w-6">
                                         <AvatarFallback>
@@ -71,16 +71,16 @@ export default function AuthenticatedLayout({
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
                                 align="end"
-                                className="bg-slate-800 border border-purple-700 text-white"
+                                className="bg-black border border-red-600 text-white"
                             >
-                                <DropdownMenuLabel className="text-purple-300">
+                                <DropdownMenuLabel className="text-red-400">
                                     Mi Cuenta
                                 </DropdownMenuLabel>
-                                <DropdownMenuSeparator className="border-purple-700" />
+                                <DropdownMenuSeparator className="border-red-600" />
                                 <DropdownMenuItem>
                                     <Link
                                         href={route("profile.edit")}
-                                        className="w-full block text-white"
+                                        className="w-full block text-white hover:text-red-400"
                                     >
                                         Perfil
                                     </Link>
@@ -88,7 +88,7 @@ export default function AuthenticatedLayout({
                                 <DropdownMenuItem asChild>
                                     <button
                                         onClick={logout}
-                                        className="w-full text-left text-white hover:bg-purple-800"
+                                        className="w-full text-left text-white hover:bg-red-700"
                                     >
                                         Cerrar sesión
                                     </button>
@@ -98,19 +98,17 @@ export default function AuthenticatedLayout({
                     </div>
                 </header>
 
-                {/* Encabezado de página (opcional) */}
+                {/* Header página */}
                 {header && (
-                    <div className="border-b border-purple-700 bg-[#1e293b]">
+                    <div className="border-b border-red-700 bg-black">
                         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                             {header}
                         </div>
                     </div>
                 )}
 
-                {/* Contenido de la página */}
-                <main className="flex-1 p-4 md:p-6 bg-[#0f172a]">
-                    {children}
-                </main>
+                {/* Contenido principal */}
+                <main className="flex-1 p-4 md:p-6 bg-black">{children}</main>
             </div>
         </div>
     );

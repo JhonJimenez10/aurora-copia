@@ -27,20 +27,20 @@ export default function RecipientsIndex({
 
             <div className="container mx-auto px-4 py-8">
                 {/* Encabezado visual */}
-                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 rounded-t-lg">
+                <div className="bg-gradient-to-r from-red-700 via-red-600 to-yellow-400 text-white px-6 py-4 rounded-t-lg">
                     <h1 className="text-2xl font-bold">
                         Clientes Destinatario
                     </h1>
-                    <p className="text-purple-100 text-sm">
+                    <p className="text-white text-sm">
                         Gestión de destinatarios registrados
                     </p>
                 </div>
 
                 {/* Contenido principal */}
-                <div className="bg-slate-900 border border-slate-800 px-6 py-4 rounded-b-lg shadow-md">
+                <div className="bg-black border border-red-700 px-6 py-4 rounded-b-lg shadow-md">
                     <div className="flex justify-end mb-4">
                         <Link href="/recipients/create">
-                            <Button className="bg-green-600 hover:bg-green-700">
+                            <Button className="bg-green-600 hover:bg-green-700 text-white">
                                 + Nuevo Destinatario
                             </Button>
                         </Link>
@@ -49,9 +49,9 @@ export default function RecipientsIndex({
                     {/* Paginación superior */}
                     <Pagination pagination={pagination} />
 
-                    <div className="overflow-x-auto rounded-lg border border-slate-700">
+                    <div className="overflow-x-auto rounded-lg border border-red-700">
                         <table className="min-w-full text-sm text-white table-auto">
-                            <thead className="bg-purpleDark text-white">
+                            <thead className="bg-red-800 text-white">
                                 <tr>
                                     <th className="px-4 py-2 text-left">
                                         Nombre Completo
@@ -77,7 +77,7 @@ export default function RecipientsIndex({
                                 {recipients.map((recipient) => (
                                     <tr
                                         key={recipient.id}
-                                        className="border-t border-slate-700 hover:bg-slate-800"
+                                        className="border-t border-red-700 hover:bg-[#1b1b1b]"
                                     >
                                         <td className="px-4 py-2">
                                             {recipient.full_name}
@@ -99,7 +99,7 @@ export default function RecipientsIndex({
                                                 <Link
                                                     href={`/recipients/${recipient.id}/edit`}
                                                 >
-                                                    <Button className="bg-purpleLight hover:bg-purpleDark text-white h-7 px-3 text-xs">
+                                                    <Button className="bg-yellow-500 hover:bg-yellow-600 text-white h-7 px-3 text-xs">
                                                         Editar
                                                     </Button>
                                                 </Link>
@@ -131,7 +131,7 @@ export default function RecipientsIndex({
                                     <tr>
                                         <td
                                             colSpan={6}
-                                            className="text-center py-4 text-slate-400"
+                                            className="text-center py-4 text-red-400"
                                         >
                                             No hay destinatarios registrados.
                                         </td>

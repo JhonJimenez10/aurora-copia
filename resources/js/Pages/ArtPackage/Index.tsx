@@ -3,7 +3,7 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { PageProps } from "@/types";
 import { useState } from "react";
 import { Button } from "@/Components/ui/button";
-import Pagination from "@/Components/Pagination"; // Crea este componente o adapta uno
+import Pagination from "@/Components/Pagination";
 
 interface ArtPackage {
     id: string;
@@ -26,18 +26,16 @@ export default function ArtPackagesIndex({
             <Head title="Artículos por Agencia" />
 
             <div className="container mx-auto px-4 py-8">
-                {/* Cabecera visual */}
-                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 rounded-t-lg">
+                <div className="bg-gradient-to-r from-red-700 via-red-600 to-yellow-500 text-white px-6 py-4 rounded-t-lg">
                     <h1 className="text-2xl font-bold">
                         Artículos por Agencia
                     </h1>
-                    <p className="text-purple-100 text-sm">
+                    <p className="text-red-100 text-sm">
                         Catálogo de artículos utilizados por cada agencia
                     </p>
                 </div>
 
-                <div className="bg-slate-900 border border-slate-800 px-6 py-4 rounded-b-lg shadow-md">
-                    {/* Botón nuevo */}
+                <div className="bg-black border border-red-700 px-6 py-4 rounded-b-lg shadow-md">
                     <div className="flex justify-end mb-4">
                         <Link href="/art_packages/create">
                             <Button className="bg-green-600 hover:bg-green-700">
@@ -46,13 +44,11 @@ export default function ArtPackagesIndex({
                         </Link>
                     </div>
 
-                    {/* Paginación superior */}
                     <Pagination pagination={pagination} />
 
-                    {/* Tabla */}
-                    <div className="overflow-x-auto rounded-lg border border-slate-700">
+                    <div className="overflow-x-auto rounded-lg border border-red-700">
                         <table className="min-w-full text-sm text-white table-auto">
-                            <thead className="bg-purpleDark">
+                            <thead className="bg-red-800">
                                 <tr>
                                     <th className="px-4 py-2 text-left">
                                         Nombre
@@ -81,7 +77,7 @@ export default function ArtPackagesIndex({
                                 {art_packages.map((item) => (
                                     <tr
                                         key={item.id}
-                                        className="border-t border-slate-700 hover:bg-slate-800"
+                                        className="border-t border-red-700 hover:bg-[#1b1b1b]"
                                     >
                                         <td className="px-4 py-2">
                                             {item.name}
@@ -106,7 +102,7 @@ export default function ArtPackagesIndex({
                                                 <Link
                                                     href={`/art_packages/${item.id}/edit`}
                                                 >
-                                                    <Button className="bg-purpleLight hover:bg-purpleDark text-white h-7 px-3 text-xs">
+                                                    <Button className="bg-red-600 hover:bg-red-700 text-white h-7 px-3 text-xs">
                                                         Editar
                                                     </Button>
                                                 </Link>
@@ -148,7 +144,6 @@ export default function ArtPackagesIndex({
                         </table>
                     </div>
 
-                    {/* Paginación inferior */}
                     <div className="mt-4">
                         <Pagination pagination={pagination} />
                     </div>

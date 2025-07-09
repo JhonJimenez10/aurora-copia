@@ -5,30 +5,29 @@ import { Button } from "@/Components/ui/button";
 import { Card, CardContent } from "@/Components/ui/card";
 import { Switch } from "@/Components/ui/switch";
 
-export default function AgencyDestForm({ agency = null }: { agency?: any }) {
+export default function ArtPackgForm({
+    art_packg = null,
+}: {
+    art_packg?: any;
+}) {
     const { data, setData, post, put, processing, errors } = useForm({
-        name: agency?.name || "",
-        code_letters: agency?.code_letters || "",
-        trade_name: agency?.trade_name || "",
-        address: agency?.address || "",
-        phone: agency?.phone || "",
-        postal_code: agency?.postal_code || "",
-        city: agency?.city || "",
-        state: agency?.state || "",
-        available_us: agency?.available_us || false,
+        name: art_packg?.name || "",
+        unit_type: art_packg?.unit_type || "",
+        unit_price: art_packg?.unit_price || "",
+        canceled: art_packg?.canceled || false,
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (agency) {
-            put(`/agencies_dest/${agency.id}`, { preserveScroll: true });
+        if (art_packg) {
+            put(`/art_packgs/${art_packg.id}`, { preserveScroll: true });
         } else {
-            post("/agencies_dest", { preserveScroll: true });
+            post("/art_packgs", { preserveScroll: true });
         }
     };
 
     return (
-        <Card className="bg-[#1e1e2f] border border-purple-700 shadow-xl">
+        <Card className="bg-black border border-red-700 shadow-xl">
             <CardContent className="p-6 space-y-5 text-sm text-white">
                 <form onSubmit={submit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -39,7 +38,7 @@ export default function AgencyDestForm({ agency = null }: { agency?: any }) {
                                 onChange={(e) =>
                                     setData("name", e.target.value)
                                 }
-                                className="bg-[#2a2a3d] border-gray-600 text-white"
+                                className="bg-[#1b1b1b] border border-red-700 text-white"
                             />
                             {errors.name && (
                                 <p className="text-red-500 text-xs mt-1">
@@ -49,106 +48,48 @@ export default function AgencyDestForm({ agency = null }: { agency?: any }) {
                         </div>
 
                         <div>
-                            <Label>Código de Letras</Label>
+                            <Label>Tipo de Unidad</Label>
                             <Input
-                                value={data.code_letters}
+                                value={data.unit_type}
                                 onChange={(e) =>
-                                    setData("code_letters", e.target.value)
+                                    setData("unit_type", e.target.value)
                                 }
-                                className="bg-[#2a2a3d] border-gray-600 text-white"
-                            />
-                            {errors.code_letters && (
-                                <p className="text-red-500 text-xs mt-1">
-                                    {errors.code_letters}
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                            <Label>Nombre Comercial</Label>
-                            <Input
-                                value={data.trade_name}
-                                onChange={(e) =>
-                                    setData("trade_name", e.target.value)
-                                }
-                                className="bg-[#2a2a3d] border-gray-600 text-white"
+                                className="bg-[#1b1b1b] border border-red-700 text-white"
                             />
                         </div>
 
                         <div>
-                            <Label>Dirección</Label>
+                            <Label>Precio por Unidad</Label>
                             <Input
-                                value={data.address}
+                                type="number"
+                                step="0.01"
+                                value={data.unit_price}
                                 onChange={(e) =>
-                                    setData("address", e.target.value)
+                                    setData("unit_price", e.target.value)
                                 }
-                                className="bg-[#2a2a3d] border-gray-600 text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <Label>Teléfono</Label>
-                            <Input
-                                value={data.phone}
-                                onChange={(e) =>
-                                    setData("phone", e.target.value)
-                                }
-                                className="bg-[#2a2a3d] border-gray-600 text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <Label>Código Postal</Label>
-                            <Input
-                                value={data.postal_code}
-                                onChange={(e) =>
-                                    setData("postal_code", e.target.value)
-                                }
-                                className="bg-[#2a2a3d] border-gray-600 text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <Label>Ciudad</Label>
-                            <Input
-                                value={data.city}
-                                onChange={(e) =>
-                                    setData("city", e.target.value)
-                                }
-                                className="bg-[#2a2a3d] border-gray-600 text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <Label>Provincia</Label>
-                            <Input
-                                value={data.state}
-                                onChange={(e) =>
-                                    setData("state", e.target.value)
-                                }
-                                className="bg-[#2a2a3d] border-gray-600 text-white"
+                                className="bg-[#1b1b1b] border border-red-700 text-white"
                             />
                         </div>
 
                         <div className="pt-4">
-                            <Label>Disponible US</Label>
+                            <Label>Anulado</Label>
                             <div className="mt-1">
                                 <Switch
-                                    checked={data.available_us}
+                                    checked={data.canceled}
                                     onCheckedChange={(val) =>
-                                        setData("available_us", val)
+                                        setData("canceled", val)
                                     }
                                 />
                             </div>
                         </div>
                     </div>
 
-                    <div className="pt-4 text-end">
+                    <div className="pt-4 text-end border-t border-red-700">
                         <Button
-                            className="bg-purple-600 hover:bg-purple-700 text-white px-6"
+                            className="bg-yellow-500 hover:bg-yellow-600 text-white px-6"
                             disabled={processing}
                         >
-                            {agency ? "Actualizar" : "Guardar"} Agencia
+                            {art_packg ? "Actualizar" : "Guardar"} Artículo
                         </Button>
                     </div>
                 </form>

@@ -3,9 +3,8 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Button } from "@/Components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/Components/ui/card";
 import { useState } from "react";
-import type { PageProps } from "@/types"; // Asegúrate de que este archivo existe
+import type { PageProps } from "@/types";
 
-// ✨ Extendemos las props globales
 interface BulkImportPageProps extends PageProps {
     type:
         | "senders"
@@ -61,14 +60,14 @@ export default function BulkImport() {
             <Head title={`Carga Masiva de ${moduleName}`} />
 
             <div className="p-6 max-w-3xl mx-auto space-y-6">
-                <Card>
+                <Card className="bg-black border border-red-700 shadow-xl">
                     <CardHeader>
-                        <CardTitle className="text-xl font-bold">
+                        <CardTitle className="text-xl font-bold text-white">
                             Importar {moduleName} desde Excel
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <p className="mb-4 text-sm text-muted-foreground">
+                    <CardContent className="text-white">
+                        <p className="mb-4 text-sm text-slate-400">
                             Descarga el archivo de ejemplo, llénalo con tus
                             datos y luego súbelo para realizar la importación
                             masiva.
@@ -81,7 +80,10 @@ export default function BulkImport() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >
-                                <Button variant="secondary">
+                                <Button
+                                    variant="secondary"
+                                    className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                                >
                                     📥 Descargar Ejemplo Excel
                                 </Button>
                             </a>
@@ -93,7 +95,7 @@ export default function BulkImport() {
                                     type="file"
                                     accept=".xlsx,.xls"
                                     onChange={handleFileChange}
-                                    className="block w-full text-sm text-white bg-slate-800 file:bg-purple-700 file:border-none file:px-4 file:py-2 file:rounded file:text-white hover:file:bg-purple-600"
+                                    className="block w-full text-sm text-white bg-[#1b1b1b] border border-red-700 file:bg-red-700 file:border-none file:px-4 file:py-2 file:rounded file:text-white hover:file:bg-red-600"
                                 />
                                 {errors.file && (
                                     <p className="text-red-500 text-sm mt-1">
@@ -102,7 +104,11 @@ export default function BulkImport() {
                                 )}
                             </div>
 
-                            <Button type="submit" disabled={processing}>
+                            <Button
+                                type="submit"
+                                disabled={processing}
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                            >
                                 {processing
                                     ? "Importando..."
                                     : `📤 Importar ${moduleName}`}
@@ -110,12 +116,12 @@ export default function BulkImport() {
                         </form>
 
                         {successMessage && (
-                            <div className="mt-4 text-green-600 font-medium">
+                            <div className="mt-4 text-green-500 font-medium">
                                 {successMessage}
                             </div>
                         )}
                         {errorMessage && (
-                            <div className="mt-4 text-red-600 font-medium">
+                            <div className="mt-4 text-red-500 font-medium">
                                 {errorMessage}
                             </div>
                         )}

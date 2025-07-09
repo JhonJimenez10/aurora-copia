@@ -34,14 +34,12 @@ type NavItem = {
 export default function SidebarNavigation() {
     const { props } = usePage<PageProps>();
     const userRole = props.auth?.role;
-    console.log("ROL:", userRole);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
     const { url } = usePage();
 
     const toggleSidebar = () => setIsCollapsed(!isCollapsed);
 
-    // ⚙️ Ítems de navegación según rol
     const navItems: NavItem[] = [];
 
     if (userRole === "Sudo") {
@@ -134,7 +132,6 @@ export default function SidebarNavigation() {
                     },
                 ],
             },
-
             {
                 title: "Reportes",
                 icon: <BarChart3 className="h-5 w-5" />,
@@ -159,6 +156,9 @@ export default function SidebarNavigation() {
 
     const renderNavItem = (item: NavItem) => {
         const isActive = item.href && url.startsWith(item.href);
+        const activeColor = "bg-red-600 text-white font-medium";
+        const hoverColor = "hover:bg-red-700 hover:text-white";
+        const textColor = "text-gray-300";
 
         if (item.children) {
             const isOpen = openSubmenu === item.title;
@@ -171,9 +171,7 @@ export default function SidebarNavigation() {
                         }
                         className={cn(
                             "flex items-center justify-between w-full px-4 py-3 text-sm transition-colors",
-                            isOpen
-                                ? "bg-purple-800 text-white font-medium"
-                                : "text-purple-200 hover:bg-purple-700 hover:text-white"
+                            isOpen ? activeColor : `${textColor} ${hoverColor}`
                         )}
                     >
                         <span className="flex items-center gap-3">
@@ -197,7 +195,7 @@ export default function SidebarNavigation() {
                                         "flex items-center gap-2 py-2 text-sm transition-colors",
                                         url.startsWith(child.href!)
                                             ? "text-white font-medium"
-                                            : "text-purple-300 hover:text-white"
+                                            : `${textColor} ${hoverColor}`
                                     )}
                                 >
                                     {child.icon}
@@ -216,9 +214,7 @@ export default function SidebarNavigation() {
                 href={item.href!}
                 className={cn(
                     "flex items-center gap-3 px-4 py-3 text-sm transition-colors",
-                    isActive
-                        ? "bg-purple-800 text-white font-medium"
-                        : "text-purple-300 hover:bg-purple-700 hover:text-white",
+                    isActive ? activeColor : `${textColor} ${hoverColor}`,
                     isCollapsed && "justify-center px-0"
                 )}
                 title={isCollapsed ? item.title : undefined}
@@ -232,23 +228,23 @@ export default function SidebarNavigation() {
     return (
         <>
             {/* 📱 Mobile Sidebar */}
-            <div className="lg:hidden flex items-center h-16 px-4 border-b border-purple-800 bg-[#1e293b] text-white">
+            <div className="lg:hidden flex items-center h-16 px-4 border-b border-red-700 bg-black text-white">
                 <Sheet>
                     <SheetTrigger asChild>
                         <Button
                             variant="outline"
                             size="icon"
-                            className="mr-2 border border-purple-700 bg-slate-800"
+                            className="mr-2 border border-red-600 bg-black hover:bg-red-700"
                         >
                             <Menu className="h-5 w-5 text-white" />
                         </Button>
                     </SheetTrigger>
                     <SheetContent
                         side="left"
-                        className="w-[240px] p-0 bg-[#1e293b] text-white"
+                        className="w-[240px] p-0 bg-black text-white"
                     >
                         <div className="flex flex-col h-full">
-                            <div className="h-16 flex items-center px-4 border-b border-purple-800 font-medium">
+                            <div className="h-16 flex items-center px-4 border-b border-red-700 font-medium">
                                 Panel de Administración
                             </div>
                             <nav className="flex-1 overflow-auto py-2">
@@ -263,13 +259,13 @@ export default function SidebarNavigation() {
             {/* 🖥 Desktop Sidebar */}
             <div
                 className={cn(
-                    "hidden lg:flex flex-col min-h-screen border-r border-purple-800 bg-[#1e293b] transition-all duration-300 text-white",
+                    "hidden lg:flex flex-col min-h-screen border-r border-red-700 bg-black transition-all duration-300 text-white",
                     isCollapsed ? "w-[70px]" : "w-[240px]"
                 )}
             >
                 <div
                     className={cn(
-                        "h-16 flex items-center px-4 border-b border-purple-800 font-medium",
+                        "h-16 flex items-center px-4 border-b border-red-700 font-medium",
                         isCollapsed && "justify-center"
                     )}
                 >
@@ -279,12 +275,12 @@ export default function SidebarNavigation() {
                     <nav className="flex-1 py-2">
                         {navItems.map(renderNavItem)}
                     </nav>
-                    <div className="border-t border-purple-800 p-2">
+                    <div className="border-t border-red-700 p-2">
                         <Button
                             variant="ghost"
                             size="icon"
                             onClick={toggleSidebar}
-                            className="w-full flex justify-center text-white hover:bg-purple-700"
+                            className="w-full flex justify-center text-white hover:bg-red-700"
                         >
                             {isCollapsed ? (
                                 <ChevronRight className="h-5 w-5" />

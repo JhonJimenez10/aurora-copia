@@ -715,22 +715,40 @@ export default function ShippingInterface() {
     }, [currentTab, packages, additionals, agencyDest]);
 
     return (
-        <div className="max-w-6xl mx-auto p-4 bg-[#1e1e2f] text-white border border-purple-700 rounded-xl shadow-xl text-xs">
+        <div className="max-w-6xl mx-auto p-4 bg-black text-white border border-red-700 rounded-xl shadow-xl text-xs">
             <TooltipProvider>
                 {/* Cabecera */}
                 <div className="flex items-center justify-between mb-1">
-                    <h1 className="text-base font-bold">RECEPCIÓN</h1>
+                    <h1 className="text-base font-bold text-yellow-400">
+                        RECEPCIÓN
+                    </h1>
                     <div className="flex space-x-1">
-                        <Button variant="ghost" size="icon">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-yellow-400 hover:text-yellow-500"
+                        >
                             <FileText className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-yellow-400 hover:text-yellow-500"
+                        >
                             <Clipboard className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-yellow-400 hover:text-yellow-500"
+                        >
                             <Download className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-yellow-400 hover:text-yellow-500"
+                        >
                             <Printer className="h-4 w-4" />
                         </Button>
                         <Tooltip>
@@ -739,79 +757,91 @@ export default function ShippingInterface() {
                                     variant="ghost"
                                     size="icon"
                                     onClick={openSearchModal}
+                                    className="text-yellow-400 hover:text-yellow-500"
                                 >
                                     <Search className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p className="text-[10px]">Search Sender</p>
+                                <p className="text-[10px]">Buscar remitente</p>
                             </TooltipContent>
                         </Tooltip>
-                        <Button variant="ghost" size="icon">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-yellow-400 hover:text-yellow-500"
+                        >
                             <MoreHorizontal className="h-4 w-4" />
                         </Button>
                     </div>
                 </div>
 
                 <div className="text-center mb-1">
-                    <span className="text-pink-500 text-[10px]">
+                    <span className="text-yellow-400 text-[10px]">
                         Nuevo registro...
                     </span>
                 </div>
 
                 {/* Datos principales */}
                 <div className="grid grid-cols-3 gap-2 mb-2">
-                    {/* Number */}
+                    {/* Número */}
                     <div className="flex flex-col">
-                        <Label className="mb-0.5 font-medium">Número:</Label>
+                        <Label className="mb-0.5 font-medium text-yellow-400">
+                            Número:
+                        </Label>
                         <Input
                             value={receptionNumber}
-                            className="w-full"
+                            className="w-full bg-black text-white border border-red-700"
                             readOnly
                         />
                     </div>
-                    {/* Route */}
+                    {/* Ruta */}
                     <div className="flex flex-col">
-                        <Label className="mb-0.5 font-medium">Ruta</Label>
+                        <Label className="mb-0.5 font-medium text-yellow-400">
+                            Ruta
+                        </Label>
                         <Select
                             value={route}
                             onValueChange={(val) => setRoute(val)}
                         >
-                            <SelectTrigger className="w-full">
+                            <SelectTrigger className="w-full bg-black text-white border border-red-700">
                                 <SelectValue placeholder="ECUADOR - ESTADOS UNIDOS" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-black border border-red-700 text-white">
                                 <SelectItem value="ecu-us">
                                     ECUADOR - ESTADOS UNIDOS
                                 </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
-                    {/* Date */}
+                    {/* Fecha y hora */}
                     <div className="flex flex-col">
-                        <Label className="mb-0.5 font-medium">
+                        <Label className="mb-0.5 font-medium text-yellow-400">
                             Fecha y hora:
                         </Label>
                         <Input
                             type="date"
-                            className="w-full text-white bg-transparent border
-             [&::-webkit-calendar-picker-indicator]:invert
-             [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                            className="w-full bg-black text-white border border-red-700 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                             value={receptionDate}
                             onChange={(e) => setReceptionDate(e.target.value)}
                         />
                     </div>
                 </div>
 
+                {/* Agencias */}
                 <div className="grid grid-cols-2 gap-2 mb-2">
-                    {/* Ag. origen */}
                     <div className="flex flex-col">
-                        <Label className="mb-0.5 font-medium">Ag. origen</Label>
-                        <Input value="CUENCA CENTRO" readOnly />
+                        <Label className="mb-0.5 font-medium text-yellow-400">
+                            Ag. origen
+                        </Label>
+                        <Input
+                            value="CUENCA CENTRO"
+                            readOnly
+                            className="bg-black text-white border border-red-700"
+                        />
                     </div>
-                    {/* Ag. destino */}
                     <div className="flex flex-col">
-                        <Label className="mb-0.5 font-medium">
+                        <Label className="mb-0.5 font-medium text-yellow-400">
                             Ag. destino
                         </Label>
                         <div className="flex items-start gap-2">
@@ -819,16 +849,16 @@ export default function ShippingInterface() {
                                 value={agencyDest}
                                 onValueChange={setAgencyDest}
                             >
-                                <SelectTrigger className="w-full bg-[#6b21a8] text-white border border-purple-700 rounded-md h-8">
+                                <SelectTrigger className="w-full bg-black text-white border border-red-700">
                                     <SelectValue placeholder="Seleccionar destino" />
                                 </SelectTrigger>
 
-                                <SelectContent className="bg-[#1e1e2f] border border-purple-700 text-white shadow-lg z-50">
+                                <SelectContent className="bg-black text-white border border-red-700">
                                     {agencyOptions.map((agency) => (
                                         <SelectItem
                                             key={agency.id}
                                             value={agency.id}
-                                            className="hover:bg-purple-700 focus:bg-purple-800 cursor-pointer transition-colors px-2 py-1 text-sm"
+                                            className="hover:bg-red-700 cursor-pointer transition-colors px-2 py-1 text-sm"
                                         >
                                             {agency.name}
                                         </SelectItem>
@@ -836,15 +866,14 @@ export default function ShippingInterface() {
                                 </SelectContent>
                             </Select>
 
-                            {/* Ícono con tooltip */}
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <span className="mt-1 cursor-pointer text-purple-400 hover:text-purple-200 transition">
+                                        <span className="mt-1 cursor-pointer text-yellow-400 hover:text-yellow-200 transition">
                                             <Info className="w-4 h-4" />
                                         </span>
                                     </TooltipTrigger>
-                                    <TooltipContent className="bg-[#1e1e2f] text-white border border-purple-700 shadow-md text-xs max-w-[250px]">
+                                    <TooltipContent className="bg-black text-white border border-red-700 text-xs max-w-[250px]">
                                         {(() => {
                                             const agency = agencyOptions.find(
                                                 (a) => a.id === agencyDest
@@ -921,19 +950,28 @@ export default function ShippingInterface() {
                             className="w-full"
                             onValueChange={setCurrentTab}
                         >
-                            <TabsList className="w-full grid grid-cols-4 bg-muted text-muted-foreground text-[10px] rounded-none">
-                                <TabsTrigger value="sender" className="py-1">
+                            <TabsList className="w-full grid grid-cols-4 bg-black text-white text-[10px] rounded-none border-b border-red-600">
+                                <TabsTrigger
+                                    value="sender"
+                                    className="py-1 data-[state=active]:bg-red-600 data-[state=active]:text-white hover:bg-red-700"
+                                >
                                     REMITENTE
                                 </TabsTrigger>
-                                <TabsTrigger value="recipient" className="py-1">
+                                <TabsTrigger
+                                    value="recipient"
+                                    className="py-1 data-[state=active]:bg-red-600 data-[state=active]:text-white hover:bg-red-700"
+                                >
                                     DESTINATARIO
                                 </TabsTrigger>
-                                <TabsTrigger value="packages" className="py-1">
+                                <TabsTrigger
+                                    value="packages"
+                                    className="py-1 data-[state=active]:bg-red-600 data-[state=active]:text-white hover:bg-red-700"
+                                >
                                     PAQUETES
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="additionals"
-                                    className="py-1"
+                                    className="py-1 data-[state=active]:bg-red-600 data-[state=active]:text-white hover:bg-red-700"
                                 >
                                     ADICIONALES
                                 </TabsTrigger>
@@ -942,10 +980,10 @@ export default function ShippingInterface() {
                             {/* SENDER TAB */}
                             <TabsContent
                                 value="sender"
-                                className="border rounded p-1 mt-1 space-y-1"
+                                className="border border-red-600 rounded p-1 mt-1 space-y-1 bg-black text-white"
                             >
                                 <div className="flex justify-between items-center">
-                                    <Label className="font-medium">
+                                    <Label className="font-medium text-yellow-400">
                                         Identificación
                                     </Label>
                                     <div className="flex space-x-1">
@@ -955,6 +993,7 @@ export default function ShippingInterface() {
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={openSearchModal}
+                                                    className="text-yellow-400 hover:text-yellow-500"
                                                 >
                                                     <Search className="h-4 w-4" />
                                                 </Button>
@@ -973,8 +1012,9 @@ export default function ShippingInterface() {
                                                     onClick={() =>
                                                         setShowSenderModal(true)
                                                     }
+                                                    className="text-green-500 hover:text-green-600"
                                                 >
-                                                    <Plus className="w-4 h-4 text-green-500" />
+                                                    <Plus className="w-4 h-4" />
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent>
@@ -988,6 +1028,7 @@ export default function ShippingInterface() {
 
                                 <Input
                                     placeholder="Identificación"
+                                    className="bg-black text-white border border-red-700"
                                     value={sender.identification}
                                     onChange={(e) =>
                                         setSender({
@@ -996,10 +1037,12 @@ export default function ShippingInterface() {
                                         })
                                     }
                                 />
-                                <Label className="font-medium">
+
+                                <Label className="font-medium text-yellow-400">
                                     Apellidos y nombres
                                 </Label>
                                 <Input
+                                    className="bg-black text-white border border-red-700"
                                     value={sender.full_name}
                                     onChange={(e) =>
                                         setSender({
@@ -1008,8 +1051,12 @@ export default function ShippingInterface() {
                                         })
                                     }
                                 />
-                                <Label className="font-medium">Dirección</Label>
+
+                                <Label className="font-medium text-yellow-400">
+                                    Dirección
+                                </Label>
                                 <Input
+                                    className="bg-black text-white border border-red-700"
                                     value={sender.address}
                                     onChange={(e) =>
                                         setSender({
@@ -1018,12 +1065,14 @@ export default function ShippingInterface() {
                                         })
                                     }
                                 />
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                                     <div>
-                                        <Label className="font-medium">
+                                        <Label className="font-medium text-yellow-400">
                                             Celular
                                         </Label>
                                         <Input
+                                            className="bg-black text-white border border-red-700"
                                             value={sender.phone}
                                             onChange={(e) =>
                                                 setSender({
@@ -1034,11 +1083,12 @@ export default function ShippingInterface() {
                                         />
                                     </div>
                                     <div>
-                                        <Label className="font-medium">
+                                        <Label className="font-medium text-yellow-400">
                                             Correo electrónico
                                         </Label>
                                         <Input
                                             type="email"
+                                            className="bg-black text-white border border-red-700"
                                             value={sender.email}
                                             onChange={(e) =>
                                                 setSender({
@@ -1049,12 +1099,14 @@ export default function ShippingInterface() {
                                         />
                                     </div>
                                 </div>
+
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
                                     <div>
-                                        <Label className="font-medium">
+                                        <Label className="font-medium text-yellow-400">
                                             Código postal
                                         </Label>
                                         <Input
+                                            className="bg-black text-white border border-red-700"
                                             value={sender.postal_code}
                                             onChange={(e) =>
                                                 setSender({
@@ -1065,10 +1117,11 @@ export default function ShippingInterface() {
                                         />
                                     </div>
                                     <div>
-                                        <Label className="font-medium">
-                                            Parroquia/City
+                                        <Label className="font-medium text-yellow-400">
+                                            Parroquia / City
                                         </Label>
                                         <Input
+                                            className="bg-black text-white border border-red-700"
                                             value={sender.city}
                                             onChange={(e) =>
                                                 setSender({
@@ -1079,10 +1132,11 @@ export default function ShippingInterface() {
                                         />
                                     </div>
                                     <div>
-                                        <Label className="font-medium">
+                                        <Label className="font-medium text-yellow-400">
                                             Cantón / Country
                                         </Label>
                                         <Input
+                                            className="bg-black text-white border border-red-700"
                                             value={sender.canton}
                                             onChange={(e) =>
                                                 setSender({
@@ -1093,11 +1147,13 @@ export default function ShippingInterface() {
                                         />
                                     </div>
                                 </div>
+
                                 <div>
-                                    <Label className="font-medium">
+                                    <Label className="font-medium text-yellow-400">
                                         Provincia / State
                                     </Label>
                                     <Input
+                                        className="bg-black text-white border border-red-700"
                                         value={sender.state}
                                         onChange={(e) =>
                                             setSender({
@@ -1110,12 +1166,13 @@ export default function ShippingInterface() {
                             </TabsContent>
 
                             {/* RECIPIENT TAB */}
+                            {/* DESTINATARIO */}
                             <TabsContent
                                 value="recipient"
-                                className="border rounded p-1 mt-1 space-y-1"
+                                className="border border-red-600 rounded p-1 mt-1 space-y-1 bg-black text-white"
                             >
                                 <div className="flex justify-between items-center">
-                                    <Label className="font-medium">
+                                    <Label className="font-medium text-yellow-400">
                                         Identificación
                                     </Label>
                                     <div className="flex space-x-1">
@@ -1129,6 +1186,7 @@ export default function ShippingInterface() {
                                                             true
                                                         )
                                                     }
+                                                    className="text-yellow-400 hover:text-yellow-500"
                                                 >
                                                     <Search className="h-4 w-4" />
                                                 </Button>
@@ -1156,8 +1214,13 @@ export default function ShippingInterface() {
                                                             true
                                                         );
                                                     }}
+                                                    className={`${
+                                                        agencyDest
+                                                            ? "text-green-500 hover:text-green-600"
+                                                            : "text-gray-500 cursor-not-allowed"
+                                                    }`}
                                                 >
-                                                    <Plus className="w-4 h-4 text-green-500" />
+                                                    <Plus className="w-4 h-4" />
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent>
@@ -1170,6 +1233,7 @@ export default function ShippingInterface() {
                                         </Tooltip>
                                     </div>
                                 </div>
+
                                 <Input
                                     placeholder="Identificación"
                                     value={recipient.identification}
@@ -1179,8 +1243,9 @@ export default function ShippingInterface() {
                                             identification: e.target.value,
                                         })
                                     }
+                                    className="bg-black text-white border border-red-700"
                                 />
-                                <Label className="font-medium">
+                                <Label className="font-medium text-yellow-400">
                                     Apellidos y nombres
                                 </Label>
                                 <Input
@@ -1191,8 +1256,11 @@ export default function ShippingInterface() {
                                             full_name: e.target.value,
                                         })
                                     }
+                                    className="bg-black text-white border border-red-700"
                                 />
-                                <Label className="font-medium">Dirección</Label>
+                                <Label className="font-medium text-yellow-400">
+                                    Dirección
+                                </Label>
                                 <Input
                                     value={recipient.address}
                                     onChange={(e) =>
@@ -1201,10 +1269,12 @@ export default function ShippingInterface() {
                                             address: e.target.value,
                                         })
                                     }
+                                    className="bg-black text-white border border-red-700"
                                 />
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                                     <div>
-                                        <Label className="font-medium">
+                                        <Label className="font-medium text-yellow-400">
                                             Celular
                                         </Label>
                                         <Input
@@ -1215,10 +1285,11 @@ export default function ShippingInterface() {
                                                     phone: e.target.value,
                                                 })
                                             }
+                                            className="bg-black text-white border border-red-700"
                                         />
                                     </div>
                                     <div>
-                                        <Label className="font-medium">
+                                        <Label className="font-medium text-yellow-400">
                                             Correo electrónico
                                         </Label>
                                         <Input
@@ -1230,12 +1301,14 @@ export default function ShippingInterface() {
                                                     email: e.target.value,
                                                 })
                                             }
+                                            className="bg-black text-white border border-red-700"
                                         />
                                     </div>
                                 </div>
+
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
                                     <div>
-                                        <Label className="font-medium">
+                                        <Label className="font-medium text-yellow-400">
                                             Código postal
                                         </Label>
                                         <Input
@@ -1246,10 +1319,11 @@ export default function ShippingInterface() {
                                                     postal_code: e.target.value,
                                                 })
                                             }
+                                            className="bg-black text-white border border-red-700"
                                         />
                                     </div>
                                     <div>
-                                        <Label className="font-medium">
+                                        <Label className="font-medium text-yellow-400">
                                             Parroquia / City
                                         </Label>
                                         <Input
@@ -1260,10 +1334,11 @@ export default function ShippingInterface() {
                                                     city: e.target.value,
                                                 })
                                             }
+                                            className="bg-black text-white border border-red-700"
                                         />
                                     </div>
                                     <div>
-                                        <Label className="font-medium">
+                                        <Label className="font-medium text-yellow-400">
                                             Cantón / Country
                                         </Label>
                                         <Input
@@ -1274,11 +1349,13 @@ export default function ShippingInterface() {
                                                     canton: e.target.value,
                                                 })
                                             }
+                                            className="bg-black text-white border border-red-700"
                                         />
                                     </div>
                                 </div>
+
                                 <div>
-                                    <Label className="font-medium">
+                                    <Label className="font-medium text-yellow-400">
                                         Provincia / State
                                     </Label>
                                     <Input
@@ -1289,6 +1366,7 @@ export default function ShippingInterface() {
                                                 state: e.target.value,
                                             })
                                         }
+                                        className="bg-black text-white border border-red-700"
                                     />
                                 </div>
                             </TabsContent>
@@ -1296,10 +1374,10 @@ export default function ShippingInterface() {
                             {/* PACKAGES TAB */}
                             <TabsContent
                                 value="packages"
-                                className="border rounded p-1 mt-1 space-y-1"
+                                className="border border-red-600 rounded p-1 mt-1 space-y-1 bg-black text-white"
                             >
                                 <div className="flex justify-between items-center mb-1">
-                                    <Label className="text-sm text-blue-400 font-semibold">
+                                    <Label className="text-sm text-yellow-400 font-semibold">
                                         Paquetes
                                     </Label>
                                     <div className="flex items-center space-x-2">
@@ -1308,20 +1386,12 @@ export default function ShippingInterface() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() => {
-                                                        // Iniciar modal con datos nulos
-                                                        setEditingPackageIndex(
-                                                            null
-                                                        );
-                                                        setPackageRowsForEdit(
-                                                            undefined
-                                                        );
-                                                        setShowPackageModal(
-                                                            true
-                                                        );
-                                                    }}
+                                                    onClick={
+                                                        openNewPackageModal
+                                                    }
+                                                    className="text-green-500 hover:text-green-600"
                                                 >
-                                                    <Plus className="w-4 h-4 text-green-500" />
+                                                    <Plus className="w-4 h-4" />
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent>
@@ -1333,30 +1403,30 @@ export default function ShippingInterface() {
                                     </div>
                                 </div>
 
-                                <div className="overflow-auto border rounded border-purple-700">
+                                <div className="overflow-auto border rounded border-red-700">
                                     <table className="min-w-full text-xs text-left border-collapse">
-                                        <thead className="bg-[#2a2a3d] text-[10px] uppercase text-purple-300 tracking-wider">
+                                        <thead className="bg-black text-[10px] uppercase text-yellow-400 tracking-wider border-b border-red-600">
                                             <tr>
-                                                <th className="px-2 py-2 border-b border-purple-700">
+                                                <th className="px-2 py-2">
                                                     Tipo
                                                 </th>
-                                                <th className="px-2 py-2 border-b border-purple-700">
+                                                <th className="px-2 py-2">
                                                     Contenido
                                                 </th>
-                                                <th className="px-2 py-2 border-b border-purple-700 text-right">
+                                                <th className="px-2 py-2 text-right">
                                                     Lbs
                                                 </th>
-                                                <th className="px-2 py-2 border-b border-purple-700 text-right">
+                                                <th className="px-2 py-2 text-right">
                                                     Kg
                                                 </th>
-                                                <th className="px-2 py-2 border-b border-purple-700 text-right">
+                                                <th className="px-2 py-2 text-right">
                                                     Valor
                                                 </th>
-                                                <th className="px-2 py-2 border-b border-purple-700 text-right">
+                                                <th className="px-2 py-2 text-right">
                                                     V.Dec.
                                                 </th>
-                                                <th className="px-2 py-2 border-b border-purple-700 text-center">
-                                                    −
+                                                <th className="px-2 py-2 text-center">
+                                                    Acciones
                                                 </th>
                                             </tr>
                                         </thead>
@@ -1375,7 +1445,7 @@ export default function ShippingInterface() {
                                                 packages.map((pkg, idx) => (
                                                     <tr
                                                         key={pkg.id || idx}
-                                                        className="border-t border-purple-800 even:bg-[#27273a] hover:bg-[#33334d] transition-all"
+                                                        className="border-t border-red-700 even:bg-[#27273a] hover:bg-[#33334d]"
                                                     >
                                                         <td className="px-2 py-2">
                                                             {pkg.service_type}
@@ -1414,8 +1484,9 @@ export default function ShippingInterface() {
                                                                         idx
                                                                     )
                                                                 }
+                                                                className="text-blue-400 hover:text-blue-500"
                                                             >
-                                                                <Edit className="w-4 h-4 text-blue-400" />
+                                                                <Edit className="w-4 h-4" />
                                                             </Button>
                                                             <Button
                                                                 variant="ghost"
@@ -1432,8 +1503,9 @@ export default function ShippingInterface() {
                                                                         )
                                                                     )
                                                                 }
+                                                                className="text-red-500 hover:text-red-600"
                                                             >
-                                                                <Minus className="w-4 h-4 text-red-500" />
+                                                                <Minus className="w-4 h-4" />
                                                             </Button>
                                                         </td>
                                                     </tr>
@@ -1442,14 +1514,14 @@ export default function ShippingInterface() {
                                         </tbody>
                                     </table>
                                 </div>
-                                {/* Fila SUBTOTAL / DESCUENTO / TOTAL */}
+
                                 <div className="flex justify-end mt-3 pr-1">
                                     <div className="w-full md:w-[320px] space-y-1">
                                         <div className="flex justify-between items-center">
                                             <span className="text-white font-medium">
                                                 SUBTOTAL:
                                             </span>
-                                            <span className="text-right">
+                                            <span>
                                                 $
                                                 {packages
                                                     .reduce(
@@ -1476,11 +1548,11 @@ export default function ShippingInterface() {
                                                         ) || 0
                                                     )
                                                 }
-                                                className="w-24 text-right bg-[#1e1e2f] text-white border border-gray-600"
+                                                className="w-24 text-right bg-black text-white border border-red-700"
                                             />
                                         </div>
-                                        <div className="border-t border-purple-700 my-1 w-full" />
-                                        <div className="flex justify-between items-center text-blue-400 font-semibold">
+                                        <div className="border-t border-red-600 my-1 w-full" />
+                                        <div className="flex justify-between items-center text-yellow-400 font-semibold">
                                             <span className="text-white font-medium">
                                                 TOTAL:
                                             </span>
@@ -1499,34 +1571,36 @@ export default function ShippingInterface() {
                                     </div>
                                 </div>
                             </TabsContent>
+
                             {/* ADDITIONALS TAB */}
                             <TabsContent
                                 value="additionals"
-                                className="border rounded p-1 mt-1 space-y-2"
+                                className="border border-red-600 rounded p-1 mt-1 space-y-1 bg-black text-white"
                             >
-                                <Label className="text-sm text-blue-400 font-semibold">
+                                <Label className="text-sm text-yellow-400 font-semibold">
                                     Adicionales
                                 </Label>
-                                <div className="overflow-auto border rounded border-purple-700">
+
+                                <div className="overflow-auto border rounded border-red-700">
                                     <table className="min-w-full text-xs text-left border-collapse">
-                                        <thead className="bg-[#2a2a3d] text-[10px] uppercase text-purple-300 tracking-wider">
+                                        <thead className="bg-black text-[10px] uppercase text-yellow-400 tracking-wider border-b border-red-600">
                                             <tr>
-                                                <th className="px-2 py-2 border-b border-purple-700">
+                                                <th className="px-2 py-2">
                                                     Cantidad
                                                 </th>
-                                                <th className="px-2 py-2 border-b border-purple-700">
+                                                <th className="px-2 py-2">
                                                     Unidad
                                                 </th>
-                                                <th className="px-2 py-2 border-b border-purple-700">
+                                                <th className="px-2 py-2">
                                                     Artículo
                                                 </th>
-                                                <th className="px-2 py-2 border-b border-purple-700 text-right">
+                                                <th className="px-2 py-2 text-right">
                                                     Precio Unitario
                                                 </th>
-                                                <th className="px-2 py-2 border-b border-purple-700 text-right">
+                                                <th className="px-2 py-2 text-right">
                                                     Total
                                                 </th>
-                                                <th className="px-2 py-2 border-b border-purple-700 text-center">
+                                                <th className="px-2 py-2 text-center">
                                                     Acción
                                                 </th>
                                             </tr>
@@ -1535,46 +1609,38 @@ export default function ShippingInterface() {
                                             {additionals.map((item, index) => (
                                                 <tr
                                                     key={index}
-                                                    className="border-t border-purple-800 even:bg-[#27273a] hover:bg-[#33334d] transition-all"
+                                                    className="border-t border-red-700 even:bg-[#27273a] hover:bg-[#33334d]"
                                                 >
-                                                    {/* CANTIDAD */}
+                                                    {/* Cantidad */}
                                                     <td className="px-2 py-1">
                                                         <Input
                                                             type="number"
                                                             min={0}
-                                                            className="text-right bg-[#1e1e2f] text-white border border-gray-600"
+                                                            className="text-right bg-black text-white border border-red-700"
                                                             value={
                                                                 item.quantity
                                                             }
-                                                            onChange={(e) => {
-                                                                const value =
-                                                                    Math.max(
-                                                                        0,
-                                                                        parseFloat(
-                                                                            e
-                                                                                .target
-                                                                                .value
-                                                                        ) || 0
-                                                                    );
+                                                            onChange={(e) =>
                                                                 updateAdditional(
                                                                     index,
                                                                     "quantity",
-                                                                    value.toString()
-                                                                );
-                                                            }}
+                                                                    e.target
+                                                                        .value
+                                                                )
+                                                            }
                                                         />
                                                     </td>
 
-                                                    {/* UNIDAD */}
+                                                    {/* Unidad */}
                                                     <td className="px-2 py-1">
                                                         <Input
                                                             readOnly
                                                             value={item.unit}
-                                                            className="text-center bg-[#1e1e2f] text-white border border-gray-600"
+                                                            className="text-center bg-black text-white border border-red-700"
                                                         />
                                                     </td>
 
-                                                    {/* ARTÍCULO */}
+                                                    {/* Artículo */}
                                                     <td className="px-2 py-1">
                                                         <Select
                                                             value={item.article}
@@ -1612,10 +1678,10 @@ export default function ShippingInterface() {
                                                                 }
                                                             }}
                                                         >
-                                                            <SelectTrigger className="w-full min-w-[180px] h-6 bg-[#2a2a3d] text-white border border-gray-600">
-                                                                <SelectValue placeholder="Artículo seleccionado" />
+                                                            <SelectTrigger className="w-full min-w-[160px] h-6 bg-black text-white border border-red-700">
+                                                                <SelectValue placeholder="Seleccione" />
                                                             </SelectTrigger>
-                                                            <SelectContent className="bg-[#2a2a3d] text-white">
+                                                            <SelectContent className="bg-black text-white border border-red-700">
                                                                 {artPackgOptions.map(
                                                                     (art) => (
                                                                         <SelectItem
@@ -1636,7 +1702,7 @@ export default function ShippingInterface() {
                                                         </Select>
                                                     </td>
 
-                                                    {/* PRECIO UNITARIO */}
+                                                    {/* Precio Unitario */}
                                                     <td className="px-2 py-1 text-right">
                                                         <Input
                                                             type="number"
@@ -1644,19 +1710,20 @@ export default function ShippingInterface() {
                                                             value={item.unit_price.toFixed(
                                                                 2
                                                             )}
-                                                            className="text-right bg-[#1e1e2f] text-white border border-gray-600"
+                                                            className="text-right bg-black text-white border border-red-700"
                                                         />
                                                     </td>
 
-                                                    {/* TOTAL */}
+                                                    {/* Total */}
                                                     <td className="px-2 py-1 text-right">
+                                                        $
                                                         {(
                                                             item.quantity *
                                                             item.unit_price
                                                         ).toFixed(2)}
                                                     </td>
 
-                                                    {/* ACCIÓN: REMOVE */}
+                                                    {/* Acción */}
                                                     <td className="px-2 py-1 text-center">
                                                         <Button
                                                             variant="ghost"
@@ -1666,24 +1733,23 @@ export default function ShippingInterface() {
                                                                     index
                                                                 )
                                                             }
+                                                            className="text-red-500 hover:text-red-600"
                                                         >
-                                                            <span className="text-lg text-red-500">
-                                                                −
-                                                            </span>
+                                                            <Minus className="w-4 h-4" />
                                                         </Button>
                                                     </td>
                                                 </tr>
                                             ))}
 
-                                            {/* TOTAL GENERAL */}
-                                            <tr className="border-t border-purple-800">
+                                            {/* Total General */}
+                                            <tr className="border-t border-red-700">
                                                 <td
                                                     colSpan={4}
                                                     className="text-right font-semibold px-2 py-2"
                                                 >
                                                     TOTAL:
                                                 </td>
-                                                <td className="text-right font-bold text-blue-400 px-2 py-2">
+                                                <td className="text-right font-bold text-yellow-400 px-2 py-2">
                                                     {additionals
                                                         .reduce(
                                                             (acc, item) =>
@@ -1699,8 +1765,9 @@ export default function ShippingInterface() {
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={addAdditional}
+                                                        className="text-green-500 hover:text-green-600"
                                                     >
-                                                        <Plus className="w-4 h-4 text-green-500" />
+                                                        <Plus className="w-4 h-4" />
                                                     </Button>
                                                 </td>
                                             </tr>
@@ -1716,7 +1783,7 @@ export default function ShippingInterface() {
                         {/* Tarjeta de Totales */}
                         <Card>
                             <CardContent className="p-2">
-                                <h2 className="text-center font-semibold text-blue-500 border-b pb-1 mb-1 text-sm">
+                                <h2 className="text-center font-semibold text-yellow-400 border-b border-red-600 pb-1 mb-1 text-sm">
                                     TOTALES
                                 </h2>
 
@@ -1905,27 +1972,18 @@ export default function ShippingInterface() {
                                                             }
                                                         }}
                                                     >
-                                                        <SelectTrigger className="w-26 bg-[#6b21a8] text-white border border-purple-700 rounded-md h-8">
+                                                        <SelectTrigger className="w-26 bg-black text-white border border-red-600 rounded-md h-8">
                                                             <SelectValue placeholder="Seleccione" />
                                                         </SelectTrigger>
 
-                                                        <SelectContent className="bg-[#1e1e2f] border border-purple-700 text-white shadow-lg z-50">
-                                                            <SelectItem
-                                                                value="EFECTIVO"
-                                                                className="hover:bg-purple-700 focus:bg-purple-800 cursor-pointer transition-colors px-2 py-1 text-sm"
-                                                            >
+                                                        <SelectContent className="bg-black border border-red-600 text-white">
+                                                            <SelectItem value="EFECTIVO">
                                                                 EFECTIVO
                                                             </SelectItem>
-                                                            <SelectItem
-                                                                value="POR COBRAR"
-                                                                className="hover:bg-purple-700 focus:bg-purple-800 cursor-pointer transition-colors px-2 py-1 text-sm"
-                                                            >
+                                                            <SelectItem value="POR COBRAR">
                                                                 POR COBRAR
                                                             </SelectItem>
-                                                            <SelectItem
-                                                                value="TRANSFERENCIA"
-                                                                className="hover:bg-purple-700 focus:bg-purple-800 cursor-pointer transition-colors px-2 py-1 text-sm"
-                                                            >
+                                                            <SelectItem value="TRANSFERENCIA">
                                                                 TRANSFERENCIA
                                                             </SelectItem>
                                                         </SelectContent>

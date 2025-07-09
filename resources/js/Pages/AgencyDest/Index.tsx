@@ -27,14 +27,14 @@ export default function AgencyDestIndex({
             <Head title="Agencias Destino" />
 
             <div className="container mx-auto px-4 py-8">
-                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 rounded-t-lg">
+                <div className="bg-gradient-to-r from-red-700 via-red-600 to-yellow-400 text-white px-6 py-4 rounded-t-lg">
                     <h1 className="text-2xl font-bold">Agencias Destino</h1>
-                    <p className="text-purple-100 text-sm">
+                    <p className="text-white text-sm">
                         Listado de agencias destino registradas
                     </p>
                 </div>
 
-                <div className="bg-slate-900 border border-slate-800 px-6 py-4 rounded-b-lg shadow-md">
+                <div className="bg-black border border-red-700 px-6 py-4 rounded-b-lg shadow-md">
                     <div className="flex justify-end mb-4">
                         <Link href="/agencies_dest/create">
                             <Button className="bg-green-600 hover:bg-green-700">
@@ -46,9 +46,9 @@ export default function AgencyDestIndex({
                     {/* Paginación superior */}
                     <Pagination pagination={pagination} />
 
-                    <div className="overflow-x-auto rounded-lg border border-slate-700">
+                    <div className="overflow-x-auto rounded-lg border border-red-700">
                         <table className="min-w-full text-sm text-white table-auto">
-                            <thead className="bg-purpleDark text-white">
+                            <thead className="bg-red-800 text-white">
                                 <tr>
                                     <th className="px-4 py-2 text-left">
                                         Nombre
@@ -80,7 +80,7 @@ export default function AgencyDestIndex({
                                 {agencies.map((agency) => (
                                     <tr
                                         key={agency.id}
-                                        className="border-t border-slate-700 hover:bg-slate-800"
+                                        className="border-t border-red-700 hover:bg-[#1b1b1b]"
                                     >
                                         <td className="px-4 py-2">
                                             {agency.name}
@@ -108,7 +108,7 @@ export default function AgencyDestIndex({
                                                 <Link
                                                     href={`/agencies_dest/${agency.id}/edit`}
                                                 >
-                                                    <Button className="bg-purpleLight hover:bg-purpleDark text-white h-7 px-3 text-xs">
+                                                    <Button className="bg-yellow-500 hover:bg-yellow-600 text-white h-7 px-3 text-xs">
                                                         Editar
                                                     </Button>
                                                 </Link>
@@ -140,7 +140,7 @@ export default function AgencyDestIndex({
                                     <tr>
                                         <td
                                             colSpan={8}
-                                            className="text-center py-4 text-slate-400"
+                                            className="text-center py-4 text-red-400"
                                         >
                                             No hay agencias registradas.
                                         </td>

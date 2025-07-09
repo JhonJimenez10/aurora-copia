@@ -6,7 +6,7 @@ export default function Pagination({ pagination }: { pagination: any }) {
 
     return (
         <div className="flex justify-center mt-6">
-            <div className="inline-flex items-center space-x-1 bg-slate-800 border border-slate-700 px-2 py-1 rounded-lg shadow-md">
+            <div className="inline-flex items-center space-x-1 bg-black border border-red-700 px-2 py-1 rounded-lg shadow-md">
                 {pagination.links.map((link: any, index: number) => {
                     const isActive = link.active;
                     const isDisabled = !link.url;
@@ -18,10 +18,10 @@ export default function Pagination({ pagination }: { pagination: any }) {
                             className={`px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200
                                 ${
                                     isActive
-                                        ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm"
+                                        ? "bg-gradient-to-r from-red-700 via-red-600 to-yellow-400 text-white shadow-sm"
                                         : isDisabled
-                                        ? "text-slate-500 cursor-not-allowed"
-                                        : "text-white hover:bg-slate-700 hover:text-purple-300"
+                                        ? "text-red-400 cursor-not-allowed"
+                                        : "text-white hover:bg-red-700 hover:text-white"
                                 }`}
                             dangerouslySetInnerHTML={{ __html: link.label }}
                         />

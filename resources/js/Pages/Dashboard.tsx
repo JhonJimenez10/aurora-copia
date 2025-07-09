@@ -39,7 +39,7 @@ export default function Dashboard() {
             </style>
 
             <div className="p-4 md:p-6 space-y-6">
-                <div className="bg-gradient-to-r from-purple-700 via-purple-600 to-indigo-600 p-4 rounded-lg shadow-lg">
+                <div className="bg-gradient-to-r from-red-700 via-red-600 to-red-500 p-4 rounded-lg shadow-lg">
                     <h2 className="text-2xl font-bold text-white animate-fadeInUp">
                         Panel de {enterprise?.name || "Empresa"}
                     </h2>
@@ -52,12 +52,11 @@ export default function Dashboard() {
                     <TabsContent value="overview" className="space-y-6">
                         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5">
                             {[
-                                // Creamos un array para mapear dinámicamente las cards
                                 {
                                     title: "Remitentes",
                                     value: stats.senders,
                                     icon: (
-                                        <Users className="h-4 w-4 text-purple-300" />
+                                        <Users className="h-4 w-4 text-red-400" />
                                     ),
                                     subtitle: "clientes registrados",
                                 },
@@ -65,7 +64,7 @@ export default function Dashboard() {
                                     title: "Destinatarios",
                                     value: stats.recipients,
                                     icon: (
-                                        <Users className="h-4 w-4 text-purple-300" />
+                                        <Users className="h-4 w-4 text-red-400" />
                                     ),
                                     subtitle: "clientes registrados",
                                 },
@@ -73,30 +72,30 @@ export default function Dashboard() {
                                     title: "Agencia",
                                     value: stats.artPackages,
                                     icon: (
-                                        <Archive className="h-4 w-4 text-purple-300" />
+                                        <Archive className="h-4 w-4 text-red-400" />
                                     ),
-                                    subtitle: "articulos registrados",
+                                    subtitle: "artículos registrados",
                                 },
                                 {
                                     title: "Embalaje",
                                     value: stats.artPackgs,
                                     icon: (
-                                        <Archive className="h-4 w-4 text-purple-300" />
+                                        <Archive className="h-4 w-4 text-red-400" />
                                     ),
-                                    subtitle: "articulos registrados",
+                                    subtitle: "artículos registrados",
                                 },
                                 {
                                     title: "Envíos Último Mes",
                                     value: stats.lastMonthShipments,
                                     icon: (
-                                        <Truck className="h-4 w-4 text-purple-300" />
+                                        <Truck className="h-4 w-4 text-red-400" />
                                     ),
                                     subtitle: "enviados recientemente",
                                 },
                             ].map((item, index) => (
                                 <Card
                                     key={index}
-                                    className="bg-slate-900 border border-purple-700 animate-fadeInUp col-span-1"
+                                    className="bg-black border border-red-600 animate-fadeInUp col-span-1"
                                     style={{
                                         animationDelay: `${0.1 * (index + 1)}s`,
                                     }}
@@ -111,7 +110,7 @@ export default function Dashboard() {
                                         <div className="text-xl font-bold text-white">
                                             {item.value}
                                         </div>
-                                        <p className="text-[11px] text-purple-200">
+                                        <p className="text-[11px] text-gray-400">
                                             {item.subtitle}
                                         </p>
                                     </CardContent>
@@ -121,7 +120,7 @@ export default function Dashboard() {
 
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                             <Card
-                                className="lg:col-span-4 bg-slate-900 border border-purple-700 animate-fadeInUp"
+                                className="lg:col-span-4 bg-black border border-red-600 animate-fadeInUp"
                                 style={{ animationDelay: "0.5s" }}
                             >
                                 <CardHeader className="px-4 pt-4 pb-1">
@@ -137,7 +136,7 @@ export default function Dashboard() {
                             </Card>
 
                             <Card
-                                className="lg:col-span-3 bg-slate-900 border border-purple-700 animate-fadeInUp"
+                                className="lg:col-span-3 bg-black border border-red-600 animate-fadeInUp"
                                 style={{ animationDelay: "0.6s" }}
                             >
                                 <CardHeader className="px-4 pt-4 pb-1">
