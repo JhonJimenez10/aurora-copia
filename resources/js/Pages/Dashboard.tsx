@@ -119,22 +119,31 @@ export default function Dashboard() {
                         </div>
 
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                            {/* Nueva tarjeta: Agencias de Destino */}
                             <Card
-                                className="lg:col-span-4 bg-black border border-red-600 animate-fadeInUp"
+                                className="lg:col-span-4 bg-black border border-yellow-500 animate-fadeInUp"
                                 style={{ animationDelay: "0.5s" }}
                             >
                                 <CardHeader className="px-4 pt-4 pb-1">
                                     <CardTitle className="text-sm text-white">
-                                        Ingresos Mensuales
+                                        Agencias de Destino Registradas
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="px-4 pb-4">
-                                    <div className="h-[220px]">
-                                        <RevenueChart />
+                                    <div className="flex flex-col items-center justify-center h-[220px] space-y-2">
+                                        <MapPin className="w-8 h-8 text-yellow-400" />
+                                        <span className="text-4xl font-bold text-white">
+                                            {stats.agenciesDest}
+                                        </span>
+                                        <p className="text-xs text-gray-400">
+                                            Total de agencias vinculadas a tu
+                                            empresa
+                                        </p>
                                     </div>
                                 </CardContent>
                             </Card>
 
+                            {/* Calendario de Envíos */}
                             <Card
                                 className="lg:col-span-3 bg-black border border-red-600 animate-fadeInUp"
                                 style={{ animationDelay: "0.6s" }}

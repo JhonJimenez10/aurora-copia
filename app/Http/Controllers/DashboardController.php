@@ -7,6 +7,7 @@ use App\Models\ArtPackg;
 use App\Models\Reception;
 use App\Models\Recipient;
 use App\Models\Sender;
+use App\Models\AgencyDest;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
@@ -27,6 +28,8 @@ class DashboardController extends Controller
             'lastMonthShipments' => Reception::where('enterprise_id', $enterpriseId)
                 ->whereBetween('created_at', [now()->subMonth(), now()])
                 ->count(),
+            'agenciesDest' => AgencyDest::where('enterprise_id', $enterpriseId)->count(), // nuevo
+
         ];
 
         return Inertia::render('Dashboard', [
