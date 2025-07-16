@@ -25,29 +25,33 @@ export default function UpdateProfileInformation({
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-
         patch(route("profile.update"));
     };
 
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                    Profile Information
+                <h2 className="text-lg font-medium text-white">
+                    Información del Perfil
                 </h2>
 
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    Update your account's profile information and email address.
+                <p className="mt-1 text-sm text-gray-400">
+                    Actualiza tu información personal y dirección de correo
+                    electrónico.
                 </p>
             </header>
 
             <form onSubmit={submit} className="mt-6 space-y-6">
                 <div>
-                    <InputLabel htmlFor="name" value="Name" />
+                    <InputLabel
+                        htmlFor="name"
+                        value="Nombre"
+                        className="text-white"
+                    />
 
                     <TextInput
                         id="name"
-                        className="mt-1 block w-full"
+                        className="mt-1 block w-full bg-black border border-red-700 text-white"
                         value={data.name}
                         onChange={(e) => setData("name", e.target.value)}
                         required
@@ -59,12 +63,16 @@ export default function UpdateProfileInformation({
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="email" value="Email" />
+                    <InputLabel
+                        htmlFor="email"
+                        value="Correo electrónico"
+                        className="text-white"
+                    />
 
                     <TextInput
                         id="email"
                         type="email"
-                        className="mt-1 block w-full"
+                        className="mt-1 block w-full bg-black border border-red-700 text-white"
                         value={data.email}
                         onChange={(e) => setData("email", e.target.value)}
                         required
@@ -76,29 +84,35 @@ export default function UpdateProfileInformation({
 
                 {mustVerifyEmail && user?.email_verified_at === null && (
                     <div>
-                        <p className="mt-2 text-sm text-gray-800 dark:text-gray-200">
-                            Your email address is unverified.
+                        <p className="mt-2 text-sm text-red-400">
+                            Tu correo electrónico no está verificado.
                             <Link
                                 href={route("verification.send")}
                                 method="post"
                                 as="button"
-                                className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:text-gray-100 dark:focus:ring-offset-gray-800"
+                                className="ml-1 text-sm underline text-yellow-400 hover:text-yellow-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 dark:focus:ring-offset-black"
                             >
-                                Click here to re-send the verification email.
+                                Haz clic aquí para reenviar el correo de
+                                verificación.
                             </Link>
                         </p>
 
                         {status === "verification-link-sent" && (
-                            <div className="mt-2 text-sm font-medium text-green-600 dark:text-green-400">
-                                A new verification link has been sent to your
-                                email address.
+                            <div className="mt-2 text-sm font-medium text-green-400">
+                                Se ha enviado un nuevo enlace de verificación a
+                                tu correo electrónico.
                             </div>
                         )}
                     </div>
                 )}
 
                 <div className="flex items-center gap-4">
-                    <PrimaryButton disabled={processing}>Save</PrimaryButton>
+                    <PrimaryButton
+                        disabled={processing}
+                        className="bg-yellow-500 hover:bg-yellow-600 text-black"
+                    >
+                        Guardar
+                    </PrimaryButton>
 
                     <Transition
                         show={recentlySuccessful}
@@ -107,8 +121,8 @@ export default function UpdateProfileInformation({
                         leave="transition ease-in-out"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Saved.
+                        <p className="text-sm text-green-400">
+                            Cambios guardados correctamente.
                         </p>
                     </Transition>
                 </div>

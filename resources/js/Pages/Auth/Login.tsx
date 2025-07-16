@@ -122,14 +122,14 @@ export default function Login({
                             <div>
                                 <div className="flex justify-between items-center">
                                     <Label htmlFor="password">Contraseña</Label>
-                                    {canResetPassword && (
+                                    {/* {canResetPassword && (
                                         <Link
                                             href={route("password.request")}
                                             className="text-sm text-yellow-400 hover:text-yellow-300"
                                         >
                                             ¿Olvidó su contraseña?
                                         </Link>
-                                    )}
+                                    )} */}
                                 </div>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
