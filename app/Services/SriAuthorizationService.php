@@ -4,44 +4,32 @@
 namespace App\Services;
 
 use SoapClient;
-use SoapFault;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
-use Carbon\Carbon;
 
 class SriAuthorizationService
 {
     protected SoapClient $recepcionClient;
     protected SoapClient $autorizacionClient;
-    protected string     $autorizadosDir;
-
+    protected string $autorizadosDir;
     protected string $noAutorizadosDir;
 
     public function __construct()
     {
-        $this->recepcionClient    = new \SoapClient(config('sri.wsdl_recepcion'));
-        $this->autorizacionClient = new \SoapClient(
-            config('sri.wsdl_autorizacion'),
-            ['trace' => 1, 'exceptions' => true]
-        );
+        $this->recepcionClient = new SoapClient(config('sri.wsdl_recepcion'));
+        $this->autorizacionClient = new SoapClient(config('sri.wsdl_autorizacion'), [
+            'trace' => 1,
+            'exceptions' => true
+        ]);
 
-        $this->autorizadosDir   = storage_path(config('sri.dir_xml_autorizados'));
+        $this->autorizadosDir = storage_path(config('sri.dir_xml_autorizados'));
         $this->noAutorizadosDir = storage_path(config('sri.dir_xml_no_autorizados'));
     }
 
-
-    /**
-     * Envía el XML firmado al SRI y retorna ruta + objeto de respuesta.
-     *
-     * @param  string $signedXmlPath
-     * @param  string $accessKey
-     * @return array  ['path' => string, 'response' => stdClass]
-     * @throws Exception
-     */
     public function authorize(string $signedXmlPath, string $accessKey): array
     {
-        if (! File::exists($signedXmlPath)) {
+        if (!File::exists($signedXmlPath)) {
             throw new Exception("Archivo firmado no encontrado: {$signedXmlPath}");
         }
 
@@ -49,18 +37,26 @@ class SriAuthorizationService
 
         // 1) Recepción
         $recv = $this->recepcionClient->validarComprobante(['xml' => $xmlContent]);
-        $estadoRecep = $recv->RespuestaRecepcionComprobante->estado;
-        if ($estadoRecep !== 'RECIBIDA') {
-            $mensajes = $recv->RespuestaRecepcionComprobante->comprobantes->comprobante->mensajes->mensaje ?? null;
+        $estadoRecep = $recv->RespuestaRecepcionComprobante->estado ?? null;
 
+        if ($estadoRecep !== 'RECIBIDA') {
             $errores = [];
-            foreach ((array) $mensajes as $msg) {
-                $errores[] = "[{$msg->identificador}] {$msg->mensaje}" .
-                    (!empty($msg->informacionAdicional) ? " ({$msg->informacionAdicional})" : '');
+
+            $comprobantes = $recv->RespuestaRecepcionComprobante->comprobantes->comprobante ?? null;
+            if ($comprobantes && isset($comprobantes->mensajes->mensaje)) {
+                $mensajes = $comprobantes->mensajes->mensaje;
+                $mensajes = is_array($mensajes) ? $mensajes : [$mensajes];
+
+                foreach ($mensajes as $msg) {
+                    if (is_object($msg)) {
+                        $errores[] = "[{$msg->identificador}] {$msg->mensaje}"
+                            . (!empty($msg->informacionAdicional) ? " ({$msg->informacionAdicional})" : '');
+                    }
+                }
             }
 
             $detalle = $errores ? implode('; ', $errores) : 'Sin detalle del SRI.';
-            throw new \Exception("SRI Recepción: {$estadoRecep}. {$detalle}");
+            throw new Exception("SRI Recepción: {$estadoRecep}. {$detalle}");
         }
 
         // 2) Autorización con reintentos
@@ -70,18 +66,21 @@ class SriAuthorizationService
 
         while ($attempt < $maxAttempts && !$authData) {
             $attempt++;
-            $authResp = $this->autorizacionClient
-                ->autorizacionComprobante(['claveAccesoComprobante' => $accessKey]);
+            try {
+                $authResp = $this->autorizacionClient->autorizacionComprobante([
+                    'claveAccesoComprobante' => $accessKey
+                ]);
+            } catch (\Exception $e) {
+                Log::warning("Error en intento {$attempt} de autorización para clave {$accessKey}: {$e->getMessage()}");
+                sleep(1);
+                continue;
+            }
 
-            $authData = $authResp
-                ->RespuestaAutorizacionComprobante
-                ->autorizaciones
-                ->autorizacion
-                ?? null;
+            $authData = $authResp->RespuestaAutorizacionComprobante->autorizaciones->autorizacion ?? null;
 
             if (!$authData) {
-                Log::warning("Intento {$attempt}: autorización aún no disponible para clave {$accessKey}");
-                sleep(1); // Esperar antes de volver a intentar
+                Log::warning("Intento {$attempt} fallido de autorización SRI para clave {$accessKey}: respuesta sin autorización");
+                sleep(1);
             }
         }
 
@@ -91,30 +90,33 @@ class SriAuthorizationService
             throw new Exception("SRI: No se recibió respuesta de autorización tras {$maxAttempts} intentos.");
         }
 
-        $auth = $authData->estado;
+        $estado = $authData->estado;
 
-        if ($auth !== 'AUTORIZADO') {
-            if (! File::isDirectory($this->noAutorizadosDir)) {
+        if ($estado !== 'AUTORIZADO') {
+            if (!File::isDirectory($this->noAutorizadosDir)) {
                 File::makeDirectory($this->noAutorizadosDir, 0755, true);
             }
 
-            $rejPath = $this->noAutorizadosDir . DIRECTORY_SEPARATOR . "{$accessKey}-{$auth}.xml";
+            $rejPath = $this->noAutorizadosDir . DIRECTORY_SEPARATOR . "{$accessKey}-{$estado}.xml";
             File::put($rejPath, $this->autorizacionClient->__getLastResponse());
 
+            $errores = [];
             $mensajes = $authData->mensajes->mensaje ?? null;
-            $detalles = [];
+            $mensajes = is_array($mensajes) ? $mensajes : [$mensajes];
 
-            foreach ((array) $mensajes as $m) {
-                $detalles[] = "[{$m->identificador}] {$m->mensaje}"
-                    . (!empty($m->informacionAdicional) ? " ({$m->informacionAdicional})" : '');
+            foreach ($mensajes as $m) {
+                if (is_object($m)) {
+                    $errores[] = "[{$m->identificador}] {$m->mensaje}"
+                        . (!empty($m->informacionAdicional) ? " ({$m->informacionAdicional})" : '');
+                }
             }
 
-            $detalleTexto = $detalles ? implode('; ', $detalles) : 'Respuesta sin mensajes detallados.';
-            throw new Exception("SRI Autorización: {$auth}. {$detalleTexto}");
+            $detalle = $errores ? implode('; ', $errores) : 'Respuesta sin mensajes detallados.';
+            throw new Exception("SRI Autorización: {$estado}. {$detalle}");
         }
 
         // Guardar XML autorizado
-        if (! File::isDirectory($this->autorizadosDir)) {
+        if (!File::isDirectory($this->autorizadosDir)) {
             File::makeDirectory($this->autorizadosDir, 0755, true);
         }
 
@@ -122,7 +124,7 @@ class SriAuthorizationService
         File::put($okPath, $this->autorizacionClient->__getLastResponse());
 
         return [
-            'path'     => $okPath,
+            'path' => $okPath,
             'response' => $authResp,
         ];
     }

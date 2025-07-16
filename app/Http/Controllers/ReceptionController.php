@@ -120,16 +120,31 @@ class ReceptionController extends Controller
                 'packages.*.perfumeDesc'       => 'nullable|string|max:255',
                 'packages.*.items'             => 'nullable|array',
 
-                // Adicionales
-                'additionals'                  => 'required|array',
-                'additionals.*.article'        => 'required|uuid',
-                'additionals.*.quantity'       => 'required|numeric',
-                'additionals.*.unit_price'     => 'required|numeric',
+                // Adicionales (puede existir, pero no se validan sus campos)
+                'additionals' => 'nullable|array',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            Log::error('❌ Error de validación al guardar recepción', [
+                'errors' => $ve->errors(),
             ]);
 
+            return response()->json([
+                'error'   => 'Error de validación',
+                'details' => $ve->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('❌ Error inesperado al validar recepción: ' . $e->getMessage());
+
+            return response()->json([
+                'error' => 'Error interno al validar datos',
+                'details' => $e->getMessage(),
+            ], 500);
+        }
+
+        try {
             $sender = Sender::findOrFail($validated['sender_id']);
 
-            $validated['id']            = Str::uuid();
+            $validated['id'] = Str::uuid();
             $validated['enterprise_id'] = auth()->user()->enterprise_id;
 
             $reception = Reception::create($validated);
@@ -155,7 +170,7 @@ class ReceptionController extends Controller
                     'decl_val'       => $pkg['decl_val'],
                     'ins_val'        => $pkg['ins_val'],
                     'barcode'        => $barcodeCode,
-                    'perfumeDesc'   => $pkg['perfumeDesc'] ?? null,
+                    'perfumeDesc'    => $pkg['perfumeDesc'] ?? null,
                 ]);
 
                 if (!empty($pkg['items'])) {
@@ -181,23 +196,31 @@ class ReceptionController extends Controller
                 }
             }
 
-            // Adicionales
-            foreach ($validated['additionals'] as $add) {
-                Additional::create([
-                    'id'           => Str::uuid(),
-                    'reception_id' => $reception->id,
-                    'art_packg_id' => $add['article'],
-                    'quantity'     => $add['quantity'],
-                    'unit_price'   => $add['unit_price'],
-                    'total'        => $add['quantity'] * $add['unit_price'],
-                ]);
+            // Adicionales: solo guardar si están completos
+            if (!empty($validated['additionals'])) {
+                foreach ($validated['additionals'] as $add) {
+                    if (
+                        !empty($add['article']) &&
+                        isset($add['quantity']) &&
+                        isset($add['unit_price'])
+                    ) {
+                        Additional::create([
+                            'id'           => Str::uuid(),
+                            'reception_id' => $reception->id,
+                            'art_packg_id' => $add['article'],
+                            'quantity'     => $add['quantity'],
+                            'unit_price'   => $add['unit_price'],
+                            'total'        => $add['quantity'] * $add['unit_price'],
+                        ]);
+                    }
+                }
             }
 
             return response()->json([
                 'message' => 'Recepción guardada correctamente',
                 'id'      => $reception->id,
             ], 201);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('❌ Error al guardar recepción: ' . $e->getMessage());
 
             return response()->json([
@@ -206,6 +229,8 @@ class ReceptionController extends Controller
             ], 500);
         }
     }
+
+
 
 
     public function edit($id)

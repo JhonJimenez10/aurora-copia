@@ -2119,7 +2119,7 @@ export default function ShippingInterface() {
             />
 
             {/* ✅ MODAL DE ÉXITO */}
-            <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+            <Dialog open={showSuccessModal} modal={true}>
                 <DialogContent className="bg-[#1e1e2f] text-white border border-purple-700">
                     <DialogHeader>
                         <DialogTitle className={modalTitleClass}>
@@ -2176,6 +2176,7 @@ export default function ShippingInterface() {
                                 setEfectivoRecibido(0);
                                 setReceptionDate(today);
                                 setRoute("ecu-us");
+
                                 axios
                                     .get("/receptions/next-number")
                                     .then((res) =>
@@ -2195,6 +2196,7 @@ export default function ShippingInterface() {
                                 Ver XML generado
                             </Button>
                         )}
+
                         {/* Descargar PDF de tickets */}
                         <Button
                             className="bg-purple-600 hover:bg-purple-700"
@@ -2219,14 +2221,15 @@ export default function ShippingInterface() {
                         >
                             Imprimir Tickets
                         </Button>
-                        {/* Descargar factura tipo ticket (PDF simple) */}
+
+                        {/* Descargar factura tipo ticket */}
                         <Button
                             className="bg-indigo-600 hover:bg-indigo-700"
                             disabled={!invoiceId}
                             onClick={() => {
                                 if (invoiceId) {
                                     window.open(
-                                        `/invoices/${invoiceId}/ticket`, // esta es tu ruta real
+                                        `/invoices/${invoiceId}/ticket`,
                                         "_blank"
                                     );
                                 }
@@ -2234,24 +2237,6 @@ export default function ShippingInterface() {
                         >
                             Descargar Factura
                         </Button>
-
-                        {/* Descargar factura en PDF */}
-                        {/* 
-                        <Button
-                            className="bg-yellow-600 hover:bg-yellow-700"
-                            disabled={!invoiceId}
-                            onClick={() => {
-                                if (invoiceId) {
-                                    window.open(
-                                        `/invoices/${invoiceId}/pdf`,
-                                        "_blank"
-                                    );
-                                }
-                            }}
-                        >
-                            Descargar Factura
-                        </Button>
-                        */}
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

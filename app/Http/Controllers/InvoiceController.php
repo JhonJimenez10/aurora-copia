@@ -34,14 +34,20 @@ class InvoiceController extends Controller
             $enterpriseId = Auth::user()->enterprise_id;
 
             // 2) Calcular secuencial y número
-            $last = Invoice::where('enterprise_id', $enterpriseId)
-                ->orderByDesc('sequential')
-                ->first();
+            // 2) Calcular secuencial con transacción y bloqueo
 
-            $sequential = $last ? $last->sequential + 1 : 1;
             $establishment = '001';
             $emissionPoint = '001';
-            $number        = sprintf('%s-%s-%09d', $establishment, $emissionPoint, $sequential);
+
+            // Obtener la última factura de la empresa ordenada por secuencial descendente (con lock)
+            $lastInvoice = Invoice::where('enterprise_id', $enterpriseId)
+                ->orderByDesc('sequential')
+                ->lockForUpdate()
+                ->first();
+
+            $sequential = $lastInvoice ? $lastInvoice->sequential + 1 : 1;
+
+            $number = sprintf('%s-%s-%09d', $establishment, $emissionPoint, $sequential);
 
             // 3) Crear encabezado de factura
             $invoice = Invoice::create([
@@ -127,7 +133,7 @@ class InvoiceController extends Controller
 
             // 8) Intento autorizar con reintentos
             $authorizer = new SriAuthorizationService();
-            $maxAttempts = 5;
+            $maxAttempts = 3;
             $authorized = false;
             $attempt = 0;
             $authResult = null;
@@ -144,7 +150,7 @@ class InvoiceController extends Controller
                 } catch (\Exception $e) {
                     $attempt++;
                     Log::warning("Intento {$attempt} fallido de autorización SRI para factura {$invoice->number}: {$e->getMessage()}");
-                    sleep(4); // o incluso 5
+                    sleep(1); // o incluso 5
                 }
             }
 
