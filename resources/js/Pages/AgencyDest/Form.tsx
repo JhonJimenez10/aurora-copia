@@ -5,24 +5,25 @@ import { Button } from "@/Components/ui/button";
 import { Card, CardContent } from "@/Components/ui/card";
 import { Switch } from "@/Components/ui/switch";
 
-export default function ArtPackgForm({
-    art_packg = null,
-}: {
-    art_packg?: any;
-}) {
+export default function AgencyDestForm({ agency = null }: { agency?: any }) {
     const { data, setData, post, put, processing, errors } = useForm({
-        name: art_packg?.name || "",
-        unit_type: art_packg?.unit_type || "",
-        unit_price: art_packg?.unit_price || "",
-        canceled: art_packg?.canceled || false,
+        name: agency?.name || "",
+        code_letters: agency?.code_letters || "",
+        trade_name: agency?.trade_name || "",
+        address: agency?.address || "",
+        phone: agency?.phone || "",
+        postal_code: agency?.postal_code || "",
+        city: agency?.city || "",
+        state: agency?.state || "",
+        available_us: agency?.available_us ?? false,
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (art_packg) {
-            put(`/art_packgs/${art_packg.id}`, { preserveScroll: true });
+        if (agency) {
+            put(`/agencies_dest/${agency.id}`, { preserveScroll: true });
         } else {
-            post("/art_packgs", { preserveScroll: true });
+            post("/agencies_dest", { preserveScroll: true });
         }
     };
 
@@ -48,36 +49,94 @@ export default function ArtPackgForm({
                         </div>
 
                         <div>
-                            <Label>Tipo de Unidad</Label>
+                            <Label>Código</Label>
                             <Input
-                                value={data.unit_type}
+                                value={data.code_letters}
                                 onChange={(e) =>
-                                    setData("unit_type", e.target.value)
+                                    setData("code_letters", e.target.value)
+                                }
+                                className="bg-[#1b1b1b] border border-red-700 text-white"
+                            />
+                            {errors.code_letters && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.code_letters}
+                                </p>
+                            )}
+                        </div>
+
+                        <div>
+                            <Label>Nombre comercial</Label>
+                            <Input
+                                value={data.trade_name}
+                                onChange={(e) =>
+                                    setData("trade_name", e.target.value)
                                 }
                                 className="bg-[#1b1b1b] border border-red-700 text-white"
                             />
                         </div>
 
                         <div>
-                            <Label>Precio por Unidad</Label>
+                            <Label>Dirección</Label>
                             <Input
-                                type="number"
-                                step="0.01"
-                                value={data.unit_price}
+                                value={data.address}
                                 onChange={(e) =>
-                                    setData("unit_price", e.target.value)
+                                    setData("address", e.target.value)
+                                }
+                                className="bg-[#1b1b1b] border border-red-700 text-white"
+                            />
+                        </div>
+
+                        <div>
+                            <Label>Teléfono</Label>
+                            <Input
+                                value={data.phone}
+                                onChange={(e) =>
+                                    setData("phone", e.target.value)
+                                }
+                                className="bg-[#1b1b1b] border border-red-700 text-white"
+                            />
+                        </div>
+
+                        <div>
+                            <Label>Código Postal</Label>
+                            <Input
+                                value={data.postal_code}
+                                onChange={(e) =>
+                                    setData("postal_code", e.target.value)
+                                }
+                                className="bg-[#1b1b1b] border border-red-700 text-white"
+                            />
+                        </div>
+
+                        <div>
+                            <Label>Ciudad</Label>
+                            <Input
+                                value={data.city}
+                                onChange={(e) =>
+                                    setData("city", e.target.value)
+                                }
+                                className="bg-[#1b1b1b] border border-red-700 text-white"
+                            />
+                        </div>
+
+                        <div>
+                            <Label>Provincia/Estado</Label>
+                            <Input
+                                value={data.state}
+                                onChange={(e) =>
+                                    setData("state", e.target.value)
                                 }
                                 className="bg-[#1b1b1b] border border-red-700 text-white"
                             />
                         </div>
 
                         <div className="pt-4">
-                            <Label>Anulado</Label>
+                            <Label>Disponible en EE.UU.</Label>
                             <div className="mt-1">
                                 <Switch
-                                    checked={data.canceled}
+                                    checked={data.available_us}
                                     onCheckedChange={(val) =>
-                                        setData("canceled", val)
+                                        setData("available_us", val)
                                     }
                                 />
                             </div>
@@ -89,7 +148,7 @@ export default function ArtPackgForm({
                             className="bg-yellow-500 hover:bg-yellow-600 text-white px-6"
                             disabled={processing}
                         >
-                            {art_packg ? "Actualizar" : "Guardar"} Artículo
+                            {agency ? "Actualizar" : "Guardar"} Agencia
                         </Button>
                     </div>
                 </form>
