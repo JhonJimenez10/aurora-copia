@@ -20,7 +20,7 @@ return new class extends Migration {
             $table->string('city', 100)->nullable(); // CantonCountry
             $table->string('state', 100)->nullable(); // Provincia
             $table->boolean('available_us')->default(false); // Disponible para envios desde Ecuador hacia EEUU
-
+            $table->decimal('value', 10, 2)->default(0);
             $table->timestamps();
 
             $table->foreign('enterprise_id')->references('id')->on('enterprises')->cascadeOnDelete();

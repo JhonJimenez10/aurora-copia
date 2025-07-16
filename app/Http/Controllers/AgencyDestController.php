@@ -47,6 +47,7 @@ class AgencyDestController extends Controller
             'city'           => 'nullable|string|max:100',
             'state'          => 'nullable|string|max:100',
             'available_us'   => 'required|boolean',
+            'value'          => 'required|numeric|min:0',
         ]);
 
         $validated['enterprise_id'] = Auth::user()->enterprise_id;
@@ -79,6 +80,7 @@ class AgencyDestController extends Controller
             'city'           => 'nullable|string|max:100',
             'state'          => 'nullable|string|max:100',
             'available_us'   => 'sometimes|required|boolean',
+            'value'          => 'sometimes|required|numeric|min:0',
         ]);
 
         $agency->update($validated);
@@ -103,7 +105,7 @@ class AgencyDestController extends Controller
 
         try {
             $agencies = AgencyDest::where('enterprise_id', $user->enterprise_id)
-                ->select('id', 'name', 'trade_name', 'address', 'phone', 'city', 'state', 'postal_code')
+                ->select('id', 'name', 'trade_name', 'address', 'phone', 'city', 'state', 'postal_code', 'value')
                 ->get();
 
             return response()->json($agencies);

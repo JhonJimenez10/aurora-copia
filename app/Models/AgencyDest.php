@@ -23,6 +23,7 @@ class AgencyDest extends Model
         'city',
         'state',
         'available_us',
+        'value',
     ];
 
     // Relaciones

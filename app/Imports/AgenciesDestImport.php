@@ -30,6 +30,8 @@ class AgenciesDestImport implements ToModel, WithHeadingRow
             'city'          => $row['city'] ?? null,
             'state'         => $row['state'] ?? null,
             'available_us'  => filter_var($row['available_us'], FILTER_VALIDATE_BOOLEAN),
+            'value'         => isset($row['value']) && is_numeric($row['value']) && $row['value'] >= 0 ? (float) $row['value'] : 0,
+
         ]);
     }
 }

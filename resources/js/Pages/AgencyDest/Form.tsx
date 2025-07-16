@@ -16,6 +16,7 @@ export default function AgencyDestForm({ agency = null }: { agency?: any }) {
         city: agency?.city || "",
         state: agency?.state || "",
         available_us: agency?.available_us ?? false,
+        value: agency?.value || 0, // nuevo campo
     });
 
     const submit = (e: React.FormEvent) => {
@@ -128,6 +129,28 @@ export default function AgencyDestForm({ agency = null }: { agency?: any }) {
                                 }
                                 className="bg-[#1b1b1b] border border-red-700 text-white"
                             />
+                        </div>
+
+                        <div>
+                            <Label>Valor</Label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={data.value}
+                                onChange={(e) =>
+                                    setData(
+                                        "value",
+                                        parseFloat(e.target.value) || 0
+                                    )
+                                }
+                                className="bg-[#1b1b1b] border border-red-700 text-white"
+                            />
+                            {errors.value && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.value}
+                                </p>
+                            )}
                         </div>
 
                         <div className="pt-4">

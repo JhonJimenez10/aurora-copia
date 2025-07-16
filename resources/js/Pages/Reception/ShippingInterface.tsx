@@ -151,6 +151,7 @@ interface AgencyDest {
     city: string | null;
     state: string | null;
     available_us: boolean;
+    value: number | null;
 }
 
 export default function ShippingInterface() {
@@ -393,6 +394,10 @@ export default function ShippingInterface() {
         }, 0);
 
         const totalPesoLbs = packages.reduce((acc, pkg) => acc + pkg.pounds, 0);
+        const agencia = agencyOptions.find((a) => a.id === agencyDest);
+        const valorTransporte = agencia?.value || 0;
+        const totalTransporteDestino = round(valorTransporte * totalPesoLbs);
+
         const totalSeguroEnvio = totalPesoLbs * 0.1;
 
         let totalDesaduanizacion = 0;
@@ -411,7 +416,8 @@ export default function ShippingInterface() {
                 totalAdditionals +
                 totalSeguroPaquete +
                 totalSeguroEnvio +
-                totalDesaduanizacion
+                totalDesaduanizacion +
+                totalTransporteDestino
         );
 
         const transmision = round(subtotalBase * 0.01);
@@ -464,7 +470,7 @@ export default function ShippingInterface() {
             packaging: totalAdditionals,
             ship_ins: totalSeguroEnvio,
             clearance: totalDesaduanizacion,
-            trans_dest: 0,
+            trans_dest: totalTransporteDestino,
             transmit: transmision,
             subtotal,
             vat15: vat,
@@ -719,35 +725,36 @@ export default function ShippingInterface() {
             <TooltipProvider>
                 {/* Cabecera */}
                 <div className="flex items-center justify-between mb-1">
-                    <h1 className="text-base font-bold text-yellow-400">
+                    <h1 className="text-base font-bold text-white">
                         RECEPCIÓN
                     </h1>
+
                     <div className="flex space-x-1">
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="text-yellow-400 hover:text-yellow-500"
+                            className="text-white hover:text-gray-300"
                         >
                             <FileText className="h-4 w-4" />
                         </Button>
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="text-yellow-400 hover:text-yellow-500"
+                            className="text-white hover:text-gray-300"
                         >
                             <Clipboard className="h-4 w-4" />
                         </Button>
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="text-yellow-400 hover:text-yellow-500"
+                            className="text-white hover:text-gray-300"
                         >
                             <Download className="h-4 w-4" />
                         </Button>
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="text-yellow-400 hover:text-yellow-500"
+                            className="text-white hover:text-gray-300"
                         >
                             <Printer className="h-4 w-4" />
                         </Button>
@@ -757,7 +764,7 @@ export default function ShippingInterface() {
                                     variant="ghost"
                                     size="icon"
                                     onClick={openSearchModal}
-                                    className="text-yellow-400 hover:text-yellow-500"
+                                    className="text-white hover:text-gray-300"
                                 >
                                     <Search className="h-4 w-4" />
                                 </Button>
@@ -769,7 +776,7 @@ export default function ShippingInterface() {
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="text-yellow-400 hover:text-yellow-500"
+                            className="text-white hover:text-gray-300"
                         >
                             <MoreHorizontal className="h-4 w-4" />
                         </Button>
@@ -777,7 +784,7 @@ export default function ShippingInterface() {
                 </div>
 
                 <div className="text-center mb-1">
-                    <span className="text-yellow-400 text-[10px]">
+                    <span className="text-white text-[10px]">
                         Nuevo registro...
                     </span>
                 </div>
@@ -786,7 +793,7 @@ export default function ShippingInterface() {
                 <div className="grid grid-cols-3 gap-2 mb-2">
                     {/* Número */}
                     <div className="flex flex-col">
-                        <Label className="mb-0.5 font-medium text-yellow-400">
+                        <Label className="mb-0.5 font-medium text-white">
                             Número:
                         </Label>
                         <Input
@@ -797,7 +804,7 @@ export default function ShippingInterface() {
                     </div>
                     {/* Ruta */}
                     <div className="flex flex-col">
-                        <Label className="mb-0.5 font-medium text-yellow-400">
+                        <Label className="mb-0.5 font-medium text-white">
                             Ruta
                         </Label>
                         <Select
@@ -816,7 +823,7 @@ export default function ShippingInterface() {
                     </div>
                     {/* Fecha y hora */}
                     <div className="flex flex-col">
-                        <Label className="mb-0.5 font-medium text-yellow-400">
+                        <Label className="mb-0.5 font-medium text-white">
                             Fecha y hora:
                         </Label>
                         <Input
@@ -831,7 +838,7 @@ export default function ShippingInterface() {
                 {/* Agencias */}
                 <div className="grid grid-cols-2 gap-2 mb-2">
                     <div className="flex flex-col">
-                        <Label className="mb-0.5 font-medium text-yellow-400">
+                        <Label className="mb-0.5 font-medium text-white">
                             Ag. origen
                         </Label>
                         <Input
@@ -841,7 +848,7 @@ export default function ShippingInterface() {
                         />
                     </div>
                     <div className="flex flex-col">
-                        <Label className="mb-0.5 font-medium text-yellow-400">
+                        <Label className="mb-0.5 font-medium text-white">
                             Ag. destino
                         </Label>
                         <div className="flex items-start gap-2">
@@ -869,7 +876,7 @@ export default function ShippingInterface() {
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <span className="mt-1 cursor-pointer text-yellow-400 hover:text-yellow-200 transition">
+                                        <span className="mt-1 cursor-pointer text-white hover:text-gray-300 transition">
                                             <Info className="w-4 h-4" />
                                         </span>
                                     </TooltipTrigger>
@@ -932,6 +939,10 @@ export default function ShippingInterface() {
                                                             ? "Sí"
                                                             : "No"}
                                                     </div>
+                                                    <div>
+                                                        <strong>Valor:</strong>{" "}
+                                                        {agency.value || "N/A"}
+                                                    </div>
                                                 </>
                                             );
                                         })()}
@@ -983,7 +994,7 @@ export default function ShippingInterface() {
                                 className="border border-red-600 rounded p-1 mt-1 space-y-1 bg-black text-white"
                             >
                                 <div className="flex justify-between items-center">
-                                    <Label className="font-medium text-yellow-400">
+                                    <Label className="mb-0.5 font-medium text-white">
                                         Identificación
                                     </Label>
                                     <div className="flex space-x-1">
@@ -1038,7 +1049,7 @@ export default function ShippingInterface() {
                                     }
                                 />
 
-                                <Label className="font-medium text-yellow-400">
+                                <Label className="mb-0.5 font-medium text-white">
                                     Apellidos y nombres
                                 </Label>
                                 <Input
@@ -1052,7 +1063,7 @@ export default function ShippingInterface() {
                                     }
                                 />
 
-                                <Label className="font-medium text-yellow-400">
+                                <Label className="mb-0.5 font-medium text-white">
                                     Dirección
                                 </Label>
                                 <Input
@@ -1068,7 +1079,7 @@ export default function ShippingInterface() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                                     <div>
-                                        <Label className="font-medium text-yellow-400">
+                                        <Label className="mb-0.5 font-medium text-white">
                                             Celular
                                         </Label>
                                         <Input
@@ -1083,7 +1094,7 @@ export default function ShippingInterface() {
                                         />
                                     </div>
                                     <div>
-                                        <Label className="font-medium text-yellow-400">
+                                        <Label className="mb-0.5 font-medium text-white">
                                             Correo electrónico
                                         </Label>
                                         <Input
@@ -1102,7 +1113,7 @@ export default function ShippingInterface() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
                                     <div>
-                                        <Label className="font-medium text-yellow-400">
+                                        <Label className="mb-0.5 font-medium text-white">
                                             Código postal
                                         </Label>
                                         <Input
@@ -1117,7 +1128,7 @@ export default function ShippingInterface() {
                                         />
                                     </div>
                                     <div>
-                                        <Label className="font-medium text-yellow-400">
+                                        <Label className="mb-0.5 font-medium text-white">
                                             Parroquia / City
                                         </Label>
                                         <Input
@@ -1132,7 +1143,7 @@ export default function ShippingInterface() {
                                         />
                                     </div>
                                     <div>
-                                        <Label className="font-medium text-yellow-400">
+                                        <Label className="mb-0.5 font-medium text-white">
                                             Cantón / Country
                                         </Label>
                                         <Input
@@ -1149,7 +1160,7 @@ export default function ShippingInterface() {
                                 </div>
 
                                 <div>
-                                    <Label className="font-medium text-yellow-400">
+                                    <Label className="mb-0.5 font-medium text-white">
                                         Provincia / State
                                     </Label>
                                     <Input
@@ -1172,7 +1183,7 @@ export default function ShippingInterface() {
                                 className="border border-red-600 rounded p-1 mt-1 space-y-1 bg-black text-white"
                             >
                                 <div className="flex justify-between items-center">
-                                    <Label className="font-medium text-yellow-400">
+                                    <Label className="mb-0.5 font-medium text-white">
                                         Identificación
                                     </Label>
                                     <div className="flex space-x-1">
@@ -1245,7 +1256,7 @@ export default function ShippingInterface() {
                                     }
                                     className="bg-black text-white border border-red-700"
                                 />
-                                <Label className="font-medium text-yellow-400">
+                                <Label className="mb-0.5 font-medium text-white">
                                     Apellidos y nombres
                                 </Label>
                                 <Input
@@ -1258,7 +1269,7 @@ export default function ShippingInterface() {
                                     }
                                     className="bg-black text-white border border-red-700"
                                 />
-                                <Label className="font-medium text-yellow-400">
+                                <Label className="mb-0.5 font-medium text-white">
                                     Dirección
                                 </Label>
                                 <Input
@@ -1274,7 +1285,7 @@ export default function ShippingInterface() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                                     <div>
-                                        <Label className="font-medium text-yellow-400">
+                                        <Label className="mb-0.5 font-medium text-white">
                                             Celular
                                         </Label>
                                         <Input
@@ -1289,7 +1300,7 @@ export default function ShippingInterface() {
                                         />
                                     </div>
                                     <div>
-                                        <Label className="font-medium text-yellow-400">
+                                        <Label className="mb-0.5 font-medium text-white">
                                             Correo electrónico
                                         </Label>
                                         <Input
@@ -1308,7 +1319,7 @@ export default function ShippingInterface() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
                                     <div>
-                                        <Label className="font-medium text-yellow-400">
+                                        <Label className="mb-0.5 font-medium text-white">
                                             Código postal
                                         </Label>
                                         <Input
@@ -1323,7 +1334,7 @@ export default function ShippingInterface() {
                                         />
                                     </div>
                                     <div>
-                                        <Label className="font-medium text-yellow-400">
+                                        <Label className="mb-0.5 font-medium text-white">
                                             Parroquia / City
                                         </Label>
                                         <Input
@@ -1338,7 +1349,7 @@ export default function ShippingInterface() {
                                         />
                                     </div>
                                     <div>
-                                        <Label className="font-medium text-yellow-400">
+                                        <Label className="mb-0.5 font-medium text-white">
                                             Cantón / Country
                                         </Label>
                                         <Input
@@ -1355,7 +1366,7 @@ export default function ShippingInterface() {
                                 </div>
 
                                 <div>
-                                    <Label className="font-medium text-yellow-400">
+                                    <Label className="mb-0.5 font-medium text-white">
                                         Provincia / State
                                     </Label>
                                     <Input
@@ -1377,7 +1388,7 @@ export default function ShippingInterface() {
                                 className="border border-red-600 rounded p-1 mt-1 space-y-1 bg-black text-white"
                             >
                                 <div className="flex justify-between items-center mb-1">
-                                    <Label className="text-sm text-yellow-400 font-semibold">
+                                    <Label className="mb-0.5 font-medium text-white">
                                         Paquetes
                                     </Label>
                                     <div className="flex items-center space-x-2">
@@ -1405,7 +1416,7 @@ export default function ShippingInterface() {
 
                                 <div className="overflow-auto border rounded border-red-700">
                                     <table className="min-w-full text-xs text-left border-collapse">
-                                        <thead className="bg-black text-[10px] uppercase text-yellow-400 tracking-wider border-b border-red-600">
+                                        <thead className="bg-black text-[10px] uppercase text-white tracking-wider border-b border-red-600">
                                             <tr>
                                                 <th className="px-2 py-2">
                                                     Tipo
@@ -1552,7 +1563,7 @@ export default function ShippingInterface() {
                                             />
                                         </div>
                                         <div className="border-t border-red-600 my-1 w-full" />
-                                        <div className="flex justify-between items-center text-yellow-400 font-semibold">
+                                        <div className="flex justify-between items-center text-white font-semibold">
                                             <span className="text-white font-medium">
                                                 TOTAL:
                                             </span>
@@ -1577,13 +1588,13 @@ export default function ShippingInterface() {
                                 value="additionals"
                                 className="border border-red-600 rounded p-1 mt-1 space-y-1 bg-black text-white"
                             >
-                                <Label className="text-sm text-yellow-400 font-semibold">
+                                <Label className="mb-0.5 font-medium text-white">
                                     Adicionales
                                 </Label>
 
                                 <div className="overflow-auto border rounded border-red-700">
                                     <table className="min-w-full text-xs text-left border-collapse">
-                                        <thead className="bg-black text-[10px] uppercase text-yellow-400 tracking-wider border-b border-red-600">
+                                        <thead className="bg-black text-[10px] uppercase text-white tracking-wider border-b border-red-600">
                                             <tr>
                                                 <th className="px-2 py-2">
                                                     Cantidad
@@ -1749,7 +1760,7 @@ export default function ShippingInterface() {
                                                 >
                                                     TOTAL:
                                                 </td>
-                                                <td className="text-right font-bold text-yellow-400 px-2 py-2">
+                                                <td className="text-right font-bold text-white px-2 py-2">
                                                     {additionals
                                                         .reduce(
                                                             (acc, item) =>
@@ -1783,7 +1794,7 @@ export default function ShippingInterface() {
                         {/* Tarjeta de Totales */}
                         <Card>
                             <CardContent className="p-2">
-                                <h2 className="text-center font-semibold text-yellow-400 border-b border-red-600 pb-1 mb-1 text-sm">
+                                <h2 className="text-center font-semibold text-white border-b border-red-600 pb-1 mb-1 text-sm">
                                     TOTALES
                                 </h2>
 
@@ -1833,6 +1844,14 @@ export default function ShippingInterface() {
                                         (acc, pkg) => acc + pkg.pounds,
                                         0
                                     );
+                                    const agencia = agencyOptions.find(
+                                        (a) => a.id === agencyDest
+                                    );
+                                    const valorTransporte = agencia?.value || 0;
+                                    const totalTransporteDestino = round(
+                                        valorTransporte * totalPesoLbs
+                                    );
+
                                     const totalSeguroEnvio = totalPesoLbs * 0.1;
 
                                     let totalDesaduanizacion = 0;
@@ -1858,7 +1877,8 @@ export default function ShippingInterface() {
                                             totalAdditionals +
                                             totalSeguroPaquete +
                                             totalSeguroEnvio +
-                                            totalDesaduanizacion
+                                            totalDesaduanizacion +
+                                            totalTransporteDestino
                                     );
 
                                     // ✅ Transmisión es el 1% del subtotal base
@@ -1924,8 +1944,14 @@ export default function ShippingInterface() {
                                             </div>
                                             <div className="flex justify-between">
                                                 <span>Transporte destino</span>
-                                                <span>$0.00</span>
+                                                <span>
+                                                    $
+                                                    {totalTransporteDestino.toFixed(
+                                                        2
+                                                    )}
+                                                </span>
                                             </div>
+
                                             <div className="flex justify-between">
                                                 <span>Transmisión</span>
                                                 <span>
