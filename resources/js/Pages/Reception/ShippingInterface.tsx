@@ -1854,11 +1854,16 @@ export default function ShippingInterface() {
 
                                     const totalSeguroEnvio = totalPesoLbs * 0.1;
 
+                                    // ✅ POR ESTE:
                                     let totalDesaduanizacion = 0;
-                                    if (totalPesoLbs > 0 && totalPesoLbs <= 1) {
+                                    const algunPaqueteSobre = packages.some(
+                                        (pkg) => pkg.service_type === "SOBRE"
+                                    );
+
+                                    if (algunPaqueteSobre) {
                                         totalDesaduanizacion = 3.5;
                                     } else if (
-                                        totalPesoLbs > 1 &&
+                                        totalPesoLbs >= 1 &&
                                         totalPesoLbs <= 17
                                     ) {
                                         totalDesaduanizacion = 6;
