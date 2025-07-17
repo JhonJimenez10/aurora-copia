@@ -90,7 +90,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/receptions/{id}/ticket.pdf', [ReceptionController::class, 'generateTicketPdf'])->name('receptions.ticket');
     Route::get('/receptions/{id}/all-package-tickets.pdf', [ReceptionController::class, 'generateAllPackageTicketsPdf'])->name('receptions.all_tickets');
     Route::get('/receptions/{reception}/packages/{package}/ticket.pdf', [ReceptionController::class, 'generatePackageTicketPdf'])->name('receptions.package_ticket');
-
+    Route::resource('receptions', ReceptionController::class);
     // Artículos para combo
     Route::get('/art_packgs/list/json', [ArtPackgController::class, 'listJson'])->name('art_packgs.list.json');
     Route::get('/art_packages/list/json', [ArtPackageController::class, 'listJson'])->name('art_packages.list.json');
@@ -103,7 +103,7 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('senders', SenderController::class);
     Route::resource('recipients', RecipientController::class);
-    Route::resource('receptions', ReceptionController::class);
+
     Route::resource('art_packages', ArtPackageController::class);
     Route::resource('art_packgs', ArtPackgController::class);
     Route::post('/package-items', [PackageItemController::class, 'store'])->name('package_items.store');
@@ -125,6 +125,3 @@ Route::middleware(['auth', 'admin'])->group(function () {
 // -----------------------------
 // RUTAS PARA CUSTOMER
 // -----------------------------
-Route::middleware(['auth', 'customer'])->group(function () {
-    Route::get('/cliente/receptions', [ReceptionController::class, 'index'])->name('receptions.index.customer');
-});

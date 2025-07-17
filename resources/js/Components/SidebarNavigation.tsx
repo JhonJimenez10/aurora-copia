@@ -149,7 +149,7 @@ export default function SidebarNavigation() {
     if (userRole === "Customer") {
         navItems.push({
             title: "Envíos",
-            href: "/cliente/receptions",
+            href: "/receptions",
             icon: <Plane className="h-5 w-5" />,
         });
     }

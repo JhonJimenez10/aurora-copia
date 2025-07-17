@@ -33,13 +33,18 @@ class InvoiceController extends Controller
             $reception    = Reception::with(['packages.items', 'additionals'])->findOrFail($receptionId);
             $enterpriseId = Auth::user()->enterprise_id;
 
-            // 2) Calcular secuencial y número
-            // 2) Calcular secuencial con transacción y bloqueo
+            // ✅ Validar que la recepción pertenezca a la empresa logueada
+            if ($reception->enterprise_id !== $enterpriseId) {
+                return response()->json([
+                    'error' => 'No autorizado para facturar esta recepción.',
+                    'message' => 'La recepción no pertenece a su empresa.'
+                ], 403);
+            }
 
+            // 2) Calcular secuencial y número
             $establishment = '001';
             $emissionPoint = '001';
 
-            // Obtener la última factura de la empresa ordenada por secuencial descendente (con lock)
             $lastInvoice = Invoice::where('enterprise_id', $enterpriseId)
                 ->orderByDesc('sequential')
                 ->lockForUpdate()
@@ -76,7 +81,7 @@ class InvoiceController extends Controller
 
             // 4) Detalles de paquetes
             foreach ($reception->packages as $pkg) {
-                $qty = collect($pkg->items)->sum('quantity'); // suma de todos los items
+                $qty = collect($pkg->items)->sum('quantity');
                 $unitPrice = $qty ? round($pkg->total / $qty, 2) : round($pkg->total, 2);
                 $subtotal  = round($unitPrice * $qty, 2);
                 $vatAmount = round($subtotal * 0.15, 2);
@@ -116,7 +121,7 @@ class InvoiceController extends Controller
 
             DB::commit();
 
-            // 6) Generación del XML (sin firma ni autorización)
+            // 6) Generar XML
             $xmlService = new SriFacturaXmlService();
             $result     = $xmlService->generate($invoice);
             $xmlPath    = $result['xml_path'];
@@ -126,12 +131,12 @@ class InvoiceController extends Controller
                 'sri_status' => 'GENERATED',
             ]);
 
-            // 7) Firmo el XML
+            // 7) Firmar el XML
             $signer        = new XmlSignerService();
             $signedXmlPath = $signer->sign($xmlPath, $invoice->id);
             $invoice->update(['xml_url' => $signedXmlPath]);
 
-            // 8) Intento autorizar con reintentos
+            // 8) Autorizar en el SRI
             $authorizer = new SriAuthorizationService();
             $maxAttempts = 3;
             $authorized = false;
@@ -150,7 +155,7 @@ class InvoiceController extends Controller
                 } catch (\Exception $e) {
                     $attempt++;
                     Log::warning("Intento {$attempt} fallido de autorización SRI para factura {$invoice->number}: {$e->getMessage()}");
-                    sleep(1); // o incluso 5
+                    sleep(1);
                 }
             }
 
