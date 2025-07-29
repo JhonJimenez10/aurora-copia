@@ -19,6 +19,7 @@
     .barcode { display: inline-block; margin-bottom: 0; transform: scale(0.8); transform-origin: top left; }
     .bold { font-weight: bold; }
     .red { color: #d10000; }
+    .green { color: #008000; }
     .section { margin-top: 8px; padding-top: 6px; border-top: 1px solid #aaa; }
     .section-title { background-color: #f2f2f2; font-weight: bold; font-size: 13px; padding: 2px 4px; border-left: 4px solid #333; margin-bottom: 3px; }
     .info-line { margin: 1px 0; }
@@ -37,24 +38,28 @@
   @php
     $package = $item['package'];
     $barcode = $item['barcode'];
-    $isPorCobrar = in_array(strtoupper($reception->pay_method), ['POR COBRAR', 'TRANSFERENCIA']);
+    $payMethod = strtoupper($reception->pay_method);
+    $isPorCobrar = in_array($payMethod, ['POR COBRAR', 'TRANSFERENCIA']);
+    $isEfectivo = $payMethod === 'EFECTIVO';
     $weightLbs = is_numeric($package->pounds) ? floatval($package->pounds) : 0;
     $weightKgs = $weightLbs * 0.453592;
+    $agencyDestName = $reception->agencyDest->name ?? 'AGENCIA DESTINO';
   @endphp
 
-  {{-- Código de barras pegado arriba --}}
+  {{-- Código de barras --}}
   <div class="barcode-container center" style="padding-top: 0;">
     <div class="barcode">{!! $barcode !!}</div>
     <div class="bold">{{ $package->barcode ?? '---' }}</div>
   </div>
 
-  {{-- POR COBRAR --}}
+  {{-- Indicador de Pago --}}
   @if ($isPorCobrar)
     <div class="center" style="margin-bottom: 6px;">
       <div class="bold red" style="font-size: 16px;">POR COBRAR</div>
-      <div class="bold red" style="font-size: 14px;">
-        {{ number_format($package->total, 2) }} + recargos
-      </div>
+    </div>
+  @elseif ($isEfectivo)
+    <div class="center" style="margin-bottom: 6px;">
+      <div class="bold green" style="font-size: 16px;">PAGADO</div>
     </div>
   @endif
 
@@ -74,13 +79,27 @@
       <td><span class="bold">PESO LBS:</span> {{ number_format($weightLbs, 2) }}</td>
     </tr>
     <tr>
-      <td><span class="bold">AL COBRO:</span> <span class="red">${{ number_format($package->total, 2) }}</span></td>
-      <td><span class="bold">PESO KGS:</span> {{ number_format($weightKgs, 2) }}</td>
-    </tr>
+    @if (!$isEfectivo)
+      <td>
+        <span class="bold">AL COBRO:</span>
+        <span class="{{ $isPorCobrar ? 'red' : '' }}">
+          ${{ number_format($reception->total, 2) }}
+        </span>
+      </td>
+    @else
+      <td>
+        <span class="bold green">PAGADO</span>
+      </td>
+    @endif
+    <td><span class="bold">PESO KGS:</span> {{ number_format($weightKgs, 2) }}</td>
+  </tr>
+
   </table>
 
-  <div class="bridgeport-title">BRIDGEPORT</div>
+  {{-- Agencia de destino --}}
+  <div class="bridgeport-title">{{ $agencyDestName }}</div>
 
+  {{-- Información del remitente y destinatario --}}
   <div class="dual-section">
     <div class="column">
       <div class="section-title">DESTINATARIO:</div>
@@ -102,7 +121,6 @@
   @if (!$loop->last)
     <div class="page-break"></div>
   @endif
-
 @endforeach
 
 </body>
