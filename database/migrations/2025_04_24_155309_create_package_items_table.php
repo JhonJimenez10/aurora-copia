@@ -12,7 +12,7 @@ return new class extends Migration {
             $table->uuid('package_id');
             $table->uuid('art_package_id')->nullable();
 
-            $table->integer('quantity')->default(1);
+            $table->decimal('quantity', 10, 2)->default(0);
             $table->string('unit', 50)->nullable();
             $table->boolean('volume')->default(false);
             $table->decimal('length', 10, 2)->default(0);

@@ -11,7 +11,7 @@ return new class extends Migration {
             $table->uuid('id')->primary();
             $table->uuid('invoice_id');
             $table->string('description', 255);
-            $table->integer('quantity')->default(1);
+            $table->decimal('quantity', 10, 2)->default(0);
             $table->decimal('unit_price', 10, 2)->default(0);
             $table->decimal('subtotal', 10, 2)->default(0);
             $table->decimal('vat', 10, 2)->nullable();
