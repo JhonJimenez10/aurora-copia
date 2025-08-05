@@ -73,7 +73,7 @@
     <tr>
       @php
         $contentNames = $package->packageItems->map(function($item) {
-          return $item->artPackage->translation ?? $item->artPackage->name ?? 'Artículo';
+          return $item->artPackage->name ?? 'Artículo';
         })->toArray();
       @endphp
       <td><span class="bold">CONTENIDO:</span> {{ implode(', ', $contentNames) }}</td>
