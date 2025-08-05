@@ -39,8 +39,8 @@
     $package = $item['package'];
     $barcode = $item['barcode'];
     $payMethod = strtoupper($reception->pay_method);
-    $isPorCobrar = in_array($payMethod, ['POR COBRAR', 'TRANSFERENCIA']);
-    $isEfectivo = $payMethod === 'EFECTIVO';
+    $isPagado = in_array($payMethod, ['EFECTIVO', 'TRANSFERENCIA']);
+  $isPorCobrar = $payMethod === 'POR COBRAR';
     $weightLbs = is_numeric($package->pounds) ? floatval($package->pounds) : 0;
     $weightKgs = $weightLbs * 0.453592;
     $agencyDestName = $reception->agencyDest->name ?? 'AGENCIA DESTINO';
@@ -57,11 +57,12 @@
     <div class="center" style="margin-bottom: 6px;">
       <div class="bold red" style="font-size: 16px;">POR COBRAR</div>
     </div>
-  @elseif ($isEfectivo)
+  @elseif ($isPagado)
     <div class="center" style="margin-bottom: 6px;">
       <div class="bold green" style="font-size: 16px;">PAGADO</div>
     </div>
   @endif
+
 
   {{-- Datos generales --}}
   <table class="details-table">
@@ -79,18 +80,19 @@
       <td><span class="bold">PESO LBS:</span> {{ number_format($weightLbs, 2) }}</td>
     </tr>
     <tr>
-    @if (!$isEfectivo)
-      <td>
-        <span class="bold">AL COBRO:</span>
-        <span class="{{ $isPorCobrar ? 'red' : '' }}">
-          ${{ number_format($reception->total, 2) }}
-        </span>
-      </td>
-    @else
-      <td>
-        <span class="bold green">PAGADO</span>
-      </td>
-    @endif
+    @if ($isPorCobrar)
+    <td>
+      <span class="bold">AL COBRO:</span>
+      <span class="red">
+        ${{ number_format($reception->total, 2) }}
+      </span>
+    </td>
+  @else
+    <td>
+      <span class="bold green">PAGADO</span>
+    </td>
+  @endif
+
     <td><span class="bold">PESO KGS:</span> {{ number_format($weightKgs, 2) }}</td>
   </tr>
 

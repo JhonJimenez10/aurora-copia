@@ -401,9 +401,14 @@ export default function ShippingInterface() {
         const totalSeguroEnvio = totalPesoLbs * 0.1;
 
         let totalDesaduanizacion = 0;
-        if (totalPesoLbs > 0 && totalPesoLbs <= 1) {
+
+        const algunPaqueteSobre = packages.some(
+            (pkg) => pkg.service_type === "SOBRE"
+        );
+
+        if (algunPaqueteSobre) {
             totalDesaduanizacion = 3.5;
-        } else if (totalPesoLbs > 1 && totalPesoLbs <= 17) {
+        } else if (totalPesoLbs >= 0 && totalPesoLbs <= 17) {
             totalDesaduanizacion = 6;
         } else if (totalPesoLbs > 17 && totalPesoLbs <= 22) {
             totalDesaduanizacion = 9;
@@ -420,7 +425,7 @@ export default function ShippingInterface() {
                 totalTransporteDestino
         );
 
-        const transmision = round(subtotalBase * 0.01);
+        const transmision = 0.25;
         const subtotal = round(subtotalBase + transmision);
         const vat = round(subtotal * 0.15);
         const total = round(subtotal + vat);
@@ -1863,7 +1868,7 @@ export default function ShippingInterface() {
                                     if (algunPaqueteSobre) {
                                         totalDesaduanizacion = 3.5;
                                     } else if (
-                                        totalPesoLbs >= 1 &&
+                                        totalPesoLbs >= 0 &&
                                         totalPesoLbs <= 17
                                     ) {
                                         totalDesaduanizacion = 6;
@@ -1887,9 +1892,7 @@ export default function ShippingInterface() {
                                     );
 
                                     // ✅ Transmisión es el 1% del subtotal base
-                                    const transmision = round(
-                                        subtotalBase * 0.01
-                                    );
+                                    const transmision = 0.25;
 
                                     // 🔵 Subtotal final que sí incluye transmisión
                                     const subtotal = round(
@@ -2028,7 +2031,6 @@ export default function ShippingInterface() {
                                                     <Input
                                                         type="number"
                                                         className="w-24 text-right"
-                                                        min={0}
                                                         value={efectivoRecibido}
                                                         disabled={
                                                             payMethod !==
