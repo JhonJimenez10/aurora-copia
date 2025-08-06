@@ -18,14 +18,31 @@ use App\Models\AgencyDest;
 
 class ReceptionController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $receptions = Reception::with(['sender', 'recipient', 'packages', 'additionals'])->get();
+        $enterpriseId = auth()->user()->enterprise_id;
+
+        $receptions = Reception::where('enterprise_id', $enterpriseId)
+            ->when(
+                $request->filled('from') && $request->filled('to'),
+                fn($q) =>
+                $q->whereBetween('date_time', [$request->from, $request->to])
+            )
+            ->when(
+                $request->filled('number'),
+                fn($q) =>
+                $q->where('number', 'like', '%' . $request->number . '%')
+            )
+            ->with(['sender', 'recipient'])
+            ->orderByDesc('date_time')
+            ->paginate(10);
 
         return Inertia::render('Reception/Index', [
             'receptions' => $receptions,
+            'filters' => $request->only(['from', 'to', 'number']),
         ]);
     }
+
 
     public function create()
     {
@@ -235,7 +252,8 @@ class ReceptionController extends Controller
 
     public function edit($id)
     {
-        $reception = Reception::findOrFail($id);
+        $reception = Reception::with(['sender', 'recipient', 'packages.packageItems'])->findOrFail($id);
+
         return Inertia::render('Reception/Edit', [
             'reception'  => $reception,
             'senders'    => Sender::all(['id', 'full_name']),
@@ -245,7 +263,8 @@ class ReceptionController extends Controller
 
     public function update(Request $request, $id)
     {
-        $reception = Reception::findOrFail($id);
+        $reception = Reception::with(['sender', 'recipient', 'packages.packageItems'])->findOrFail($id);
+
         $validated = $request->validate([
             'number'        => 'sometimes|required|string|max:20',
             'route'         => 'sometimes|required|string|max:255',

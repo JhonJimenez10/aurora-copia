@@ -153,8 +153,13 @@ interface AgencyDest {
     available_us: boolean;
     value: number | null;
 }
+type ShippingInterfaceProps = {
+    initialData?: any; // Puedes usar un tipo más fuerte si quieres
+};
 
-export default function ShippingInterface() {
+export default function ShippingInterface({
+    initialData,
+}: ShippingInterfaceProps) {
     //Boton y mostrar un loading
     const [isSaving, setIsSaving] = useState(false);
 
@@ -204,7 +209,9 @@ export default function ShippingInterface() {
     });
 
     // listas y estados de UI
-    const [packages, setPackages] = useState<PackageItem[]>([]);
+    const [packages, setPackages] = useState<PackageItem[]>(
+        initialData?.packages || []
+    );
     const [showPackageModal, setShowPackageModal] = useState(false);
     const [editingPackageIndex, setEditingPackageIndex] = useState<
         number | null
@@ -262,6 +269,24 @@ export default function ShippingInterface() {
     ]);
     const [payMethod, setPayMethod] = useState<string>("EFECTIVO");
     const [efectivoRecibido, setEfectivoRecibido] = useState(0);
+    useEffect(() => {
+        if (initialData) {
+            if (initialData.sender) setSender(initialData.sender);
+            if (initialData.recipient) setRecipient(initialData.recipient);
+            if (initialData.receptionNumber)
+                setReceptionNumber(initialData.receptionNumber);
+            if (initialData.receptionDate)
+                setReceptionDate(initialData.receptionDate);
+            if (initialData.route) setRoute(initialData.route);
+            if (initialData.agencyDest) setAgencyDest(initialData.agencyDest);
+            if (initialData.payMethod) setPayMethod(initialData.payMethod);
+            if (initialData.efectivoRecibido)
+                setEfectivoRecibido(initialData.efectivoRecibido);
+            if (initialData.additionals)
+                setAdditionals(initialData.additionals);
+        }
+    }, [initialData]);
+
     const [showSenderModal, setShowSenderModal] = useState(false);
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [showRecipientModal, setShowRecipientModal] = useState(false);
