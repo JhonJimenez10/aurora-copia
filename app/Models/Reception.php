@@ -16,6 +16,8 @@ class Reception extends Model
 
     protected $casts = [
         'id' => 'string',
+        'annulled'  => 'boolean',
+        'annulled_at' => 'datetime',
     ];
     protected $fillable = [
         'enterprise_id',
@@ -39,6 +41,9 @@ class Reception extends Model
         'pay_method',
         'cash_recv',
         'change',
+        'annulled',
+        'annulled_by',
+        'annulled_at',
     ];
 
     protected static function boot()
@@ -84,5 +89,9 @@ class Reception extends Model
     public function agencyDest()
     {
         return $this->belongsTo(AgencyDest::class, 'agency_dest');
+    }
+    public function scopeActive($query)
+    {
+        return $query->where('annulled', false);
     }
 }

@@ -264,6 +264,11 @@ class ReceptionController extends Controller
     public function update(Request $request, $id)
     {
         $reception = Reception::with(['sender', 'recipient', 'packages.packageItems'])->findOrFail($id);
+        if ($reception->annulled) {
+            return response()->json([
+                'error' => 'No se puede modificar una recepción anulada.'
+            ], 409);
+        }
 
         $validated = $request->validate([
             'number'        => 'sometimes|required|string|max:20',
@@ -305,6 +310,9 @@ class ReceptionController extends Controller
     {
         $reception = Reception::with(['sender', 'recipient', 'packages.packageItems.artPackage'])
             ->findOrFail($id);
+        if ($reception->annulled) {
+            abort(403, 'No se pueden generar tickets de una recepción anulada.');
+        }
 
         $barcodes = [];
         foreach ($reception->packages as $package) {
@@ -325,5 +333,29 @@ class ReceptionController extends Controller
                 'Content-Disposition',
                 'inline; filename="tickets-' . $reception->number . '.pdf"'
             );
+    }
+    public function annul(Request $request, $id)
+    {
+        $enterpriseId = auth()->user()->enterprise_id;
+
+        $reception = Reception::where('enterprise_id', $enterpriseId)->findOrFail($id);
+
+        if ($reception->annulled) {
+            return response()->json(['message' => 'La recepción ya está anulada.'], 200);
+        }
+
+        $reception->annulled = true;
+
+        // opcional:
+        if ($reception->isFillable('annulled_by')) {
+            $reception->annulled_by = auth()->id();
+        }
+        if ($reception->isFillable('annulled_at')) {
+            $reception->annulled_at = now();
+        }
+
+        $reception->save();
+
+        return response()->json(['message' => 'Recepción anulada correctamente.']);
     }
 }

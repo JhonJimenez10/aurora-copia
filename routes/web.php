@@ -85,7 +85,9 @@ Route::middleware(['auth'])->group(function () {
     // Crear recepción y facturas
     Route::post('/receptions', [ReceptionController::class, 'store'])->name('receptions.store.shared');
     Route::post('/receptions/{id}/invoice', [InvoiceController::class, 'createInvoice'])->name('receptions.invoice');
-
+    // Anular recepción
+    Route::patch('/receptions/{reception}/annul', [ReceptionController::class, 'annul'])
+        ->name('receptions.annul');
     // Tickets
     Route::get('/receptions/{id}/ticket.pdf', [ReceptionController::class, 'generateTicketPdf'])->name('receptions.ticket');
     Route::get('/receptions/{id}/all-package-tickets.pdf', [ReceptionController::class, 'generateAllPackageTicketsPdf'])->name('receptions.all_tickets');

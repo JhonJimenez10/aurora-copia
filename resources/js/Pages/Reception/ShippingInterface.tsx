@@ -26,6 +26,7 @@ import {
     Paperclip,
     Plus,
     Minus,
+    Trash2,
 } from "lucide-react";
 import { Provider as TooltipProvider } from "@radix-ui/react-tooltip";
 import {
@@ -162,6 +163,44 @@ export default function ShippingInterface({
     initialData,
     readOnly = false,
 }: ShippingInterfaceProps) {
+    // Estados y variables para anular recepción
+    const receptionId = initialData?.id ?? null;
+    const [annulled, setAnnulled] = useState<boolean>(!!initialData?.annulled);
+    const [isAnnulling, setIsAnnulling] = useState(false);
+    // Función para anular recepción
+    const handleAnnulReception = async () => {
+        if (!receptionId) return;
+        if (
+            !window.confirm(
+                "¿Seguro que deseas ANULAR esta recepción? Esta acción no elimina datos, pero la marcará como ANULADA."
+            )
+        ) {
+            return;
+        }
+        try {
+            setIsAnnulling(true);
+            // PATCH al backend (ruta que hicimos: receptions.annul)
+            await axios.patch(`/receptions/${receptionId}/annul`);
+            setAnnulled(true);
+            alert("Recepción anulada correctamente.");
+            // Opcional: regresar al listado (Detalle Facturación)
+            // window.location.href = "/receptions";
+        } catch (err: any) {
+            const status = err?.response?.status;
+            if (status === 409) {
+                alert("Esta recepción ya estaba anulada.");
+                setAnnulled(true);
+            } else if (status === 403) {
+                alert("No tienes permisos para anular esta recepción.");
+            } else {
+                console.error("Error al anular:", err?.response?.data || err);
+                alert("No se pudo anular la recepción. Intenta nuevamente.");
+            }
+        } finally {
+            setIsAnnulling(false);
+        }
+    };
+
     //Boton y mostrar un loading
     const [isSaving, setIsSaving] = useState(false);
 
@@ -786,6 +825,32 @@ export default function ShippingInterface({
                         >
                             <Printer className="h-4 w-4" />
                         </Button>
+                        {receptionId && ( // 👈 solo mostrar en edición
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={handleAnnulReception}
+                                            disabled={annulled || isAnnulling}
+                                            className={`${
+                                                annulled
+                                                    ? "opacity-40 cursor-not-allowed"
+                                                    : "text-red-400 hover:text-red-500"
+                                            }`}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p className="text-[10px]">
+                                        {annulled ? "Ya anulada" : "Anular"}
+                                    </p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button

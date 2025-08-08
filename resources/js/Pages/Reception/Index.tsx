@@ -111,10 +111,26 @@ export default function ReceptionIndex({
                                 {receptions.data.map((rec: any) => (
                                     <tr
                                         key={rec.id}
-                                        className="border-t border-red-700 hover:bg-[#1b1b1b]"
+                                        title={
+                                            rec.annulled
+                                                ? "Recepción anulada"
+                                                : undefined
+                                        }
+                                        className={`border-t border-red-700 hover:bg-[#1b1b1b] ${
+                                            rec.annulled
+                                                ? "bg-red-900/20 border-l-4 border-l-red-600 text-red-100/90"
+                                                : ""
+                                        }`}
                                     >
                                         <td className="px-4 py-2">
-                                            {rec.number}
+                                            <div className="flex items-center gap-2">
+                                                <span>{rec.number}</span>
+                                                {rec.annulled && (
+                                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-700/30 border border-red-600 text-red-200">
+                                                        ANULADA
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-2">
                                             {rec.sender?.full_name}

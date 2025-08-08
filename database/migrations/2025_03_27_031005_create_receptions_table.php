@@ -35,7 +35,9 @@ return new class extends Migration {
             $table->string('pay_method', 50)->nullable();
             $table->decimal('cash_recv', 10, 2)->default(0);
             $table->decimal('change', 10, 2)->default(0);
-
+            $table->boolean('annulled')->default(false)->after('change');
+            $table->uuid('annulled_by')->nullable()->after('annulled');
+            $table->timestamp('annulled_at')->nullable()->after('annulled_by');
             $table->timestamps();
 
             // Relaciones foráneas
@@ -58,6 +60,10 @@ return new class extends Migration {
                 ->references('id')
                 ->on('agencies_dest')
                 ->restrictOnDelete(); // puedes usar cascadeOnDelete si lo deseas
+            $table->foreign('annulled_by')
+                ->references('id')
+                ->on('users')
+                ->nullOnDelete(); // Permite que el campo sea nulo si el usuario es eliminado
         });
     }
 
