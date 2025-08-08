@@ -155,10 +155,12 @@ interface AgencyDest {
 }
 type ShippingInterfaceProps = {
     initialData?: any; // Puedes usar un tipo más fuerte si quieres
+    readOnly?: boolean;
 };
 
 export default function ShippingInterface({
     initialData,
+    readOnly = false,
 }: ShippingInterfaceProps) {
     //Boton y mostrar un loading
     const [isSaving, setIsSaving] = useState(false);
@@ -239,26 +241,23 @@ export default function ShippingInterface({
     const [receptionNumber, setReceptionNumber] = useState("000-001");
     console.log("auth:", auth);
     console.log("enterpriseId:", enterpriseId);
+    // justo después de recibir props
+    const isEditMode = readOnly || !!initialData?.receptionNumber;
 
     useEffect(() => {
-        if (enterpriseId) {
-            console.log("Solicitando número con enterpriseId:", enterpriseId);
-            axios
-                .get(`/receptions/next-number?enterprise_id=${enterpriseId}`)
-                .then((res) => {
-                    console.log("Respuesta recibida:", res.data);
-                    if (res.data.number) {
-                        setReceptionNumber(res.data.number);
-                    }
-                })
-                .catch((err) => {
-                    console.error(
-                        "Error al obtener el número de recepción:",
-                        err
-                    );
-                });
-        }
-    }, [auth, enterpriseId]); // 👈 añade `auth` para que se dispare en re-render
+        if (!enterpriseId || isEditMode) return; // 👈 no pedir número si estoy editando
+
+        axios
+            .get(`/receptions/next-number?enterprise_id=${enterpriseId}`)
+            .then((res) => {
+                if (isEditMode) return; // 👈 doble seguro: no sobrescribir si cambió el modo
+                if (res.data.number) setReceptionNumber(res.data.number);
+            })
+            .catch((err) => {
+                console.error("Error al obtener el número de recepción:", err);
+            });
+    }, [enterpriseId, isEditMode]);
+    // 👈 añade `auth` para que se dispare en re-render
 
     const today = new Date().toISOString().split("T")[0];
     const [receptionDate, setReceptionDate] = useState(today);
@@ -301,6 +300,7 @@ export default function ShippingInterface({
     const [modalType, setModalType] = useState<string | undefined>();
 
     const addAdditional = () => {
+        if (readOnly) return;
         setAdditionals((prev) => [
             ...prev,
             { quantity: 0, unit: "", article: "", unit_price: 0 },
@@ -308,6 +308,7 @@ export default function ShippingInterface({
     };
 
     const removeAdditional = (index: number) => {
+        if (readOnly) return;
         setAdditionals((prev) => prev.filter((_, i) => i !== index));
     };
 
@@ -316,24 +317,19 @@ export default function ShippingInterface({
         field: keyof AdditionalItem,
         value: string
     ) => {
+        if (readOnly) return;
         const updated = [...additionals];
-
-        // Cast por campo
         const newValue: AdditionalItem[typeof field] =
             field === "quantity" || field === "unit_price"
                 ? ((parseFloat(value) || 0) as AdditionalItem[typeof field])
                 : (value as AdditionalItem[typeof field]);
-
-        updated[index] = {
-            ...updated[index],
-            [field]: newValue,
-        };
-
+        updated[index] = { ...updated[index], [field]: newValue };
         setAdditionals(updated);
     };
 
     // Función que abre el modal de búsqueda
     const openSearchModal = () => {
+        if (readOnly) return;
         setShowSearchModal(true);
     };
 
@@ -571,6 +567,7 @@ export default function ShippingInterface({
 
     // ABRIR MODAL NUEVO PAQUETE
     const openNewPackageModal = () => {
+        if (readOnly) return;
         setEditingPackageIndex(null);
         setPackageRowsForEdit(undefined);
         setShowPackageModal(true);
@@ -749,7 +746,8 @@ export default function ShippingInterface({
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [currentTab, packages, additionals, agencyDest]);
-
+    // Función para editar solo lectura en todos los inputs
+    const readOnlyProps = readOnly ? { readOnly: true } : {};
     return (
         <div className="max-w-6xl mx-auto p-4 bg-black text-white border border-red-700 rounded-xl shadow-xl text-xs">
             <TooltipProvider>
@@ -794,7 +792,12 @@ export default function ShippingInterface({
                                     variant="ghost"
                                     size="icon"
                                     onClick={openSearchModal}
-                                    className="text-white hover:text-gray-300"
+                                    disabled={readOnly} // 👈
+                                    className={`text-white hover:text-gray-300 ${
+                                        readOnly
+                                            ? "opacity-40 cursor-not-allowed"
+                                            : ""
+                                    }`}
                                 >
                                     <Search className="h-4 w-4" />
                                 </Button>
@@ -840,6 +843,7 @@ export default function ShippingInterface({
                         <Select
                             value={route}
                             onValueChange={(val) => setRoute(val)}
+                            disabled={readOnly} // Se desactiva el select cuando readOnly es true
                         >
                             <SelectTrigger className="w-full bg-black text-white border border-red-700">
                                 <SelectValue placeholder="ECUADOR - ESTADOS UNIDOS" />
@@ -861,6 +865,7 @@ export default function ShippingInterface({
                             className="w-full bg-black text-white border border-red-700 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                             value={receptionDate}
                             onChange={(e) => setReceptionDate(e.target.value)}
+                            {...readOnlyProps}
                         />
                     </div>
                 </div>
@@ -885,6 +890,7 @@ export default function ShippingInterface({
                             <Select
                                 value={agencyDest}
                                 onValueChange={setAgencyDest}
+                                disabled={readOnly} // Se desactiva el select cuando readOnly es true
                             >
                                 <SelectTrigger className="w-full bg-black text-white border border-red-700">
                                     <SelectValue placeholder="Seleccionar destino" />
@@ -1034,7 +1040,12 @@ export default function ShippingInterface({
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={openSearchModal}
-                                                    className="text-yellow-400 hover:text-yellow-500"
+                                                    disabled={readOnly} // 👈
+                                                    className={`text-yellow-400 hover:text-yellow-500 ${
+                                                        readOnly
+                                                            ? "opacity-40 cursor-not-allowed"
+                                                            : ""
+                                                    }`}
                                                 >
                                                     <Search className="h-4 w-4" />
                                                 </Button>
@@ -1053,7 +1064,12 @@ export default function ShippingInterface({
                                                     onClick={() =>
                                                         setShowSenderModal(true)
                                                     }
-                                                    className="text-green-500 hover:text-green-600"
+                                                    disabled={readOnly} // 👈
+                                                    className={`text-green-500 hover:text-green-600 ${
+                                                        readOnly
+                                                            ? "opacity-40 cursor-not-allowed"
+                                                            : ""
+                                                    }`}
                                                 >
                                                     <Plus className="w-4 h-4" />
                                                 </Button>
@@ -1077,6 +1093,7 @@ export default function ShippingInterface({
                                             identification: e.target.value,
                                         })
                                     }
+                                    {...readOnlyProps}
                                 />
 
                                 <Label className="mb-0.5 font-medium text-white">
@@ -1091,6 +1108,7 @@ export default function ShippingInterface({
                                             full_name: e.target.value,
                                         })
                                     }
+                                    {...readOnlyProps}
                                 />
 
                                 <Label className="mb-0.5 font-medium text-white">
@@ -1105,6 +1123,7 @@ export default function ShippingInterface({
                                             address: e.target.value,
                                         })
                                     }
+                                    {...readOnlyProps}
                                 />
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
@@ -1121,6 +1140,7 @@ export default function ShippingInterface({
                                                     phone: e.target.value,
                                                 })
                                             }
+                                            {...readOnlyProps}
                                         />
                                     </div>
                                     <div>
@@ -1137,6 +1157,7 @@ export default function ShippingInterface({
                                                     email: e.target.value,
                                                 })
                                             }
+                                            {...readOnlyProps}
                                         />
                                     </div>
                                 </div>
@@ -1155,6 +1176,7 @@ export default function ShippingInterface({
                                                     postal_code: e.target.value,
                                                 })
                                             }
+                                            {...readOnlyProps}
                                         />
                                     </div>
                                     <div>
@@ -1170,6 +1192,7 @@ export default function ShippingInterface({
                                                     city: e.target.value,
                                                 })
                                             }
+                                            {...readOnlyProps}
                                         />
                                     </div>
                                     <div>
@@ -1185,6 +1208,7 @@ export default function ShippingInterface({
                                                     canton: e.target.value,
                                                 })
                                             }
+                                            {...readOnlyProps}
                                         />
                                     </div>
                                 </div>
@@ -1202,6 +1226,7 @@ export default function ShippingInterface({
                                                 state: e.target.value,
                                             })
                                         }
+                                        {...readOnlyProps}
                                     />
                                 </div>
                             </TabsContent>
@@ -1222,12 +1247,18 @@ export default function ShippingInterface({
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() =>
-                                                        setShowRecipientSearch(
-                                                            true
-                                                        )
-                                                    }
-                                                    className="text-yellow-400 hover:text-yellow-500"
+                                                    onClick={() => {
+                                                        if (!readOnly)
+                                                            setShowRecipientSearch(
+                                                                true
+                                                            );
+                                                    }} // 👈 no-op en lectura
+                                                    disabled={readOnly} // 👈
+                                                    className={`text-yellow-400 hover:text-yellow-500 ${
+                                                        readOnly
+                                                            ? "opacity-40 cursor-not-allowed"
+                                                            : ""
+                                                    }`}
                                                 >
                                                     <Search className="h-4 w-4" />
                                                 </Button>
@@ -1243,8 +1274,12 @@ export default function ShippingInterface({
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    disabled={!agencyDest}
+                                                    disabled={
+                                                        readOnly || !agencyDest
+                                                    } // 👈 bloquea por lectura o sin agencia
                                                     onClick={() => {
+                                                        if (readOnly) return; // 👈 doble seguro
+
                                                         if (!agencyDest) return;
                                                         setRecipientDefaults(
                                                             agencyAddressDefaults[
@@ -1284,6 +1319,7 @@ export default function ShippingInterface({
                                             identification: e.target.value,
                                         })
                                     }
+                                    {...readOnlyProps}
                                     className="bg-black text-white border border-red-700"
                                 />
                                 <Label className="mb-0.5 font-medium text-white">
@@ -1297,6 +1333,7 @@ export default function ShippingInterface({
                                             full_name: e.target.value,
                                         })
                                     }
+                                    {...readOnlyProps}
                                     className="bg-black text-white border border-red-700"
                                 />
                                 <Label className="mb-0.5 font-medium text-white">
@@ -1310,6 +1347,7 @@ export default function ShippingInterface({
                                             address: e.target.value,
                                         })
                                     }
+                                    {...readOnlyProps}
                                     className="bg-black text-white border border-red-700"
                                 />
 
@@ -1326,6 +1364,7 @@ export default function ShippingInterface({
                                                     phone: e.target.value,
                                                 })
                                             }
+                                            {...readOnlyProps}
                                             className="bg-black text-white border border-red-700"
                                         />
                                     </div>
@@ -1342,6 +1381,7 @@ export default function ShippingInterface({
                                                     email: e.target.value,
                                                 })
                                             }
+                                            {...readOnlyProps}
                                             className="bg-black text-white border border-red-700"
                                         />
                                     </div>
@@ -1360,6 +1400,7 @@ export default function ShippingInterface({
                                                     postal_code: e.target.value,
                                                 })
                                             }
+                                            {...readOnlyProps}
                                             className="bg-black text-white border border-red-700"
                                         />
                                     </div>
@@ -1375,6 +1416,7 @@ export default function ShippingInterface({
                                                     city: e.target.value,
                                                 })
                                             }
+                                            {...readOnlyProps}
                                             className="bg-black text-white border border-red-700"
                                         />
                                     </div>
@@ -1390,6 +1432,7 @@ export default function ShippingInterface({
                                                     canton: e.target.value,
                                                 })
                                             }
+                                            {...readOnlyProps}
                                             className="bg-black text-white border border-red-700"
                                         />
                                     </div>
@@ -1407,6 +1450,7 @@ export default function ShippingInterface({
                                                 state: e.target.value,
                                             })
                                         }
+                                        {...readOnlyProps}
                                         className="bg-black text-white border border-red-700"
                                     />
                                 </div>
@@ -1430,6 +1474,7 @@ export default function ShippingInterface({
                                                     onClick={
                                                         openNewPackageModal
                                                     }
+                                                    disabled={readOnly} // 👈
                                                     className="text-green-500 hover:text-green-600"
                                                 >
                                                     <Plus className="w-4 h-4" />
@@ -1532,7 +1577,11 @@ export default function ShippingInterface({
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                onClick={() =>
+                                                                onClick={() => {
+                                                                    if (
+                                                                        readOnly
+                                                                    )
+                                                                        return; // 👈 doble seguro
                                                                     setPackages(
                                                                         packages.filter(
                                                                             (
@@ -1542,9 +1591,16 @@ export default function ShippingInterface({
                                                                                 i !==
                                                                                 idx
                                                                         )
-                                                                    )
-                                                                }
-                                                                className="text-red-500 hover:text-red-600"
+                                                                    );
+                                                                }}
+                                                                disabled={
+                                                                    readOnly
+                                                                } // 👈 deshabilitado en lectura
+                                                                className={`text-red-500 hover:text-red-600 ${
+                                                                    readOnly
+                                                                        ? "opacity-40 cursor-not-allowed"
+                                                                        : ""
+                                                                }`}
                                                             >
                                                                 <Minus className="w-4 h-4" />
                                                             </Button>
@@ -1589,6 +1645,7 @@ export default function ShippingInterface({
                                                         ) || 0
                                                     )
                                                 }
+                                                disabled={readOnly}
                                                 className="w-24 text-right bg-black text-white border border-red-700"
                                             />
                                         </div>
@@ -1669,6 +1726,7 @@ export default function ShippingInterface({
                                                                         .value
                                                                 )
                                                             }
+                                                            readOnly={readOnly}
                                                         />
                                                     </td>
 
@@ -1685,9 +1743,12 @@ export default function ShippingInterface({
                                                     <td className="px-2 py-1">
                                                         <Select
                                                             value={item.article}
+                                                            disabled={readOnly} // 👈 desactiva selección
                                                             onValueChange={(
                                                                 value
                                                             ) => {
+                                                                if (readOnly)
+                                                                    return; // 👈 doble seguro
                                                                 const selected =
                                                                     artPackgOptions.find(
                                                                         (opt) =>
@@ -1766,18 +1827,20 @@ export default function ShippingInterface({
 
                                                     {/* Acción */}
                                                     <td className="px-2 py-1 text-center">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() =>
-                                                                removeAdditional(
-                                                                    index
-                                                                )
-                                                            }
-                                                            className="text-red-500 hover:text-red-600"
-                                                        >
-                                                            <Minus className="w-4 h-4" />
-                                                        </Button>
+                                                        {!readOnly && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() =>
+                                                                    removeAdditional(
+                                                                        index
+                                                                    )
+                                                                }
+                                                                className="text-red-500 hover:text-red-600"
+                                                            >
+                                                                <Minus className="w-4 h-4" />
+                                                            </Button>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -2030,6 +2093,7 @@ export default function ShippingInterface({
                                                                 ); // Opcional: limpia el efectivo recibido
                                                             }
                                                         }}
+                                                        disabled={readOnly}
                                                     >
                                                         <SelectTrigger className="w-26 bg-black text-white border border-red-600 rounded-md h-8">
                                                             <SelectValue placeholder="Seleccione" />
@@ -2058,8 +2122,9 @@ export default function ShippingInterface({
                                                         className="w-24 text-right"
                                                         value={efectivoRecibido}
                                                         disabled={
+                                                            readOnly ||
                                                             payMethod !==
-                                                            "EFECTIVO"
+                                                                "EFECTIVO"
                                                         }
                                                         onChange={(e) => {
                                                             const value =
@@ -2101,16 +2166,27 @@ export default function ShippingInterface({
                 </div>
             </TooltipProvider>
             <div className="mt-4 flex justify-end">
-                <Button
-                    className={`bg-green-600 hover:bg-green-700 ${
-                        isSaving ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                    onClick={handleSaveReception}
-                    disabled={isSaving}
-                >
-                    {isSaving ? "Guardando..." : "Guardar Recepción"}
-                </Button>
+                {readOnly ? (
+                    <Button
+                        variant="outline"
+                        onClick={() => window.history.back()}
+                        className="border border-red-700 text-white hover:bg-red-700/20"
+                    >
+                        Cerrar
+                    </Button>
+                ) : (
+                    <Button
+                        className={`bg-green-600 hover:bg-green-700 ${
+                            isSaving ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
+                        onClick={handleSaveReception}
+                        disabled={isSaving}
+                    >
+                        {isSaving ? "Guardando..." : "Guardar Recepción"}
+                    </Button>
+                )}
             </div>
+
             {/* MODAL DE PAQUETE (nuevo o edición) */}
             <PackageModal
                 open={showPackageModal}
@@ -2122,6 +2198,7 @@ export default function ShippingInterface({
                 onSave={(rows, serviceType, perfumeDesc) =>
                     handleSavePackage(rows, serviceType, perfumeDesc)
                 }
+                readOnly={readOnly}
                 artPackgOptions={artPackgOptions}
             />
 

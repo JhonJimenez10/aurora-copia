@@ -252,7 +252,7 @@ class ReceptionController extends Controller
 
     public function edit($id)
     {
-        $reception = Reception::with(['sender', 'recipient', 'packages.packageItems'])->findOrFail($id);
+        $reception = Reception::with(['sender', 'recipient', 'packages.packageItems', 'additionals', 'additionals.artPackg'])->findOrFail($id);
 
         return Inertia::render('Reception/Edit', [
             'reception'  => $reception,

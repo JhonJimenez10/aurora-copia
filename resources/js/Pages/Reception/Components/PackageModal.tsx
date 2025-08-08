@@ -48,6 +48,7 @@ interface PackageModalProps {
         unit_price: number;
         unit_type: string;
     }[];
+    readOnly?: boolean;
 }
 
 export default function PackageModal({
@@ -55,6 +56,7 @@ export default function PackageModal({
     initialRows,
     onClose,
     onSave,
+    readOnly = false,
 }: PackageModalProps) {
     const [articles, setArticles] = useState<any[]>([]);
     const [rows, setRows] = useState<PackageRow[]>([]);
@@ -96,6 +98,7 @@ export default function PackageModal({
         field: keyof PackageRow,
         value: string | boolean
     ) => {
+        if (readOnly) return;
         setRows((prev) =>
             prev.map((row, i) => {
                 if (i !== index) return row;
@@ -119,6 +122,7 @@ export default function PackageModal({
     };
 
     const handleArticleSelect = (index: number, id: string) => {
+        if (readOnly) return;
         const art = articles.find((a) => a.id === id);
         updateRow(index, "articulo_id", id);
         updateRow(index, "articulo", art?.name || "");
@@ -126,7 +130,8 @@ export default function PackageModal({
         updateRow(index, "unitario", art?.unit_price?.toString() || "0");
     };
 
-    const addRow = () =>
+    const addRow = () => {
+        if (readOnly) return;
         setRows((r) => [
             ...r,
             {
@@ -147,9 +152,16 @@ export default function PackageModal({
                 asegurado: "0",
             },
         ]);
-    const removeRow = (idx: number) =>
+    };
+    const removeRow = (idx: number) => {
+        if (readOnly) return;
         rows.length > 1 && setRows((r) => r.filter((_, i) => i !== idx));
+    };
     const handleAccept = () => {
+        if (readOnly) {
+            onClose();
+            return;
+        } // 👈 solo cierra
         onSave(rows, serviceType, perfumeDesc);
         onClose();
     };
@@ -167,8 +179,15 @@ export default function PackageModal({
                             size="sm"
                             onClick={handleAccept}
                         >
-                            <Check className="w-4 h-4 mr-1" /> Aceptar
+                            {readOnly ? (
+                                "Cerrar"
+                            ) : (
+                                <>
+                                    <Check className="w-4 h-4 mr-1" /> Aceptar
+                                </>
+                            )}
                         </Button>
+
                         <Button variant="ghost" size="icon" onClick={onClose}>
                             <X className="w-5 h-5 text-white" />
                         </Button>
@@ -183,6 +202,7 @@ export default function PackageModal({
                         <Select
                             value={serviceType}
                             onValueChange={(v) => setServiceType(v)}
+                            disabled={readOnly}
                         >
                             <SelectTrigger className="bg-[#2a2a3d] text-white h-8">
                                 <SelectValue placeholder="Seleccionar" />
@@ -209,6 +229,7 @@ export default function PackageModal({
                             <Input
                                 value={perfumeDesc}
                                 onChange={(e) => setPerfumeDesc(e.target.value)}
+                                readOnly={readOnly}
                                 placeholder="Ingrese el detalle del perfume..."
                                 className="bg-[#2a2a3d] text-white h-8"
                             />
@@ -261,6 +282,7 @@ export default function PackageModal({
                                                     e.target.value
                                                 )
                                             }
+                                            readOnly={readOnly}
                                         />
                                     </td>
                                     <td>
@@ -276,6 +298,7 @@ export default function PackageModal({
                                             onValueChange={(v) =>
                                                 handleArticleSelect(i, v)
                                             }
+                                            disabled={readOnly}
                                         >
                                             <SelectTrigger className="h-6 bg-[#2a2a3d] text-white text-[11px]">
                                                 <SelectValue placeholder="Seleccionar" />
@@ -298,13 +321,16 @@ export default function PackageModal({
                                             onCheckedChange={(c) =>
                                                 updateRow(i, "volumen", !!c)
                                             }
+                                            disabled={readOnly}
                                         />
                                     </td>
                                     {["largo", "ancho", "altura", "peso"].map(
                                         (f) => (
                                             <td key={f}>
                                                 <Input
-                                                    disabled={!row.volumen}
+                                                    disabled={
+                                                        readOnly || !row.volumen
+                                                    }
                                                     className="h-6 text-center text-[11px]"
                                                     value={
                                                         row[
@@ -341,6 +367,7 @@ export default function PackageModal({
                                                     e.target.value
                                                 )
                                             }
+                                            readOnly={readOnly}
                                         />
                                     </td>
                                     <td>
@@ -354,23 +381,28 @@ export default function PackageModal({
                                                     e.target.value
                                                 )
                                             }
+                                            readOnly={readOnly}
                                         />
                                     </td>
                                     <td className="flex flex-col items-center space-y-1">
-                                        <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            onClick={addRow}
-                                        >
-                                            <Plus className="w-4 h-4 text-green-400" />
-                                        </Button>
-                                        <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            onClick={() => removeRow(i)}
-                                        >
-                                            <Minus className="w-4 h-4 text-red-400" />
-                                        </Button>
+                                        {!readOnly && (
+                                            <>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    onClick={addRow}
+                                                >
+                                                    <Plus className="w-4 h-4 text-green-400" />
+                                                </Button>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    onClick={() => removeRow(i)}
+                                                >
+                                                    <Minus className="w-4 h-4 text-red-400" />
+                                                </Button>
+                                            </>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

@@ -84,14 +84,6 @@ export default function ReceptionIndex({
                             Buscar
                         </Button>
                     </form>
-                    {/* Botón de nueva recepción */}
-                    <div className="flex justify-end mb-4">
-                        <Link href="/receptions/create">
-                            <Button className="bg-green-600 hover:bg-green-700 text-white">
-                                + Nueva Recepción
-                            </Button>
-                        </Link>
-                    </div>
 
                     {/* Tabla */}
                     <div className="overflow-x-auto rounded-lg border border-red-700">

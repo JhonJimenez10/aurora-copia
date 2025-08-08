@@ -30,7 +30,10 @@ export default function EditReception({ reception }: { reception: any }) {
             })),
         })),
         additionals: (reception.additionals || []).map((add: any) => ({
-            ...add,
+            // para el <Select /> usaremos el id del catálogo
+            article: add.art_packg_id,
+            // unidad desde la relación (si vino); si no, cadena vacía y luego se rellena al cambiar el select
+            unit: add.art_packg?.unit_type ?? "",
             quantity: Number(add.quantity) || 0,
             unit_price: Number(add.unit_price) || 0,
         })),
@@ -46,7 +49,7 @@ export default function EditReception({ reception }: { reception: any }) {
         <AuthenticatedLayout>
             <Head title={`Editar Recepción ${reception.number}`} />
             <div className="py-6 px-4">
-                <ShippingInterface initialData={initialData} />
+                <ShippingInterface initialData={initialData} readOnly={true} />
             </div>
         </AuthenticatedLayout>
     );

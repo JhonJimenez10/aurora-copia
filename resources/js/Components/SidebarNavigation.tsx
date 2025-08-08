@@ -17,6 +17,9 @@ import {
     Plane,
     BarChart3,
     FileUp,
+    ClipboardList,
+    FileSpreadsheet,
+    FileSearch,
 } from "lucide-react";
 
 import { Button } from "@/Components/ui/button";
@@ -61,7 +64,7 @@ export default function SidebarNavigation() {
         navItems.push(
             {
                 title: "Envíos",
-                href: "/receptions",
+                href: "/receptions/create",
                 icon: <Plane className="h-5 w-5" />,
             },
             {
@@ -137,9 +140,19 @@ export default function SidebarNavigation() {
                 icon: <BarChart3 className="h-5 w-5" />,
                 children: [
                     {
-                        title: "Envíos",
+                        title: "Reporte Manifiesto",
                         href: "/reports",
-                        icon: <ReceiptText className="h-4 w-4" />,
+                        icon: <ClipboardList className="h-4 w-4" />, // 👈 nuevo
+                    },
+                    {
+                        title: "Reporte Facturación",
+                        href: "/",
+                        icon: <FileSpreadsheet className="h-4 w-4" />, // 👈 nuevo
+                    },
+                    {
+                        title: "Detalle Facturación",
+                        href: "/receptions",
+                        icon: <FileSearch className="h-4 w-4" />, // 👈 nuevo
                     },
                 ],
             }
