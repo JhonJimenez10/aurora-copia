@@ -160,11 +160,24 @@ export default function SidebarNavigation() {
     }
 
     if (userRole === "Customer") {
-        navItems.push({
-            title: "Envíos",
-            href: "/receptions",
-            icon: <Plane className="h-5 w-5" />,
-        });
+        navItems.push(
+            {
+                title: "Envíos",
+                href: "/receptions/create",
+                icon: <Plane className="h-5 w-5" />,
+            },
+            {
+                title: "Reportes",
+                icon: <BarChart3 className="h-5 w-5" />,
+                children: [
+                    {
+                        title: "Detalle Facturación",
+                        href: "/receptions",
+                        icon: <FileSearch className="h-4 w-4" />, // 👈 nuevo
+                    },
+                ],
+            }
+        );
     }
 
     const renderNavItem = (item: NavItem) => {
