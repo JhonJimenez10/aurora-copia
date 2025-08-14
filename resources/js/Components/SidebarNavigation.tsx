@@ -146,7 +146,7 @@ export default function SidebarNavigation() {
                     },
                     {
                         title: "Reporte Facturación",
-                        href: "/",
+                        href: "/reports/invoices",
                         icon: <FileSpreadsheet className="h-4 w-4" />, // 👈 nuevo
                     },
                     {
@@ -176,6 +176,11 @@ export default function SidebarNavigation() {
                         icon: <FileSearch className="h-4 w-4" />, // 👈 nuevo
                     },
                 ],
+            },
+            {
+                title: "Reporte Factura",
+                href: "/reports/invoices",
+                icon: <FileSpreadsheet className="h-4 w-4" />,
             }
         );
     }

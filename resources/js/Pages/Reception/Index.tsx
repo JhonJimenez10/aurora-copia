@@ -22,6 +22,13 @@ export default function ReceptionIndex({
         });
     };
 
+    const fmtDate = (iso: string) =>
+        new Date(iso).toLocaleDateString("es-EC", {
+            day: "numeric",
+            month: "numeric",
+            year: "numeric",
+        });
+
     return (
         <AuthenticatedLayout>
             <Head title="Recepción de Paquetes" />
@@ -85,29 +92,39 @@ export default function ReceptionIndex({
                         </Button>
                     </form>
 
-                    {/* Tabla */}
+                    {/* Tabla (centrada) */}
                     <div className="overflow-x-auto rounded-lg border border-red-700">
-                        <table className="min-w-full text-sm text-white table-auto">
+                        <table className="w-full table-fixed text-sm text-white">
+                            {/* Anchos fijos por columna para alineación perfecta */}
+                            <colgroup>
+                                <col className="w-[26%]" /> {/* Número */}
+                                <col className="w-[26%]" /> {/* Remitente */}
+                                <col className="w-[26%]" /> {/* Destinatario */}
+                                <col className="w-[12%]" /> {/* Fecha */}
+                                <col className="w-[10%]" /> {/* Acciones */}
+                            </colgroup>
+
                             <thead className="bg-red-800 text-white">
-                                <tr>
-                                    <th className="px-4 py-2 text-left">
+                                <tr className="text-center">
+                                    <th className="px-4 py-3 font-semibold tracking-wide uppercase">
                                         Número
                                     </th>
-                                    <th className="px-4 py-2 text-left">
+                                    <th className="px-4 py-3 font-semibold tracking-wide uppercase">
                                         Remitente
                                     </th>
-                                    <th className="px-4 py-2 text-left">
+                                    <th className="px-4 py-3 font-semibold tracking-wide uppercase">
                                         Destinatario
                                     </th>
-                                    <th className="px-4 py-2 text-left">
+                                    <th className="px-4 py-3 font-semibold tracking-wide uppercase">
                                         Fecha
                                     </th>
-                                    <th className="px-4 py-2 text-left">
+                                    <th className="px-4 py-3 font-semibold tracking-wide uppercase">
                                         Acciones
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody>
+
+                            <tbody className="divide-y divide-red-700">
                                 {receptions.data.map((rec: any) => (
                                     <tr
                                         key={rec.id}
@@ -116,14 +133,14 @@ export default function ReceptionIndex({
                                                 ? "Recepción anulada"
                                                 : undefined
                                         }
-                                        className={`border-t border-red-700 hover:bg-[#1b1b1b] ${
+                                        className={`text-center align-middle hover:bg-[#1b1b1b] ${
                                             rec.annulled
                                                 ? "bg-red-900/20 border-l-4 border-l-red-600 text-red-100/90"
                                                 : ""
                                         }`}
                                     >
-                                        <td className="px-4 py-2">
-                                            <div className="flex items-center gap-2">
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center justify-center gap-2">
                                                 <span>{rec.number}</span>
                                                 {rec.annulled && (
                                                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-700/30 border border-red-600 text-red-200">
@@ -132,19 +149,17 @@ export default function ReceptionIndex({
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {rec.sender?.full_name}
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             {rec.recipient?.full_name}
                                         </td>
-                                        <td className="px-4 py-2">
-                                            {new Date(
-                                                rec.date_time
-                                            ).toLocaleDateString()}
+                                        <td className="px-4 py-3">
+                                            {fmtDate(rec.date_time)}
                                         </td>
-                                        <td className="px-4 py-2">
-                                            <div className="flex gap-2">
+                                        <td className="px-4 py-3">
+                                            <div className="flex justify-center">
                                                 <Link
                                                     href={route(
                                                         "receptions.edit",
@@ -159,11 +174,12 @@ export default function ReceptionIndex({
                                         </td>
                                     </tr>
                                 ))}
+
                                 {!receptions.data.length && (
                                     <tr>
                                         <td
                                             colSpan={5}
-                                            className="text-center py-4 text-red-400"
+                                            className="text-center py-5 text-red-400"
                                         >
                                             No hay recepciones registradas.
                                         </td>

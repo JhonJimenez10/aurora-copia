@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/Components/ui/tabs";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+    DropdownMenuLabel,
+} from "@/Components/ui/dropdown-menu";
+
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
 import { Info } from "lucide-react";
@@ -786,6 +795,30 @@ export default function ShippingInterface({
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [currentTab, packages, additionals, agencyDest]);
     // Función para editar solo lectura en todos los inputs
+    // Abre una URL y, si es posible, dispara print() del visor
+    const openAndPrint = (url: string) => {
+        const win = window.open(url, "_blank");
+        if (!win) {
+            alert("Pop-ups bloqueados. Habilítalos para imprimir.");
+            return;
+        }
+        // Algunos visores PDF no disparan onload, pero cuando lo hacen, imprime.
+        win.onload = () => {
+            try {
+                win.focus();
+                win.print();
+            } catch {
+                // Si no se puede llamar print(), igual dejamos el PDF abierto.
+            }
+        };
+    };
+
+    // Imprimir todos los tickets de la recepción
+    const printAllTickets = () => {
+        if (!receptionId) return;
+        openAndPrint(`/receptions/${receptionId}/all-package-tickets.pdf`);
+    };
+
     const readOnlyProps = readOnly ? { readOnly: true } : {};
     return (
         <div className="max-w-6xl mx-auto p-4 bg-black text-white border border-red-700 rounded-xl shadow-xl text-xs">
@@ -797,34 +830,37 @@ export default function ShippingInterface({
                     </h1>
 
                     <div className="flex space-x-1">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-white hover:text-gray-300"
-                        >
-                            <FileText className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-white hover:text-gray-300"
-                        >
-                            <Clipboard className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-white hover:text-gray-300"
-                        >
-                            <Download className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-white hover:text-gray-300"
-                        >
-                            <Printer className="h-4 w-4" />
-                        </Button>
+                        {isEditMode ? (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="text-white hover:text-gray-300"
+                                        title="Imprimir tickets"
+                                    >
+                                        <Printer className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    align="end"
+                                    className="bg-[#1e1e2f] text-white border border-purple-700 min-w-[240px]"
+                                >
+                                    <DropdownMenuLabel className="text-xs text-purple-200">
+                                        Imprimir Tickets
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuItem
+                                        onClick={printAllTickets}
+                                        className="text-sm"
+                                    >
+                                        Imprimir TODOS los tickets
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator className="bg-purple-700/40" />
+                                    {/* Listado de paquetes para imprimir individualmente */}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        ) : // En creación, el botón de impresora NO se muestra
+                        null}
                         {receptionId && ( // 👈 solo mostrar en edición
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -851,41 +887,10 @@ export default function ShippingInterface({
                                 </TooltipContent>
                             </Tooltip>
                         )}
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={openSearchModal}
-                                    disabled={readOnly} // 👈
-                                    className={`text-white hover:text-gray-300 ${
-                                        readOnly
-                                            ? "opacity-40 cursor-not-allowed"
-                                            : ""
-                                    }`}
-                                >
-                                    <Search className="h-4 w-4" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p className="text-[10px]">Buscar remitente</p>
-                            </TooltipContent>
-                        </Tooltip>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-white hover:text-gray-300"
-                        >
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
                     </div>
                 </div>
 
-                <div className="text-center mb-1">
-                    <span className="text-white text-[10px]">
-                        Nuevo registro...
-                    </span>
-                </div>
+                <div className="text-center mb-1"></div>
 
                 {/* Datos principales */}
                 <div className="grid grid-cols-3 gap-2 mb-2">

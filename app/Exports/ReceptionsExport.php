@@ -16,6 +16,7 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
     protected $startDate;
     protected $endDate;
     protected $enterpriseId;
+
     public function __construct(string $startDate, string $endDate, string $enterpriseId)
     {
         $this->startDate = $startDate;
@@ -31,7 +32,6 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
             ->whereDate('date_time', '<=', $this->endDate)
             ->get();
 
-        // Agrupar por recepción + guía hija
         $grouped = [];
 
         foreach ($receptions as $reception) {
@@ -40,7 +40,6 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
                 $parts = explode('.', $fullBarcode, 2);
                 $guiaHija = $parts[0];
 
-                // Key único por recepción y guía hija
                 $key = $reception->id . '|' . $guiaHija;
 
                 if (! isset($grouped[$key])) {
@@ -67,15 +66,11 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
                     ];
                 }
 
-                // Incrementar contador de piezas
                 $grouped[$key]['piezas'] += 1;
-
-                // Sumar peso total de las piezas (opcional)
                 $grouped[$key]['peso_kgs'] += $package->kilograms ?? 0;
             }
         }
 
-        // Devolver colección de filas agrupadas
         return collect(array_values($grouped));
     }
 
@@ -107,7 +102,7 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
     public function styles(Worksheet $sheet)
     {
         return [
-            1 => [ // Negrita en encabezados
+            1 => [
                 'font' => [
                     'bold' => true,
                     'color' => ['rgb' => '000000'],

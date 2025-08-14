@@ -1,56 +1,126 @@
 // resources/js/Pages/Reports/Index.tsx
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Button } from "@/Components/ui/button";
 import { CalendarIcon, Download, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/Components/ui/select";
+
+type Enterprise = { id: number | string; name: string };
 
 export default function ReportsIndex({
+    enterprises = [],
     receptions = [],
+    enterpriseId: initialEnterpriseId,
     startDate: initialStart,
     endDate: initialEnd,
-}: any) {
+}: {
+    enterprises: Enterprise[];
+    receptions: any[];
+    enterpriseId?: string | number | null;
+    startDate?: string | null;
+    endDate?: string | null;
+}) {
+    const [enterpriseId, setEnterpriseId] = useState<string>(
+        initialEnterpriseId ? String(initialEnterpriseId) : ""
+    );
     const [startDate, setStartDate] = useState(initialStart || "");
     const [endDate, setEndDate] = useState(initialEnd || "");
     const [loading, setLoading] = useState(false);
 
+    const datesEnabled = useMemo(() => !!enterpriseId, [enterpriseId]);
+    const actionsEnabled = useMemo(
+        () => !!enterpriseId && !!startDate && !!endDate,
+        [enterpriseId, startDate, endDate]
+    );
+
     const handleExport = () => {
-        if (!startDate || !endDate) {
-            alert("Seleccione fecha de inicio y fecha de fin.");
+        if (!actionsEnabled) {
+            alert("Seleccione empresa y rango de fechas.");
             return;
         }
         setLoading(true);
-        window.location.href = `/reports/export?start_date=${startDate}&end_date=${endDate}`;
+        window.location.href = `/reports/export?enterprise_id=${enterpriseId}&start_date=${startDate}&end_date=${endDate}`;
         setTimeout(() => setLoading(false), 1000);
     };
 
     const handleFilter = () => {
+        if (!enterpriseId) {
+            alert("Primero seleccione una empresa.");
+            return;
+        }
         if (!startDate || !endDate) {
             alert("Seleccione fecha de inicio y fecha de fin.");
             return;
         }
-        router.get("/reports", { start_date: startDate, end_date: endDate });
+        router.get(
+            "/reports",
+            {
+                enterprise_id: enterpriseId,
+                start_date: startDate,
+                end_date: endDate,
+            },
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
     };
+
+    const fmt = (n: number | string) =>
+        new Intl.NumberFormat("es-EC", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(Number(n ?? 0));
 
     return (
         <AuthenticatedLayout>
-            <Head title="Reportes de Envíos" />
+            <Head title="Reporte Manifiesto" />
 
             <div className="container mx-auto px-4 py-8">
                 {/* Cabecera visual */}
                 <div className="bg-gradient-to-r from-red-700 via-red-600 to-yellow-400 text-white px-6 py-4 rounded-t-lg">
-                    <h1 className="text-2xl font-bold">Reporte de Envíos</h1>
+                    <h1 className="text-2xl font-bold">Reporte Manifiesto</h1>
                     <p className="text-white text-sm">
-                        Selecciona un rango de fechas para generar reportes
-                        detallados
+                        Primero seleccione una empresa y luego un rango de
+                        fechas. No se cargarán datos hasta completar ambos
+                        filtros.
                     </p>
                 </div>
 
                 <div className="bg-black border border-red-700 px-6 py-4 rounded-b-lg shadow-md">
                     {/* Filtros y acciones */}
                     <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
+                        {/* Empresa */}
+                        <div className="w-full md:max-w-sm">
+                            <label className="block text-sm font-medium text-red-400 mb-1">
+                                Empresa
+                            </label>
+                            <Select
+                                value={enterpriseId}
+                                onValueChange={(v) => setEnterpriseId(v)}
+                            >
+                                <SelectTrigger className="w-full bg-slate-800 text-white border border-red-700 rounded-md">
+                                    <SelectValue placeholder="Seleccione empresa" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-900 text-white border border-red-700">
+                                    {enterprises.map((e) => (
+                                        <SelectItem
+                                            key={e.id}
+                                            value={String(e.id)}
+                                        >
+                                            {e.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
                         {/* Fecha de inicio */}
                         <div className="w-full md:max-w-xs">
                             <label
@@ -64,11 +134,12 @@ export default function ReportsIndex({
                                 <input
                                     id="start_date"
                                     type="date"
+                                    disabled={!datesEnabled}
                                     value={startDate}
                                     onChange={(e) =>
                                         setStartDate(e.target.value)
                                     }
-                                    className="pl-10 w-full px-3 py-2 bg-slate-800 text-white border border-red-700 rounded-md"
+                                    className="pl-10 w-full px-3 py-2 bg-slate-800 text-white border border-red-700 rounded-md disabled:opacity-50"
                                 />
                             </div>
                         </div>
@@ -86,9 +157,10 @@ export default function ReportsIndex({
                                 <input
                                     id="end_date"
                                     type="date"
+                                    disabled={!datesEnabled}
                                     value={endDate}
                                     onChange={(e) => setEndDate(e.target.value)}
-                                    className="pl-10 w-full px-3 py-2 bg-slate-800 text-white border border-red-700 rounded-md"
+                                    className="pl-10 w-full px-3 py-2 bg-slate-800 text-white border border-red-700 rounded-md disabled:opacity-50"
                                 />
                             </div>
                         </div>
@@ -98,14 +170,15 @@ export default function ReportsIndex({
                             <Button
                                 onClick={handleFilter}
                                 variant="outline"
-                                className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                                disabled={!actionsEnabled}
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white disabled:opacity-50"
                             >
                                 Filtrar Resultados
                             </Button>
                             <Button
                                 onClick={handleExport}
-                                disabled={loading}
-                                className="bg-green-600 hover:bg-green-700"
+                                disabled={!actionsEnabled || loading}
+                                className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
                             >
                                 {loading ? (
                                     <>
@@ -124,51 +197,71 @@ export default function ReportsIndex({
 
                     {/* Rango seleccionado */}
                     <div className="text-red-400 text-sm italic mb-4">
-                        {startDate && endDate
-                            ? `Mostrando resultados desde ${format(
+                        {enterpriseId && startDate && endDate
+                            ? `Empresa #${enterpriseId} | Desde ${format(
                                   new Date(startDate),
                                   "PPP",
                                   { locale: es }
                               )} hasta ${format(new Date(endDate), "PPP", {
                                   locale: es,
                               })}`
-                            : "Seleccione un rango de fechas para ver los envíos."}
+                            : "Seleccione empresa y rango de fechas para ver los envíos."}
                     </div>
 
                     {/* Tabla */}
                     <div className="overflow-auto rounded-lg border border-red-700 bg-slate-900">
-                        <table className="min-w-full text-sm text-white table-auto">
+                        <table className="w-full table-fixed text-sm text-white">
+                            <colgroup>
+                                <col className="w-[18%]" />
+                                <col className="w-[26%]" />
+                                <col className="w-[26%]" />
+                                <col className="w-[12%]" />
+                                <col className="w-[18%]" />
+                            </colgroup>
+
                             <thead className="bg-red-800 text-white">
-                                <tr>
-                                    <th className="px-4 py-2">Guía</th>
-                                    <th className="px-4 py-2">Remitente</th>
-                                    <th className="px-4 py-2">Destinatario</th>
-                                    <th className="px-4 py-2">Peso (kg)</th>
-                                    <th className="px-4 py-2">Contenido</th>
+                                <tr className="text-center">
+                                    <th className="px-4 py-3 font-semibold tracking-wide uppercase">
+                                        Guía
+                                    </th>
+                                    <th className="px-4 py-3 font-semibold tracking-wide uppercase">
+                                        Remitente
+                                    </th>
+                                    <th className="px-4 py-3 font-semibold tracking-wide uppercase">
+                                        Destinatario
+                                    </th>
+                                    <th className="px-4 py-3 font-semibold tracking-wide uppercase">
+                                        Peso (kg)
+                                    </th>
+                                    <th className="px-4 py-3 font-semibold tracking-wide uppercase">
+                                        Contenido
+                                    </th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {receptions.length ? (
+
+                            <tbody className="divide-y divide-red-700">
+                                {receptions?.length ? (
                                     receptions.map((r: any) =>
                                         r.packages.map((p: any) => (
                                             <tr
                                                 key={p.id}
-                                                className="border-t border-red-700 hover:bg-[#1b1b1b]"
+                                                className="hover:bg-[#1b1b1b] text-center align-middle"
                                             >
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {p.barcode}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {r.sender?.full_name}
                                                 </td>
-                                                <td className="px-4 py-2">
+                                                <td className="px-4 py-3">
                                                     {r.recipient?.full_name}
                                                 </td>
-                                                <td className="px-4 py-2">
-                                                    {p.kilograms}
+                                                <td className="px-4 py-3">
+                                                    {fmt(p.kilograms)}
                                                 </td>
-                                                <td className="px-4 py-2">
-                                                    {p.art_package?.name ||
+                                                <td className="px-4 py-3">
+                                                    {p.art_package?.name ??
+                                                        p.artPackage?.name ??
                                                         "Sin artículo"}
                                                 </td>
                                             </tr>
@@ -178,9 +271,13 @@ export default function ReportsIndex({
                                     <tr>
                                         <td
                                             colSpan={5}
-                                            className="text-center py-4 text-red-400"
+                                            className="text-center py-5 text-red-400"
                                         >
-                                            Sin resultados.
+                                            {enterpriseId &&
+                                            startDate &&
+                                            endDate
+                                                ? "Sin resultados."
+                                                : "Aún no has aplicado filtros."}
                                         </td>
                                     </tr>
                                 )}

@@ -120,6 +120,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Reportes
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+    Route::get('/reports/invoices', [ReportController::class, 'invoiceIndex'])->name('reports.invoices.index');
+    Route::get('/reports/invoices/export', [ReportController::class, 'invoiceExport'])->name('reports.invoices.export');
 
     Route::resource('agencies_dest', AgencyDestController::class);
 });
