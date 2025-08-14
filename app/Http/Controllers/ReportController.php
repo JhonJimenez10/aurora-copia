@@ -9,63 +9,59 @@ use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ReceptionsExport;
 use Carbon\Carbon;
+use App\Exports\InvoiceReportExport;
 
 class ReportController extends Controller
 {
-    // ===== Helpers de rol (sin roles()) =====
-    protected function currentRoleName(): string
+    /** Rol en MAYÚSCULAS sin depender de roles() */
+    protected function roleUpper(): string
     {
-        $user = auth()->user();
-        if (! $user) return '';
-
-        // 1) relación role->name
-        if (isset($user->role) && is_object($user->role) && isset($user->role->name)) {
-            return strtoupper((string) $user->role->name);
-        }
-        // 2) columna role_name
-        if (isset($user->role_name) && is_string($user->role_name)) {
-            return strtoupper($user->role_name);
-        }
-        // 3) columna role como string
-        if (isset($user->role) && is_string($user->role)) {
-            return strtoupper($user->role);
-        }
+        $u = auth()->user();
+        if (! $u) return '';
+        if (isset($u->role) && is_object($u->role) && isset($u->role->name)) return strtoupper((string)$u->role->name);
+        if (isset($u->role_name) && is_string($u->role_name)) return strtoupper($u->role_name);
+        if (isset($u->role) && is_string($u->role)) return strtoupper($u->role);
         return '';
     }
 
-    protected function ensureAdminOrSudo(): void
+    protected function canChooseAnyEnterprise(): bool
     {
-        $role = $this->currentRoleName();
-        abort_unless(in_array($role, ['ADMIN', 'SUDO']), 403, 'No autorizado');
+        return in_array($this->roleUpper(), ['SUDO', 'ADMIN'], true);
     }
 
-    // ====== MANIFIESTO en /reports (empresa + fechas) ======
+    /**
+     * Reporte Manifiesto (vista)
+     * - ADMIN y SUDO ven TODAS las empresas
+     * - CUSTOMER solo ve la suya
+     * - Se guardan filtros en sesión para que export funcione aunque no se envíen por query
+     */
     public function index(Request $request)
     {
-        $this->ensureAdminOrSudo();
-
-        $enterpriseId = $request->query('enterprise_id');
         $start        = $request->query('start_date');
         $end          = $request->query('end_date');
+        $enterpriseId = $request->query('enterprise_id');
 
-        // Empresas para el selector
-        if ($this->currentRoleName() === 'SUDO') {
-            $enterprises = Enterprise::select('id', 'name')->orderBy('name')->get();
-        } else {
-            // ADMIN: normalmente solo su empresa
-            $enterprises = Enterprise::select('id', 'name')
-                ->where('id', auth()->user()->enterprise_id)
-                ->get();
-        }
+        // Empresas para el selector:
+        $enterprises = Enterprise::select('id', 'name')
+            ->when(! $this->canChooseAnyEnterprise(), fn($q) => $q->where('id', auth()->user()->enterprise_id))
+            ->orderBy('name')
+            ->get();
 
         $receptions = [];
 
-        // NO cargar nada hasta tener empresa + fechas
+        // No cargar datos hasta tener empresa + fechas
         if ($enterpriseId && $start && $end) {
-            // Si es ADMIN, fuerza a su propia empresa
-            if ($this->currentRoleName() === 'ADMIN' && (int)$enterpriseId !== (int)auth()->user()->enterprise_id) {
-                abort(403, 'No autorizado');
+            // Si el rol NO puede elegir cualquiera (p. ej. CUSTOMER), forzar su empresa
+            if (! $this->canChooseAnyEnterprise()) {
+                $enterpriseId = auth()->user()->enterprise_id;
             }
+
+            // Guardar filtros para export
+            session([
+                'reports.enterprise_id' => (int)$enterpriseId,
+                'reports.start_date'    => $start,
+                'reports.end_date'      => $end,
+            ]);
 
             $receptions = Reception::with(['sender', 'recipient', 'packages.artPackage'])
                 ->where('enterprise_id', $enterpriseId)
@@ -83,36 +79,43 @@ class ReportController extends Controller
         ]);
     }
 
+    /**
+     * Exportar a Excel (GET)
+     * - Fechas: toma query o sesión (valida siempre)
+     * - Empresa: ADMIN y SUDO pueden elegir cualquiera; otros, la suya
+     */
     public function export(Request $request)
     {
-        $this->ensureAdminOrSudo();
+        // Fechas desde query o sesión (para mantener el flujo “antes”)
+        $start = $request->query('start_date') ?? session('reports.start_date');
+        $end   = $request->query('end_date')   ?? session('reports.end_date');
 
-        $request->validate([
-            'enterprise_id' => ['required', 'integer', 'exists:enterprises,id'],
-            'start_date'    => ['required', 'date'],
-            'end_date'      => ['required', 'date', 'after_or_equal:start_date'],
-        ]);
+        validator(['start_date' => $start, 'end_date' => $end], [
+            'start_date' => ['required', 'date'],
+            'end_date'   => ['required', 'date', 'after_or_equal:start_date'],
+        ])->validate();
 
-        $enterpriseId = (int)$request->input('enterprise_id');
-        $start        = $request->input('start_date');
-        $end          = $request->input('end_date');
+        // Empresa efectiva
+        $enterpriseId = $request->query('enterprise_id')
+            ?? session('reports.enterprise_id')
+            ?? auth()->user()->enterprise_id;
 
-        // Si es ADMIN, solo su empresa
-        if ($this->currentRoleName() === 'ADMIN' && $enterpriseId !== (int)auth()->user()->enterprise_id) {
-            abort(403, 'No autorizado');
+        if (! $this->canChooseAnyEnterprise()) {
+            // CUSTOMER (u otros): solo su empresa
+            $enterpriseId = auth()->user()->enterprise_id;
         }
 
         $fileName = sprintf(
-            'manifiesto_emp%s_%s_a_%s.xlsx',
-            $enterpriseId,
+            'envios_%s_%s_emp%s.xlsx',
             Carbon::parse($start)->format('Ymd'),
-            Carbon::parse($end)->format('Ymd')
+            Carbon::parse($end)->format('Ymd'),
+            $enterpriseId
         );
 
         return Excel::download(new ReceptionsExport($start, $end, (string)$enterpriseId), $fileName);
     }
 
-    // ===== Tus reportes de facturación (sin cambios) =====
+    /** Reporte Facturación (igual a tu versión) */
     public function invoiceIndex(Request $request)
     {
         $start = $request->input('start_date');
@@ -166,6 +169,6 @@ class ReportController extends Controller
             Carbon::parse($end)->format('Ymd')
         );
 
-        return Excel::download(new \App\Exports\InvoiceReportExport($start, $end, $enterpriseId), $fileName);
+        return Excel::download(new InvoiceReportExport($start, $end, $enterpriseId), $fileName);
     }
 }

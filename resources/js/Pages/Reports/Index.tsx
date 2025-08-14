@@ -22,13 +22,7 @@ export default function ReportsIndex({
     enterpriseId: initialEnterpriseId,
     startDate: initialStart,
     endDate: initialEnd,
-}: {
-    enterprises: Enterprise[];
-    receptions: any[];
-    enterpriseId?: string | number | null;
-    startDate?: string | null;
-    endDate?: string | null;
-}) {
+}: any) {
     const [enterpriseId, setEnterpriseId] = useState<string>(
         initialEnterpriseId ? String(initialEnterpriseId) : ""
     );
@@ -43,12 +37,21 @@ export default function ReportsIndex({
     );
 
     const handleExport = () => {
-        if (!actionsEnabled) {
-            alert("Seleccione empresa y rango de fechas.");
+        if (!startDate || !endDate) {
+            alert("Seleccione fecha de inicio y fecha de fin.");
             return;
         }
         setLoading(true);
-        window.location.href = `/reports/export?enterprise_id=${enterpriseId}&start_date=${startDate}&end_date=${endDate}`;
+
+        const params = new URLSearchParams({
+            start_date: startDate,
+            end_date: endDate,
+        });
+        if (enterpriseId) params.set("enterprise_id", String(enterpriseId));
+
+        // GET tradicional (no Inertia) — como te funcionaba antes
+        window.location.href = `/reports/export?${params.toString()}`;
+
         setTimeout(() => setLoading(false), 1000);
     };
 
@@ -80,16 +83,15 @@ export default function ReportsIndex({
 
     return (
         <AuthenticatedLayout>
-            <Head title="Reporte Manifiesto" />
+            <Head title="Reportes de Envíos" />
 
             <div className="container mx-auto px-4 py-8">
                 {/* Cabecera visual */}
                 <div className="bg-gradient-to-r from-red-700 via-red-600 to-yellow-400 text-white px-6 py-4 rounded-t-lg">
-                    <h1 className="text-2xl font-bold">Reporte Manifiesto</h1>
+                    <h1 className="text-2xl font-bold">Reporte de Envíos</h1>
                     <p className="text-white text-sm">
-                        Primero seleccione una empresa y luego un rango de
-                        fechas. No se cargarán datos hasta completar ambos
-                        filtros.
+                        Seleccione empresa y rango de fechas para generar
+                        reportes detallados
                     </p>
                 </div>
 
@@ -109,7 +111,7 @@ export default function ReportsIndex({
                                     <SelectValue placeholder="Seleccione empresa" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-slate-900 text-white border border-red-700">
-                                    {enterprises.map((e) => (
+                                    {enterprises.map((e: Enterprise) => (
                                         <SelectItem
                                             key={e.id}
                                             value={String(e.id)}
@@ -177,7 +179,7 @@ export default function ReportsIndex({
                             </Button>
                             <Button
                                 onClick={handleExport}
-                                disabled={!actionsEnabled || loading}
+                                disabled={loading || !startDate || !endDate}
                                 className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
                             >
                                 {loading ? (
@@ -208,7 +210,7 @@ export default function ReportsIndex({
                             : "Seleccione empresa y rango de fechas para ver los envíos."}
                     </div>
 
-                    {/* Tabla */}
+                    {/* Tabla (centrada) */}
                     <div className="overflow-auto rounded-lg border border-red-700 bg-slate-900">
                         <table className="w-full table-fixed text-sm text-white">
                             <colgroup>
@@ -240,7 +242,7 @@ export default function ReportsIndex({
                             </thead>
 
                             <tbody className="divide-y divide-red-700">
-                                {receptions?.length ? (
+                                {receptions.length ? (
                                     receptions.map((r: any) =>
                                         r.packages.map((p: any) => (
                                             <tr
@@ -273,9 +275,7 @@ export default function ReportsIndex({
                                             colSpan={5}
                                             className="text-center py-5 text-red-400"
                                         >
-                                            {enterpriseId &&
-                                            startDate &&
-                                            endDate
+                                            {actionsEnabled
                                                 ? "Sin resultados."
                                                 : "Aún no has aplicado filtros."}
                                         </td>

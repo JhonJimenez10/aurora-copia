@@ -19,8 +19,8 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
 
     public function __construct(string $startDate, string $endDate, string $enterpriseId)
     {
-        $this->startDate = $startDate;
-        $this->endDate   = $endDate;
+        $this->startDate    = $startDate;
+        $this->endDate      = $endDate;
         $this->enterpriseId = $enterpriseId;
     }
 
@@ -32,6 +32,7 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
             ->whereDate('date_time', '<=', $this->endDate)
             ->get();
 
+        // Agrupar por recepción + guía hija
         $grouped = [];
 
         foreach ($receptions as $reception) {
@@ -66,7 +67,7 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
                     ];
                 }
 
-                $grouped[$key]['piezas'] += 1;
+                $grouped[$key]['piezas']   += 1;
                 $grouped[$key]['peso_kgs'] += $package->kilograms ?? 0;
             }
         }
@@ -104,7 +105,7 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
         return [
             1 => [
                 'font' => [
-                    'bold' => true,
+                    'bold'  => true,
                     'color' => ['rgb' => '000000'],
                 ],
             ],
