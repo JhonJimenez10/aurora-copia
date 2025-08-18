@@ -2414,7 +2414,21 @@ export default function ShippingInterface({
                                 }
                             }}
                         >
-                            Descargar Factura
+                            Factura original
+                        </Button>
+                        {/* Descargar factura horizontal A4 */}
+                        <Button
+                            className="bg-slate-600 hover:bg-slate-700"
+                            disabled={!invoiceId}
+                            onClick={() =>
+                                invoiceId &&
+                                window.open(
+                                    `/invoices/${invoiceId}/a4`,
+                                    "_blank"
+                                )
+                            }
+                        >
+                            Factura alterna
                         </Button>
                     </DialogFooter>
                 </DialogContent>

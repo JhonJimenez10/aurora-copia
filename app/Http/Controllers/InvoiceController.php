@@ -256,7 +256,7 @@ class InvoiceController extends Controller
 
         $reception = $invoice->reception;
 
-        // Calcular datos del resumen de paquetes
+        // Resumen de paquetes
         $weight = $reception->packages->sum('pounds');
         $declaredValue = $reception->packages->sum('decl_val');
         $contentDescription = $reception->packages->pluck('content')->filter()->implode(' + ');
@@ -266,22 +266,21 @@ class InvoiceController extends Controller
             });
         });
 
-
-        // Calcular valores adicionales desde la recepción
-        $totalSeguroPaquetes = $reception->ins_pkg;
-        $totalEmbalaje = $reception->packaging;
-        $totalSeguroEnvio = $reception->ship_ins;
-        $totalDesaduanizacion = $reception->clearance;
+        // Adicionales
+        $totalSeguroPaquetes   = $reception->ins_pkg;
+        $totalEmbalaje         = $reception->packaging;
+        $totalSeguroEnvio      = $reception->ship_ins;
+        $totalDesaduanizacion  = $reception->clearance;
         $totalTransporteDestino = $reception->trans_dest;
-        $totalTransmision = $reception->transmit;
+        $totalTransmision      = $reception->transmit;
 
-        // Calcular subtotales 0% y 15%
+        // Subtotales
         $subtotal15 = $invoice->subtotal;
-        $subtotal0 = 0; // Por ahora fijo en 0
+        $subtotal0  = 0;
 
-        $pdf = Pdf::loadView('pdfs.ticket_invoice', [
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.ticket_invoice', [
             'invoice' => $invoice,
-            'weight' => $weight,
+            'weight'  => $weight,
             'declaredValue' => $declaredValue,
             'contentDescription' => $contentDescription,
             'total_seguro_paquetes' => $totalSeguroPaquetes,
@@ -295,8 +294,95 @@ class InvoiceController extends Controller
             'vat' => $invoice->vat,
             'total' => $invoice->total,
             'tarifa_paquetes' => $tarifaPaquetes,
+
+            // === NUEVO: 2 páginas (2 copias) ===
+            'copies' => 2,
+            // Etiquetas opcionales por copia (puedes cambiar o quitar)
+            'copy_labels' => ['ORIGINAL', 'COPIA'],
         ]);
 
         return $pdf->stream('ticket-' . $invoice->number . '.pdf');
+    }
+
+    /**
+     * NUEVO: Genera el PDF A4 horizontal (impresora normal).
+     */
+    // SIN cambiar el nombre del método ni la ruta ni el botón
+    public function generateA4($invoiceId)
+    {
+        $invoice = Invoice::with([
+            'enterprise',
+            'sender',
+            'reception.recipient',
+            'reception.agencyDest',
+            'reception.packages.packageItems',
+            'invDetails'
+        ])->findOrFail($invoiceId);
+
+        $data = $this->buildInvoicePdfData($invoice);
+
+        // Ahora por defecto va ARRIBA. Si quieres abajo en algún momento: ?pos=bottom
+        $data['position'] = request()->get('pos', 'top');  // 'top' | 'bottom'
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.a4_invoice', $data)
+            ->setPaper('A4', 'portrait');
+
+        return $pdf->stream('factura-' . $invoice->number . '-A4.pdf');
+    }
+
+
+    /**
+     * Helper: prepara los datos que consumen las vistas de PDF (ticket y A4).
+     */
+    private function buildInvoicePdfData(Invoice $invoice): array
+    {
+        $reception = $invoice->reception;
+
+        // Resumen de paquetes
+        $weight            = (float) ($reception->packages->sum('pounds') ?? 0);
+        $declaredValue     = (float) ($reception->packages->sum('decl_val') ?? 0);
+        $contentDescription = $reception->packages->pluck('content')->filter()->implode(' + ') ?? '';
+
+        // Tarifa por paquetes (suma de items)
+        $tarifaPaquetes = $reception->packages->sum(function ($package) {
+            return $package->packageItems->sum(function ($item) {
+                return (float) $item->quantity * (float) $item->unit_price;
+            });
+        });
+
+        // Adicionales
+        $totalSeguroPaquetes   = (float) ($reception->ins_pkg     ?? 0);
+        $totalEmbalaje         = (float) ($reception->packaging   ?? 0);
+        $totalSeguroEnvio      = (float) ($reception->ship_ins    ?? 0);
+        $totalDesaduanizacion  = (float) ($reception->clearance   ?? 0);
+        $totalTransporteDestino = (float) ($reception->trans_dest  ?? 0);
+        $totalTransmision      = (float) ($reception->transmit    ?? 0);
+
+        // Subtotales e impuestos
+        $subtotal15 = (float) ($invoice->subtotal ?? 0);
+        $subtotal0  = (float) (property_exists($invoice, 'subtotal_0') ? ($invoice->subtotal_0 ?? 0) : 0);
+        $vat        = (float) ($invoice->vat ?? 0);
+        $total      = (float) ($invoice->total ?? 0);
+
+        return [
+            'invoice' => $invoice,
+            'weight' => $weight,
+            'declaredValue' => $declaredValue,
+            'contentDescription' => $contentDescription,
+
+            'tarifa_paquetes' => $tarifaPaquetes,
+
+            'total_seguro_paquetes' => $totalSeguroPaquetes,
+            'total_embalaje' => $totalEmbalaje,
+            'total_seguro_envio' => $totalSeguroEnvio,
+            'total_desaduanizacion' => $totalDesaduanizacion,
+            'total_transporte_destino' => $totalTransporteDestino,
+            'total_transmision' => $totalTransmision,
+
+            'subtotal_0' => $subtotal0,
+            'subtotal_15' => $subtotal15,
+            'vat' => $vat,
+            'total' => $total,
+        ];
     }
 }
