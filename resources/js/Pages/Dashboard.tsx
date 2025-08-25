@@ -8,6 +8,23 @@ import RevenueChart from "@/Components/RevenueChart";
 import CalendarComponent from "@/Components/CalendarComponent";
 
 export default function Dashboard() {
+    const fixedNotices = [
+        {
+            id: 1,
+            title: "⚠️ URGENTE: Envío a Cuenca",
+            message:
+                "La carga debe ser enviada a Cuenca y entregada en el terminal hasta el martes 26 de agosto a las 12:00.",
+            type: "warning",
+        },
+        {
+            id: 2,
+            title: "🚫 Bloqueo de Facturación",
+            message:
+                "Desde el 26 de agosto ya no se debe facturar hasta nuevo aviso por reformas en la aduana. Cuando todo esté claro, se notificará y podrán volver a facturar.",
+            type: "danger",
+        },
+    ];
+
     const { props } = usePage();
     const { stats, enterprise } = props as any;
     const [activeTab, setActiveTab] = useState("overview");
@@ -39,6 +56,26 @@ export default function Dashboard() {
             </style>
 
             <div className="p-4 md:p-6 space-y-6">
+                {fixedNotices.length > 0 && (
+                    <div className="space-y-3">
+                        {fixedNotices.map((n) => (
+                            <div
+                                key={n.id}
+                                className={`p-3 rounded-lg shadow-md ${
+                                    n.type === "danger"
+                                        ? "bg-red-600 text-white"
+                                        : n.type === "warning"
+                                        ? "bg-yellow-500 text-black"
+                                        : "bg-blue-600 text-white"
+                                }`}
+                            >
+                                <h3 className="font-bold">{n.title}</h3>
+                                <p>{n.message}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
                 <div className="bg-gradient-to-r from-red-700 via-red-600 to-red-500 p-4 rounded-lg shadow-lg">
                     <h2 className="text-2xl font-bold text-white animate-fadeInUp">
                         Panel de {enterprise?.name || "Empresa"}
