@@ -44,8 +44,7 @@ export default function SidebarNavigation() {
     const toggleSidebar = () => setIsCollapsed(!isCollapsed);
 
     const navItems: NavItem[] = [];
-    const blockShipments = true;
-    const blockInvoices = true;
+
     if (userRole === "Sudo") {
         navItems.push(
             {
@@ -62,14 +61,12 @@ export default function SidebarNavigation() {
     }
 
     if (userRole === "Sudo" || userRole === "Admin") {
-        if (!blockShipments) {
-            navItems.push({
+        navItems.push(
+            {
                 title: "Envíos",
                 href: "/receptions/create",
                 icon: <Plane className="h-5 w-5" />,
-            });
-        }
-        navItems.push(
+            },
             {
                 title: "Clientes",
                 icon: <Users2 className="h-5 w-5" />,

@@ -84,7 +84,7 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('invoices', InvoiceController::class);
     Route::resource('inv_details', InvDetailController::class);
     // Crear recepción y facturas
-    //Route::post('/receptions', [ReceptionController::class, 'store'])->name('receptions.store.shared');
+    Route::post('/receptions', [ReceptionController::class, 'store'])->name('receptions.store.shared');
     Route::post('/receptions/{id}/invoice', [InvoiceController::class, 'createInvoice'])->name('receptions.invoice');
     // Anular recepción
     Route::patch('/receptions/{reception}/annul', [ReceptionController::class, 'annul'])
@@ -93,7 +93,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/receptions/{id}/ticket.pdf', [ReceptionController::class, 'generateTicketPdf'])->name('receptions.ticket');
     Route::get('/receptions/{id}/all-package-tickets.pdf', [ReceptionController::class, 'generateAllPackageTicketsPdf'])->name('receptions.all_tickets');
     Route::get('/receptions/{reception}/packages/{package}/ticket.pdf', [ReceptionController::class, 'generatePackageTicketPdf'])->name('receptions.package_ticket');
-    //Route::resource('receptions', ReceptionController::class);
+    Route::resource('receptions', ReceptionController::class);
     // Artículos para combo
     Route::get('/art_packgs/list/json', [ArtPackgController::class, 'listJson'])->name('art_packgs.list.json');
     Route::get('/art_packages/list/json', [ArtPackageController::class, 'listJson'])->name('art_packages.list.json');
