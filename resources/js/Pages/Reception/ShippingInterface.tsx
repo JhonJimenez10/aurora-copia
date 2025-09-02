@@ -494,7 +494,7 @@ export default function ShippingInterface({
                 totalTransporteDestino
         );
 
-        const transmision = 0.25;
+        const transmision = round(subtotalBase * 0.01);
         const subtotal = round(subtotalBase + transmision);
         const vat = round(subtotal * 0.15);
         const total = round(subtotal + vat);
@@ -2050,7 +2050,9 @@ export default function ShippingInterface({
                                     );
 
                                     // ✅ Transmisión es el 1% del subtotal base
-                                    const transmision = 0.25;
+                                    const transmision = round(
+                                        subtotalBase * 0.01
+                                    );
 
                                     // 🔵 Subtotal final que sí incluye transmisión
                                     const subtotal = round(
