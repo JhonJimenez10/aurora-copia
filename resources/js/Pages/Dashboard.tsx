@@ -11,17 +11,17 @@ export default function Dashboard() {
     const fixedNotices = [
         {
             id: 1,
-            title: "⚠️ URGENTE: Envío a Cuenca",
+            title: "⚠️ Cambios en la facturación",
             message:
-                "La carga debe ser enviada a Cuenca y entregada en el terminal hasta el martes 26 de agosto a las 12:00.",
-            type: "warning",
+                "Queremos informarles que hemos realizado ciertos cambios en los artículos de nuestro sistema. Además, hemos enviado internamente una lista actualizada de los productos que sí se pueden enviar. Por favor, utilicen esta lista para sus operaciones. Gracias por su colaboración.",
+            type: "danger",
         },
         {
             id: 2,
-            title: "🚫 Bloqueo de Facturación",
+            title: "⚠️ URGENTE: Envíos se reanudan el sabado 06 de septiembre",
             message:
-                "Desde el 26 de agosto ya no se debe facturar hasta nuevo aviso por reformas en la aduana. Cuando todo esté claro, se notificará y podrán volver a facturar.",
-            type: "danger",
+                "Informamos a nuestros clientes que los envíos a Estados Unidos se reanudarán este sábado. Las cargas para Nueva York y Massachusetts podrán ser receptadas desde mañana, viernes, hasta el sábado. Para Massachusetts, los envíos se reanudarán la próxima semana. Gracias por su comprensión.",
+            type: "warning",
         },
     ];
 
