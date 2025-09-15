@@ -123,6 +123,7 @@ interface PackageItemDetail {
     kilograms: number;
     unit_price: number;
     total: number;
+    items_decl: number;
     decl_val: number;
     ins_val: number;
 }
@@ -147,8 +148,9 @@ interface PackageRow {
     subtotal: string;
     descuento: string;
     total: string;
+    items_decl: string;
     declarado: string;
-    asegurado: string;
+    // asegurado: string; // Si no se usa, se puede eliminar
 }
 interface AgencyDest {
     id: string;
@@ -441,6 +443,16 @@ export default function ShippingInterface({
             state: recipientData.state || "",
         });
     };
+    // AGENCIA DE ORGEN según usuario
+    const agencyByEmail: Record<string, string> = {
+        "susanaburneo2010@yahoo.com": "LOJA",
+        "edwincobos-68@hotmail.com": "SIGSIG",
+        "pabloarizaga06@gmail.com": "CUENCA CENTRO",
+        "maria33ql@gmail.com": "BIBLIÁN",
+    };
+
+    const agencyOrigin =
+        agencyByEmail[(auth?.user?.email as string) || ""] || "CUENCA CENTRO";
 
     const handleSaveReception = async () => {
         // Cálculos globales
@@ -643,8 +655,9 @@ export default function ShippingInterface({
             subtotal: (item.quantity * item.unit_price).toFixed(2),
             descuento: "0",
             total: item.total.toFixed(2),
+            items_decl: item.decl_val.toFixed(2),
             declarado: item.decl_val.toFixed(2),
-            asegurado: item.ins_val.toFixed(2),
+            //asegurado: item.ins_val.toFixed(2), // Si no se usa, se puede eliminar
         }));
         setEditingPackageIndex(idx);
         setPackageRowsForEdit(rows);
@@ -674,8 +687,10 @@ export default function ShippingInterface({
             kilograms: parseFloat(r.peso) * 0.453592,
             unit_price: parseFloat(r.unitario),
             total: parseFloat(r.total),
+            items_decl: parseFloat(r.items_decl),
             decl_val: parseFloat(r.declarado),
-            ins_val: parseFloat(r.asegurado),
+            ins_val: 0,
+            // ins_val: parseFloat(r.asegurado), // Si no se usa, se puede eliminar
         }));
 
         // aquí el único cambio: usar directamente r.articulo
@@ -947,7 +962,7 @@ export default function ShippingInterface({
                             Ag. origen
                         </Label>
                         <Input
-                            value="CUENCA CENTRO"
+                            value={agencyOrigin}
                             readOnly
                             className="bg-black text-white border border-red-700"
                         />

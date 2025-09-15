@@ -206,6 +206,7 @@ class ReceptionController extends Controller
                             'kilograms'      => $item['kilograms'] ?? 0,
                             'unit_price'     => $item['unit_price'] ?? 0,
                             'total'          => $item['total'] ?? 0,
+                            'items_declrd'   => $item['items_decl'] ?? 0,
                             'decl_val'       => $item['decl_val'] ?? 0,
                             'ins_val'        => $item['ins_val'] ?? 0,
                         ]);

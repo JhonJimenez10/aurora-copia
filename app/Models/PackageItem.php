@@ -25,6 +25,7 @@ class PackageItem extends Model
         'kilograms',
         'unit_price',
         'total',
+        'items_declrd',
         'decl_val',
         'ins_val',
     ];
