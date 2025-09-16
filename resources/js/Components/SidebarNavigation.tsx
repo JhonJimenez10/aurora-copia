@@ -154,6 +154,11 @@ export default function SidebarNavigation() {
                         href: "/receptions",
                         icon: <FileSearch className="h-4 w-4" />, // 👈 nuevo
                     },
+                    {
+                        title: "Manifiesto Aduana IBC", // 👈 nuevo
+                        href: "/reports/ibc-manifest",
+                        icon: <FileSpreadsheet className="h-4 w-4" />,
+                    },
                 ],
             }
         );
@@ -175,12 +180,12 @@ export default function SidebarNavigation() {
                         href: "/receptions",
                         icon: <FileSearch className="h-4 w-4" />, // 👈 nuevo
                     },
+                    {
+                        title: "Reporte Factura",
+                        href: "/reports/invoices",
+                        icon: <FileSpreadsheet className="h-4 w-4" />,
+                    },
                 ],
-            },
-            {
-                title: "Reporte Factura",
-                href: "/reports/invoices",
-                icon: <FileSpreadsheet className="h-4 w-4" />,
             }
         );
     }

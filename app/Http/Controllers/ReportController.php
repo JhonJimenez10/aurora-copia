@@ -10,6 +10,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ReceptionsExport;
 use Carbon\Carbon;
 use App\Exports\InvoiceReportExport;
+use App\Exports\IBCManifestExport;
 
 class ReportController extends Controller
 {
@@ -170,5 +171,115 @@ class ReportController extends Controller
         );
 
         return Excel::download(new InvoiceReportExport($start, $end, $enterpriseId), $fileName);
+    }
+    public function ibcManifestIndex(Request $request)
+    {
+        $start = $request->query('start_date');
+        $end   = $request->query('end_date');
+        $enterpriseId = $request->query('enterprise_id');
+
+        $rows = [];
+
+        if ($enterpriseId && $start && $end) {
+            if (! $this->canChooseAnyEnterprise()) {
+                $enterpriseId = auth()->user()->enterprise_id;
+            }
+
+            // Guardar filtros en sesión para exportación
+            session([
+                'reports.ibc.enterprise_id' => (int)$enterpriseId,
+                'reports.ibc.start_date'    => $start,
+                'reports.ibc.end_date'      => $end,
+            ]);
+
+            // 🔹 Cargar datos de recepciones
+            $receptions = Reception::with(['sender', 'recipient', 'packages'])
+                ->where('enterprise_id', $enterpriseId)
+                ->where('annulled', false)
+                ->whereDate('date_time', '>=', $start)
+                ->whereDate('date_time', '<=', $end)
+                ->get();
+
+            foreach ($receptions as $reception) {
+                foreach ($reception->packages as $package) {
+                    $rows[] = [
+                        'hawb'            => explode('.', $package->barcode)[0] ?? $package->barcode,
+                        'shipper_name'    => optional($reception->sender)->full_name ?? '',
+                        'consignee_person' => optional($reception->recipient)->full_name ?? '',
+                        'weight'          => $package->weight ?? '',
+                    ];
+                }
+            }
+        }
+
+        return Inertia::render('Reports/IBCManifestReport', [
+            'startDate'    => $start,
+            'endDate'      => $end,
+            'enterpriseId' => $enterpriseId,
+            'rows'         => $rows, // 👈 Ahora enviamos datos reales
+        ]);
+    }
+
+
+    public function ibcManifestExport(Request $request)
+    {
+        $start = $request->query('start_date') ?? session('reports.ibc.start_date');
+        $end   = $request->query('end_date')   ?? session('reports.ibc.end_date');
+
+        validator(['start_date' => $start, 'end_date' => $end], [
+            'start_date' => ['required', 'date'],
+            'end_date'   => ['required', 'date', 'after_or_equal:start_date'],
+        ])->validate();
+
+        $enterpriseId = $request->query('enterprise_id')
+            ?? session('reports.ibc.enterprise_id')
+            ?? auth()->user()->enterprise_id;
+
+        if (! $this->canChooseAnyEnterprise()) {
+            $enterpriseId = auth()->user()->enterprise_id;
+        }
+
+        $fileName = sprintf(
+            'manifiesto_ibc_%s_%s_emp%s.xlsx',
+            \Carbon\Carbon::parse($start)->format('Ymd'),
+            \Carbon\Carbon::parse($end)->format('Ymd'),
+            $enterpriseId
+        );
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new IBCManifestExport($start, $end, (string) $enterpriseId),
+            $fileName
+        );
+    }
+    public function ibcManifestExportCsv(Request $request)
+    {
+        $start = $request->query('start_date') ?? session('reports.ibc.start_date');
+        $end   = $request->query('end_date')   ?? session('reports.ibc.end_date');
+
+        validator(['start_date' => $start, 'end_date' => $end], [
+            'start_date' => ['required', 'date'],
+            'end_date'   => ['required', 'date', 'after_or_equal:start_date'],
+        ])->validate();
+
+        $enterpriseId = $request->query('enterprise_id')
+            ?? session('reports.ibc.enterprise_id')
+            ?? auth()->user()->enterprise_id;
+
+        if (! $this->canChooseAnyEnterprise()) {
+            $enterpriseId = auth()->user()->enterprise_id;
+        }
+
+        $fileName = sprintf(
+            'manifiesto_ibc_%s_%s_emp%s.csv',
+            \Carbon\Carbon::parse($start)->format('Ymd'),
+            \Carbon\Carbon::parse($end)->format('Ymd'),
+            $enterpriseId
+        );
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\IBCManifestCsvExport($start, $end, (string) $enterpriseId),
+            $fileName,
+            \Maatwebsite\Excel\Excel::CSV
+        );
     }
 }
