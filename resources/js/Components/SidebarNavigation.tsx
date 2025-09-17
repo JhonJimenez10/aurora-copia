@@ -159,6 +159,11 @@ export default function SidebarNavigation() {
                         href: "/reports/ibc-manifest",
                         icon: <FileSpreadsheet className="h-4 w-4" />,
                     },
+                    {
+                        title: "Manifiesto Aerolínea X Sacas",
+                        href: "/reports/airline-manifest",
+                        icon: <FileSpreadsheet className="h-4 w-4" />,
+                    },
                 ],
             }
         );

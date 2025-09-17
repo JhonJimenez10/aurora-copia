@@ -11,6 +11,7 @@ use App\Exports\ReceptionsExport;
 use Carbon\Carbon;
 use App\Exports\InvoiceReportExport;
 use App\Exports\IBCManifestExport;
+use App\Exports\AirlineManifestExport;
 
 class ReportController extends Controller
 {
@@ -281,5 +282,95 @@ class ReportController extends Controller
             $fileName,
             \Maatwebsite\Excel\Excel::CSV
         );
+    }
+    public function airlineManifestExport(Request $request)
+    {
+        // Tomar fechas desde request
+        $startDate = $request->input('start_date');
+        $endDate   = $request->input('end_date');
+
+        // Validar fechas
+        $request->validate([
+            'start_date' => ['required', 'date'],
+            'end_date'   => ['required', 'date', 'after_or_equal:start_date'],
+        ]);
+
+        // Normalizar fechas para incluir todo el día
+        $start = Carbon::parse($startDate)->startOfDay();
+        $end   = Carbon::parse($endDate)->endOfDay();
+
+        // Determinar empresa
+        $enterpriseId = $request->input('enterprise_id') ?? auth()->user()->enterprise_id;
+
+        // Si el usuario NO puede elegir empresa, forzar la suya
+        if (! $this->canChooseAnyEnterprise()) {
+            $enterpriseId = auth()->user()->enterprise_id;
+        }
+
+        // Nombre de archivo
+        $fileName = sprintf(
+            'airline_manifest_%s_%s_emp%s.xlsx',
+            $start->format('Ymd'),
+            $end->format('Ymd'),
+            $enterpriseId
+        );
+
+        // Exportar Excel
+        return Excel::download(
+            new AirlineManifestExport($start, $end, (string) $enterpriseId),
+            $fileName
+        );
+    }
+
+    public function airlineManifestIndex(Request $request)
+    {
+        $enterprises = \App\Models\Enterprise::select('id', 'name')
+            ->when(! $this->canChooseAnyEnterprise(), fn($q) => $q->where('id', auth()->user()->enterprise_id))
+            ->orderBy('name')
+            ->get();
+
+        $start = $request->query('start_date');
+        $end   = $request->query('end_date');
+        $enterpriseId = $request->query('enterprise_id', auth()->user()->enterprise_id);
+
+        if (! $this->canChooseAnyEnterprise()) {
+            $enterpriseId = auth()->user()->enterprise_id;
+        }
+
+        $rows = [];
+
+        if ($start && $end && $enterpriseId) {
+            $receptions = Reception::with(['sender', 'recipient', 'agencyDest', 'packages.items.artPackage'])
+                ->where('enterprise_id', $enterpriseId)
+                ->whereDate('date_time', '>=', $start)
+                ->whereDate('date_time', '<=', $end)
+                ->get();
+
+            foreach ($receptions as $reception) {
+                foreach ($reception->packages as $package) {
+                    $contents = $package->items->map(fn($item) => $item->artPackage?->name)->filter()->implode(', ');
+                    $rows[] = [
+                        'barcode' => $package->barcode,
+                        'shipper' => $reception->sender->full_name ?? '',
+                        'consignee' => $reception->recipient->full_name ?? '',
+                        'weight' => $package->kilograms,
+                        'envelope' => $package->service_type === 'SOBRE' ? 1 : 0,
+                        'paq' => $package->service_type === 'PAQUETE' ? 1 : 0,
+                        'bag' => 0,
+                        'destination' => $reception->agencyDest->name ?? '',
+                        'contents' => $contents,
+                        'notes' => '', // Si quieres mostrar notas
+                    ];
+                }
+            }
+        }
+
+        return Inertia::render('Reports/AirlineManifestReport', [
+            'enterprises'  => $enterprises,
+            'startDate'    => $start,
+            'endDate'      => $end,
+            'enterpriseId' => $enterpriseId,
+            'rows'         => $rows,
+        ]);
     }
 }

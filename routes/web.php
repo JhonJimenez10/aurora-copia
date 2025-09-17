@@ -127,6 +127,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/reports/ibc-manifest', [ReportController::class, 'ibcManifestIndex'])->name('reports.ibc.index');
     Route::get('/reports/ibc-manifest/export', [ReportController::class, 'ibcManifestExport'])->name('reports.ibc.export');
     Route::get('/reports/ibc-manifest/export-csv', [ReportController::class, 'ibcManifestExportCsv'])->name('reports.ibc.export.csv');
+    Route::get('/reports/airline-manifest', [ReportController::class, 'airlineManifestIndex'])->name('reports.airline.index');
+    Route::get('/reports/airline-manifest/export', [ReportController::class, 'airlineManifestExport'])->name('reports.airline.export');
 
     Route::resource('agencies_dest', AgencyDestController::class);
 });
