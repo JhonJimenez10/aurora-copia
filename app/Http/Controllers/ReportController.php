@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use App\Exports\InvoiceReportExport;
 use App\Exports\IBCManifestExport;
 use App\Exports\AirlineManifestExport;
+use App\Exports\ACASAviancaManifestExport;
 
 class ReportController extends Controller
 {
@@ -372,5 +373,100 @@ class ReportController extends Controller
             'enterpriseId' => $enterpriseId,
             'rows'         => $rows,
         ]);
+    }
+    public function acasAviancaManifestIndex(Request $request)
+    {
+        $start = $request->query('start_date');
+        $end   = $request->query('end_date');
+
+        // La empresa siempre es la del usuario
+        $enterpriseId = auth()->user()->enterprise_id;
+
+        $rows = [];
+
+        if ($start && $end) {
+            // Guardar filtros en sesión para export
+            session([
+                'reports.acas.enterprise_id' => $enterpriseId,
+                'reports.acas.start_date'    => $start,
+                'reports.acas.end_date'      => $end,
+            ]);
+
+            $receptions = Reception::with(['sender', 'recipient', 'packages.items.artPackage'])
+                ->where('enterprise_id', $enterpriseId)
+                ->whereDate('date_time', '>=', $start)
+                ->whereDate('date_time', '<=', $end)
+                ->get();
+
+            foreach ($receptions as $reception) {
+                foreach ($reception->packages as $package) {
+                    $contents = $package->items->map(fn($item) => $item->artPackage?->name)
+                        ->filter()
+                        ->implode(', ');
+
+                    $rows[] = [
+                        'hawb' => $package->barcode,
+                        'origin' => 'GYE',
+                        'destination' => 'JFK',
+                        'pieces' => 1,
+                        'weight' => $package->kilograms,
+                        'shipper_name' => optional($reception->sender)->full_name ?? '',
+                        'shipper_address' => optional($reception->sender)->address ?? '',
+                        'shipper_city' => optional($reception->sender)->city ?? '',
+                        'shipper_state' => 'EC',
+                        'shipper_country' => 'EC',
+                        'shipper_postal' => optional($reception->sender)->postal_code ?? '',
+                        'consignee_name' => optional($reception->recipient)->full_name ?? '',
+                        'consignee_address' => optional($reception->recipient)->address ?? '',
+                        'consignee_city' => optional($reception->recipient)->city ?? '',
+                        'consignee_state' => optional($reception->recipient)->state ?? '',
+                        'consignee_country' => 'US',
+                        'consignee_postal' => optional($reception->recipient)->postal_code ?? '',
+                        'contents' => $contents,
+                    ];
+                }
+            }
+        }
+
+        return Inertia::render('Reports/ACASAviancaManifestReport', [
+            'startDate' => $start,
+            'endDate' => $end,
+            'rows' => $rows,
+        ]);
+    }
+
+
+    public function acasAviancaManifestExport(Request $request)
+    {
+        $start = $request->query('start_date') ?? session('reports.acas.start_date');
+        $end   = $request->query('end_date') ?? session('reports.acas.end_date');
+
+        validator(['start_date' => $start, 'end_date' => $end], [
+            'start_date' => ['required', 'date'],
+            'end_date'   => ['required', 'date', 'after_or_equal:start_date'],
+        ])->validate();
+
+        $enterpriseId = $request->query('enterprise_id');
+
+        if (empty($enterpriseId) || $enterpriseId === 'null') {
+            $enterpriseId = session('reports.acas.enterprise_id') ?? auth()->user()->enterprise_id;
+        }
+
+        if (! $this->canChooseAnyEnterprise()) {
+            $enterpriseId = auth()->user()->enterprise_id;
+        }
+
+
+        $fileName = sprintf(
+            'acas_avianca_manifest_%s_%s_emp%s.xlsx',
+            Carbon::parse($start)->format('Ymd'),
+            Carbon::parse($end)->format('Ymd'),
+            $enterpriseId
+        );
+
+        return Excel::download(
+            new ACASAviancaManifestExport($start, $end, $enterpriseId),
+            $fileName
+        );
     }
 }

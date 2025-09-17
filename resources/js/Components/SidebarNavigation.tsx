@@ -164,6 +164,11 @@ export default function SidebarNavigation() {
                         href: "/reports/airline-manifest",
                         icon: <FileSpreadsheet className="h-4 w-4" />,
                     },
+                    {
+                        title: "Manifiesto ACAS Avianca",
+                        href: "/reports/acas-avianca-manifest",
+                        icon: <FileSpreadsheet className="h-4 w-4" />,
+                    },
                 ],
             }
         );
