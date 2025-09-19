@@ -9,6 +9,7 @@ interface ArtPackage {
     id: string;
     name: string;
     translation: string;
+    codigo_hs: string;
     unit_type: string;
     unit_price: string;
     agent_val: string;

@@ -40,6 +40,7 @@ class ArtPackageController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'translation' => 'nullable|string|max:100',
+            'codigo_hs' => 'nullable|string|max:50',
             'unit_type' => 'nullable|string|max:50',
             'unit_price' => 'required|numeric',
             'agent_val' => 'required|numeric',
@@ -74,6 +75,7 @@ class ArtPackageController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:100',
             'translation' => 'nullable|string|max:100',
+            'codigo_hs' => 'nullable|string|max:50',
             'unit_type' => 'nullable|string|max:50',
             'unit_price' => 'sometimes|required|numeric',
             'agent_val' => 'sometimes|required|numeric',
@@ -101,7 +103,7 @@ class ArtPackageController extends Controller
 
         $artPackages = ArtPackage::where('enterprise_id', $enterpriseId)
             ->where('canceled', false)
-            ->get(['id', 'name', 'translation', 'unit_type', 'unit_price']);
+            ->get(['id', 'name', 'translation', 'codigo_hs', 'unit_type', 'unit_price']);
 
         return response()->json($artPackages);
     }

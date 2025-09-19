@@ -21,6 +21,7 @@ class ArtPackage extends Model
         'enterprise_id',
         'name',
         'translation',
+        'codigo_hs',
         'unit_type',
         'unit_price',
         'agent_val',

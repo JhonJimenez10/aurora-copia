@@ -23,6 +23,7 @@ class ArtPackagesImport implements ToModel, WithHeadingRow
             'enterprise_id'  => $this->enterpriseId,
             'name'           => $row['name'],
             'translation'    => $row['translation'] ?? null,
+            'codigo_hs'      => $row['codigo_hs'] ?? null,
             'unit_type'      => $row['unit_type'] ?? null,
             'unit_price'     => $row['unit_price'],
             'agent_val'      => $row['agent_val'],
