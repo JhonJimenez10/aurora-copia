@@ -96,17 +96,28 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
             foreach ($reception->packages as $package) {
                 $barcodeBase = explode('.', $package->barcode)[0] ?? $package->barcode;
 
+                // Concatenar descripción de los artículos
                 $description = $package->items->map(fn($item) => $item->artPackage?->translation ?? '')
-                    ->filter()->implode(' ');
+                    ->filter()
+                    ->implode(' ');
+
+                // Primer codigo_hs para hs_code en HAWB
+                $firstHsCode = $package->items->first()?->artPackage?->codigo_hs ?? '';
+
+                // 🔹 Calcular declared_value sumando items_declrd * decl_val
+                $declaredValue = 0;
+                foreach ($package->items as $item) {
+                    $declaredValue += ($item->items_declrd ?? 0) * ($item->decl_val ?? 0);
+                }
 
                 // ✅ Fila HAWB
                 $rows[] = [
                     'hawb',
                     '14',
                     '',
-                    '' . $barcodeBase,
+                    $barcodeBase,
                     '',
-                    '',
+                    '', // internal_reference vacío en HAWB
                     '',
                     'GYE',
                     'USA',
@@ -119,10 +130,10 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
                     'KG',
                     'APX',
                     'USD',
-                    $package->decl_val ?? '',
+                    $declaredValue,
                     '',
-                    '' . $description,
-                    '',
+                    $description,
+                    $firstHsCode,
                     '',
                     '',
                     'O',
@@ -136,7 +147,7 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
                     '',
                     $reception->sender->city ?? '',
                     '',
-                    '' . $reception->sender->postal_code ?? '',
+                    $reception->sender->postal_code ?? '',
                     'EC',
                     $reception->sender->phone ?? '',
                     mb_substr($reception->recipient->full_name ?? '', 0, 30),
@@ -145,110 +156,93 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
                     '',
                     $reception->recipient->city ?? '',
                     $reception->recipient->state ?? '',
-                    '' . $reception->recipient->postal_code ?? '',
+                    $reception->recipient->postal_code ?? '',
                     'US',
                     $reception->recipient->phone ?? '',
                     '',
                     '',
+                    '',
                     'EC',
-                    ''
+                    '',
                 ];
 
-                // ✅ Fila commodity si hay más de 1 item
-                if ($package->items->count() > 1) {
-                    foreach ($package->items as $item) {
-                        $rows[] = [
-                            'commodity',
-                            '4',
-                            $item->items_declrd ?? '',
-                            $item->artPackage?->translation ?? '',
-                            '',
-                            'EC',
-                            $item->decl_val ?? '',
-                            'USD',
-                            $item->kilograms ?? '',
-                            'K',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            ''
-                        ];
-                    }
+                // ✅ Filas commodity (solo internal_reference y datos del artículo)
+                foreach ($package->items as $item) {
+                    $rows[] = [
+                        'commodity',
+                        '4',
+                        $item->items_declrd ?? '',
+                        $item->artPackage?->translation ?? '',
+                        '',
+                        $item->artPackage?->codigo_hs ?? '', // internal_reference
+                        'EC',
+                        $item->decl_val ?? '',
+                        'USD',
+                        $item->kilograms ?? '',
+                        'K',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                        '',
+                    ];
                 }
             }
         }
@@ -263,9 +257,9 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
     {
         return [
             'delimiter' => ',',
-            'enclosure' => '',  // ❌ Sin comillas
+            'enclosure' => '',
             'line_ending' => PHP_EOL,
-            'use_bom' => true,  // Para Excel UTF-8
+            'use_bom' => true,
         ];
     }
 }

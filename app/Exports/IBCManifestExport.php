@@ -107,7 +107,13 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                 $description = $package->items->map(function ($item) {
                     return $item->artPackage?->translation ?? '';
                 })->filter()->implode(' ');
-
+                // Obtener primer codigo_hs para hs_code en hawb
+                $firstHsCode = $package->items->first()?->artPackage?->codigo_hs ?? '';
+                // 🔹 Calcular declared_value para la fila HAWB
+                $declaredValue = 0;
+                foreach ($package->items as $item) {
+                    $declaredValue += ($item->items_declrd ?? 0) * ($item->decl_val ?? 0);
+                }
                 // ✅ Fila HAWB
                 $rows[] = [
                     'hawb',
@@ -128,10 +134,10 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                     'KG',                            // weight_units
                     'APX',                           // contents
                     'USD',                           // currency_code
-                    $package->decl_val ?? '',        // declared_value
+                    $declaredValue,       // declared_value
                     '',                              // insurance_amount
                     $description,                    // description
-                    '',                              // hs_code
+                    $firstHsCode,                               // hs_code
                     '',                              // fda_prior_notice
                     '',                              // terms
                     'O',                             // packaging (por defecto)
@@ -164,7 +170,7 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                     '',
                     '',
                     'EC',                            // goods_country_of_origin
-                    '',
+                    '0',
                 ];
 
                 // ✅ SOLO desglosar si hay más de un item
@@ -176,7 +182,7 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                             $item->items_declrd ?? '',
                             $item->artPackage?->translation ?? '',
                             '',
-                            '',
+                            $item->artPackage?->codigo_hs ?? '',
                             'EC',
                             $item->decl_val ?? '',
                             'USD',

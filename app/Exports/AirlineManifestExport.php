@@ -10,6 +10,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class AirlineManifestExport implements FromCollection, WithDrawings, WithStyles
 {
@@ -92,9 +93,10 @@ class AirlineManifestExport implements FromCollection, WithDrawings, WithStyles
         foreach ($receptions as $reception) {
             foreach ($reception->packages as $package) {
                 $contents = $package->items->map(fn($item) => $item->artPackage?->name)->filter()->implode(', ');
+                $invoiceCode = Str::before($package->barcode, '.');
 
                 $rows[] = [
-                    $package->barcode,                        // INVOICE
+                    $invoiceCode,                       // INVOICE
                     $reception->sender->full_name ?? '',      // SHIPPER
                     $reception->sender->address ?? '',        // ADDRESS
                     $reception->sender->city ?? '',           // CITY

@@ -17,10 +17,11 @@ use App\Exports\ACASAviancaManifestExport;
 class ReportController extends Controller
 {
     /** Rol en MAYÚSCULAS sin depender de roles() */
+    /** Rol en MAYÚSCULAS sin depender de roles() */
     protected function roleUpper(): string
     {
         $u = auth()->user();
-        if (! $u) return '';
+        if (!$u) return '';
         if (isset($u->role) && is_object($u->role) && isset($u->role->name)) return strtoupper((string)$u->role->name);
         if (isset($u->role_name) && is_string($u->role_name)) return strtoupper($u->role_name);
         if (isset($u->role) && is_string($u->role)) return strtoupper($u->role);
@@ -32,12 +33,15 @@ class ReportController extends Controller
         return in_array($this->roleUpper(), ['SUDO', 'ADMIN'], true);
     }
 
-    /**
-     * Reporte Manifiesto (vista)
-     * - ADMIN y SUDO ven TODAS las empresas
-     * - CUSTOMER solo ve la suya
-     * - Se guardan filtros en sesión para que export funcione aunque no se envíen por query
-     */
+    /** Helper: obtener empresas visibles según rol */
+    protected function getVisibleEnterprises()
+    {
+        return Enterprise::select('id', 'name')
+            ->when(!$this->canChooseAnyEnterprise(), fn($q) => $q->where('id', auth()->user()->enterprise_id))
+            ->orderBy('name')
+            ->get();
+    }
+
     public function index(Request $request)
     {
         $start        = $request->query('start_date');
@@ -45,10 +49,8 @@ class ReportController extends Controller
         $enterpriseId = $request->query('enterprise_id');
 
         // Empresas para el selector:
-        $enterprises = Enterprise::select('id', 'name')
-            ->when(! $this->canChooseAnyEnterprise(), fn($q) => $q->where('id', auth()->user()->enterprise_id))
-            ->orderBy('name')
-            ->get();
+        $enterprises = $this->getVisibleEnterprises();
+
 
         $receptions = [];
 
@@ -179,6 +181,7 @@ class ReportController extends Controller
         $start = $request->query('start_date');
         $end   = $request->query('end_date');
         $enterpriseId = $request->query('enterprise_id');
+        $enterprises = $this->getVisibleEnterprises();
 
         $rows = [];
 
@@ -219,6 +222,8 @@ class ReportController extends Controller
             'endDate'      => $end,
             'enterpriseId' => $enterpriseId,
             'rows'         => $rows, // 👈 Ahora enviamos datos reales
+            'enterprises'  => $enterprises, // <-- listado de empresas
+
         ]);
     }
 
@@ -325,21 +330,16 @@ class ReportController extends Controller
 
     public function airlineManifestIndex(Request $request)
     {
-        $enterprises = \App\Models\Enterprise::select('id', 'name')
-            ->when(! $this->canChooseAnyEnterprise(), fn($q) => $q->where('id', auth()->user()->enterprise_id))
-            ->orderBy('name')
-            ->get();
-
+        $enterprises = $this->getVisibleEnterprises();
         $start = $request->query('start_date');
         $end   = $request->query('end_date');
         $enterpriseId = $request->query('enterprise_id', auth()->user()->enterprise_id);
 
-        if (! $this->canChooseAnyEnterprise()) {
+        if (!$this->canChooseAnyEnterprise()) {
             $enterpriseId = auth()->user()->enterprise_id;
         }
 
         $rows = [];
-
         if ($start && $end && $enterpriseId) {
             $receptions = Reception::with(['sender', 'recipient', 'agencyDest', 'packages.items.artPackage'])
                 ->where('enterprise_id', $enterpriseId)
@@ -351,16 +351,16 @@ class ReportController extends Controller
                 foreach ($reception->packages as $package) {
                     $contents = $package->items->map(fn($item) => $item->artPackage?->name)->filter()->implode(', ');
                     $rows[] = [
-                        'barcode' => $package->barcode,
-                        'shipper' => $reception->sender->full_name ?? '',
-                        'consignee' => $reception->recipient->full_name ?? '',
-                        'weight' => $package->kilograms,
-                        'envelope' => $package->service_type === 'SOBRE' ? 1 : 0,
-                        'paq' => $package->service_type === 'PAQUETE' ? 1 : 0,
-                        'bag' => 0,
+                        'barcode'     => $package->barcode,
+                        'shipper'     => $reception->sender->full_name ?? '',
+                        'consignee'   => $reception->recipient->full_name ?? '',
+                        'weight'      => $package->kilograms,
+                        'envelope'    => $package->service_type === 'SOBRE' ? 1 : 0,
+                        'paq'         => $package->service_type === 'PAQUETE' ? 1 : 0,
+                        'bag'         => 0,
                         'destination' => $reception->agencyDest->name ?? '',
-                        'contents' => $contents,
-                        'notes' => '', // Si quieres mostrar notas
+                        'contents'    => $contents,
+                        'notes'       => '',
                     ];
                 }
             }
@@ -378,14 +378,16 @@ class ReportController extends Controller
     {
         $start = $request->query('start_date');
         $end   = $request->query('end_date');
+        $enterpriseId = $request->query('enterprise_id') ?? auth()->user()->enterprise_id;
 
-        // La empresa siempre es la del usuario
-        $enterpriseId = auth()->user()->enterprise_id;
-
+        $enterprises = $this->getVisibleEnterprises();
         $rows = [];
 
-        if ($start && $end) {
-            // Guardar filtros en sesión para export
+        if ($enterpriseId && $start && $end) {
+            if (!$this->canChooseAnyEnterprise()) {
+                $enterpriseId = auth()->user()->enterprise_id;
+            }
+
             session([
                 'reports.acas.enterprise_id' => $enterpriseId,
                 'reports.acas.start_date'    => $start,
@@ -400,38 +402,38 @@ class ReportController extends Controller
 
             foreach ($receptions as $reception) {
                 foreach ($reception->packages as $package) {
-                    $contents = $package->items->map(fn($item) => $item->artPackage?->name)
-                        ->filter()
-                        ->implode(', ');
+                    $contents = $package->items->map(fn($item) => $item->artPackage?->name)->filter()->implode(', ');
 
                     $rows[] = [
-                        'hawb' => $package->barcode,
-                        'origin' => 'GYE',
-                        'destination' => 'JFK',
-                        'pieces' => 1,
-                        'weight' => $package->kilograms,
-                        'shipper_name' => optional($reception->sender)->full_name ?? '',
-                        'shipper_address' => optional($reception->sender)->address ?? '',
-                        'shipper_city' => optional($reception->sender)->city ?? '',
-                        'shipper_state' => 'EC',
-                        'shipper_country' => 'EC',
-                        'shipper_postal' => optional($reception->sender)->postal_code ?? '',
-                        'consignee_name' => optional($reception->recipient)->full_name ?? '',
+                        'hawb'              => $package->barcode,
+                        'origin'            => 'GYE',
+                        'destination'       => 'JFK',
+                        'pieces'            => 1,
+                        'weight'            => $package->kilograms,
+                        'shipper_name'      => optional($reception->sender)->full_name ?? '',
+                        'shipper_address'   => optional($reception->sender)->address ?? '',
+                        'shipper_city'      => optional($reception->sender)->city ?? '',
+                        'shipper_state'     => 'EC',
+                        'shipper_country'   => 'EC',
+                        'shipper_postal'    => optional($reception->sender)->postal_code ?? '',
+                        'consignee_name'    => optional($reception->recipient)->full_name ?? '',
                         'consignee_address' => optional($reception->recipient)->address ?? '',
-                        'consignee_city' => optional($reception->recipient)->city ?? '',
-                        'consignee_state' => optional($reception->recipient)->state ?? '',
+                        'consignee_city'    => optional($reception->recipient)->city ?? '',
+                        'consignee_state'   => optional($reception->recipient)->state ?? '',
                         'consignee_country' => 'US',
-                        'consignee_postal' => optional($reception->recipient)->postal_code ?? '',
-                        'contents' => $contents,
+                        'consignee_postal'  => optional($reception->recipient)->postal_code ?? '',
+                        'contents'          => $contents,
                     ];
                 }
             }
         }
 
         return Inertia::render('Reports/ACASAviancaManifestReport', [
-            'startDate' => $start,
-            'endDate' => $end,
-            'rows' => $rows,
+            'enterprises' => Enterprise::select('id', 'name')->get(), // 👈 Enviar lista de empresas
+            'startDate'    => $start,
+            'endDate'      => $end,
+            'enterpriseId' => $enterpriseId,
+            'rows'         => $rows,
         ]);
     }
 

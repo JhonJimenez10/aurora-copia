@@ -3,7 +3,10 @@ import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Button } from "@/Components/ui/button";
 import { CalendarIcon, Download, Loader2 } from "lucide-react";
-
+interface Enterprise {
+    id: number | string;
+    name: string;
+}
 interface ACASAviancaRow {
     hawb: string;
     origin: string;
@@ -16,15 +19,22 @@ interface ACASAviancaManifestProps {
     rows: ACASAviancaRow[];
     startDate: string;
     endDate: string;
+    enterpriseId: number | string;
+    enterprises: Enterprise[]; // 👈 Nueva prop
 }
 
 export default function ACASAviancaManifestReport({
     rows = [],
     startDate: initialStart = "",
     endDate: initialEnd = "",
+    enterpriseId: initialEnterprise,
+    enterprises = [],
 }: ACASAviancaManifestProps) {
     const [startDate, setStartDate] = useState<string>(initialStart);
     const [endDate, setEndDate] = useState<string>(initialEnd);
+    const [enterpriseId, setEnterpriseId] = useState<number | string>(
+        initialEnterprise ?? enterprises[0]?.id ?? ""
+    );
     const [loading, setLoading] = useState(false);
     const [filtered, setFiltered] = useState(rows.length > 0);
 
@@ -36,7 +46,11 @@ export default function ACASAviancaManifestReport({
         setFiltered(false);
         router.get(
             "/reports/acas-avianca-manifest",
-            { start_date: startDate, end_date: endDate },
+            {
+                start_date: startDate,
+                end_date: endDate,
+                enterprise_id: enterpriseId,
+            },
             { preserveState: true, onSuccess: () => setFiltered(true) }
         );
     };
@@ -47,7 +61,7 @@ export default function ACASAviancaManifestReport({
             return;
         }
         setLoading(true);
-        window.location.href = `/reports/acas-avianca-manifest/export?start_date=${startDate}&end_date=${endDate}`;
+        window.location.href = `/reports/acas-avianca-manifest/export?start_date=${startDate}&end_date=${endDate}&enterprise_id=${enterpriseId}`;
         setTimeout(() => setLoading(false), 1000);
     };
 
@@ -67,6 +81,25 @@ export default function ACASAviancaManifestReport({
                 <div className="bg-black border border-red-700 px-6 py-6 rounded-b-lg shadow-md">
                     {/* Filtros */}
                     <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+                        {/* Combo de empresas */}
+                        <div className="w-full md:max-w-xs">
+                            <label className="block text-sm font-medium text-red-400 mb-1">
+                                Empresa
+                            </label>
+                            <select
+                                value={enterpriseId}
+                                onChange={(e) =>
+                                    setEnterpriseId(e.target.value)
+                                }
+                                className="w-full px-3 py-2 bg-slate-800 text-white border border-red-700 rounded-md"
+                            >
+                                {enterprises.map((e) => (
+                                    <option key={e.id} value={e.id}>
+                                        {e.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                         <div className="w-full md:max-w-xs">
                             <label className="block text-sm font-medium text-red-400 mb-1">
                                 Desde

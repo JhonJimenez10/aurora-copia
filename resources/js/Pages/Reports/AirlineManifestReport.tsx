@@ -3,6 +3,7 @@ import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Button } from "@/Components/ui/button";
 import { CalendarIcon, Download, Loader2 } from "lucide-react";
+
 interface AirlineManifestRow {
     barcode: string;
     shipper: string;
@@ -16,11 +17,17 @@ interface AirlineManifestRow {
     notes: string;
 }
 
+interface Enterprise {
+    id: number | string;
+    name: string;
+}
+
 interface AirlineManifestProps {
     rows: AirlineManifestRow[];
     startDate: string;
     endDate: string;
     enterpriseId: number | string;
+    enterprises: Enterprise[]; // 🔹 Agregado
 }
 
 export default function AirlineManifestReport({
@@ -28,6 +35,7 @@ export default function AirlineManifestReport({
     startDate: initialStart = "",
     endDate: initialEnd = "",
     enterpriseId: initialEnterprise,
+    enterprises = [], // 🔹 Por defecto
 }: AirlineManifestProps) {
     const [startDate, setStartDate] = useState<string>(initialStart);
     const [endDate, setEndDate] = useState<string>(initialEnd);
@@ -35,7 +43,7 @@ export default function AirlineManifestReport({
         initialEnterprise
     );
     const [loading, setLoading] = useState(false);
-    const [filtered, setFiltered] = useState(rows.length > 0); // si ya hay datos cargados
+    const [filtered, setFiltered] = useState(rows.length > 0);
 
     const handleFilter = () => {
         if (!startDate || !endDate) {
@@ -43,7 +51,7 @@ export default function AirlineManifestReport({
             return;
         }
 
-        setFiltered(false); // reiniciar
+        setFiltered(false);
         router.get(
             "/reports/airline-manifest",
             {
@@ -53,7 +61,7 @@ export default function AirlineManifestReport({
             },
             {
                 preserveState: true,
-                onSuccess: () => setFiltered(true), // activamos el botón Exportar
+                onSuccess: () => setFiltered(true),
             }
         );
     };
@@ -75,13 +83,33 @@ export default function AirlineManifestReport({
                 <div className="bg-gradient-to-r from-red-700 via-red-600 to-yellow-400 text-white px-6 py-4 rounded-t-lg">
                     <h1 className="text-2xl font-bold">Manifiesto Aerolínea</h1>
                     <p className="text-white text-sm">
-                        Filtra por fechas y exporta el manifiesto en Excel.
+                        Filtra por fechas y empresa, y exporta el manifiesto en
+                        Excel.
                     </p>
                 </div>
 
                 <div className="bg-black border border-red-700 px-6 py-6 rounded-b-lg shadow-md">
                     {/* Filtros */}
                     <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+                        <div className="w-full md:max-w-xs">
+                            <label className="block text-sm font-medium text-red-400 mb-1">
+                                Empresa
+                            </label>
+                            <select
+                                value={enterpriseId}
+                                onChange={(e) =>
+                                    setEnterpriseId(e.target.value)
+                                }
+                                className="w-full px-3 py-2 bg-slate-800 text-white border border-red-700 rounded-md"
+                            >
+                                {enterprises.map((e) => (
+                                    <option key={e.id} value={e.id}>
+                                        {e.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
                         <div className="w-full md:max-w-xs">
                             <label className="block text-sm font-medium text-red-400 mb-1">
                                 Desde
