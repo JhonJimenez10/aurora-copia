@@ -87,19 +87,19 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
 
         // 4 filas de totales (mismo ancho de columnas)
         // Colocamos el valor SOLO en la columna correspondiente
-        $totalPaquetesRow = array_fill(0, 16, '');
+        $totalPaquetesRow = array_fill(0, 18, '');
         $totalPaquetesRow[0] = 'Total paquetes';
         $totalPaquetesRow[8] = $sumPaquetes;
 
-        $totalLibrasRow = array_fill(0, 16, '');
+        $totalLibrasRow = array_fill(0, 18, '');
         $totalLibrasRow[0] = 'Total libras';
         $totalLibrasRow[6] = $sumLibras;
 
-        $totalKilosRow = array_fill(0, 16, '');
+        $totalKilosRow = array_fill(0, 18, '');
         $totalKilosRow[0] = 'Total Kilos';
         $totalKilosRow[7] = $sumKilos;
 
-        $totalTotalRow = array_fill(0, 16, '');
+        $totalTotalRow = array_fill(0, 18, '');
         $totalTotalRow[0] = 'Total Total';
         $totalTotalRow[17] = $sumTotal;
 
