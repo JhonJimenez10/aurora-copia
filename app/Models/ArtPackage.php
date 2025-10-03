@@ -25,6 +25,7 @@ class ArtPackage extends Model
         'unit_type',
         'unit_price',
         'agent_val',
+        'arancel',
         'canceled',
     ];
 

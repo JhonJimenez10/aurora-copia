@@ -17,6 +17,7 @@ export default function ArtPackageForm({
         unit_type: art_package?.unit_type || "",
         unit_price: art_package?.unit_price || "",
         agent_val: art_package?.agent_val || "",
+        arancel: art_package?.arancel || "",
         canceled: art_package?.canceled || false,
     });
 
@@ -111,6 +112,23 @@ export default function ArtPackageForm({
                                 }
                                 className="bg-[#1b1b1b] border border-red-700 text-white"
                             />
+                        </div>
+                        <div>
+                            <Label>Arancel</Label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                value={data.arancel}
+                                onChange={(e) =>
+                                    setData("arancel", e.target.value)
+                                }
+                                className="bg-[#1b1b1b] border border-red-700 text-white"
+                            />
+                            {errors.arancel && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.arancel}
+                                </p>
+                            )}
                         </div>
 
                         <div className="pt-4">

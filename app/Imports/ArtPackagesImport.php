@@ -27,6 +27,7 @@ class ArtPackagesImport implements ToModel, WithHeadingRow
             'unit_type'      => $row['unit_type'] ?? null,
             'unit_price'     => $row['unit_price'],
             'agent_val'      => $row['agent_val'],
+            'arancel'        => $row['arancel'],
             'canceled'       => filter_var($row['canceled'], FILTER_VALIDATE_BOOLEAN),
         ]);
     }

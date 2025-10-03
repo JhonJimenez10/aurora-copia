@@ -44,6 +44,7 @@ class ArtPackageController extends Controller
             'unit_type' => 'nullable|string|max:50',
             'unit_price' => 'required|numeric',
             'agent_val' => 'required|numeric',
+            'arancel' => 'required|numeric',
             'canceled' => 'required|boolean',
         ]);
 
@@ -79,6 +80,7 @@ class ArtPackageController extends Controller
             'unit_type' => 'nullable|string|max:50',
             'unit_price' => 'sometimes|required|numeric',
             'agent_val' => 'sometimes|required|numeric',
+            'arancel' => 'sometimes|required|numeric',
             'canceled' => 'sometimes|required|boolean',
         ]);
 
@@ -103,7 +105,7 @@ class ArtPackageController extends Controller
 
         $artPackages = ArtPackage::where('enterprise_id', $enterpriseId)
             ->where('canceled', false)
-            ->get(['id', 'name', 'translation', 'codigo_hs', 'unit_type', 'unit_price']);
+            ->get(['id', 'name', 'translation', 'codigo_hs', 'unit_type', 'unit_price', 'arancel']);
 
         return response()->json($artPackages);
     }

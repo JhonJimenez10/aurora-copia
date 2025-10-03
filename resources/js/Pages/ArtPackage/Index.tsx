@@ -13,6 +13,7 @@ interface ArtPackage {
     unit_type: string;
     unit_price: string;
     agent_val: string;
+    arancel: string;
     canceled: boolean;
 }
 
@@ -67,6 +68,9 @@ export default function ArtPackagesIndex({
                                         Valor Agencia
                                     </th>
                                     <th className="px-4 py-2 text-left">
+                                        Arancel
+                                    </th>
+                                    <th className="px-4 py-2 text-left">
                                         Anulado
                                     </th>
                                     <th className="px-4 py-2 text-left">
@@ -94,6 +98,11 @@ export default function ArtPackagesIndex({
                                         </td>
                                         <td className="px-4 py-2">
                                             ${item.agent_val}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {item.arancel
+                                                ? `%${item.arancel}`
+                                                : "-"}
                                         </td>
                                         <td className="px-4 py-2">
                                             {item.canceled ? "Sí" : "No"}
