@@ -63,6 +63,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
                     (float) ($p->pounds ?? 0),    // 4 Libras
                     (float) ($p->kilograms ?? 0), // 5 Kilos
                     (float) $r->pkg_total,    // 6 Paquetes
+                    (float) $r->arancel,      // 8 Arancel
                     (float) $r->ins_pkg,      // 7 Seguro de paquetes
                     (float) $r->packaging,    // 8 Embalaje
                     (float) $r->ship_ins,     // 9 Seguro de envio
@@ -83,25 +84,25 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
         }
 
         // Fila separadora (opcional)
-        $rows[] = array_fill(0, 18, '');
+        $rows[] = array_fill(0, 19, '');
 
         // 4 filas de totales (mismo ancho de columnas)
         // Colocamos el valor SOLO en la columna correspondiente
-        $totalPaquetesRow = array_fill(0, 18, '');
+        $totalPaquetesRow = array_fill(0, 19, '');
         $totalPaquetesRow[0] = 'Total paquetes';
         $totalPaquetesRow[8] = $sumPaquetes;
 
-        $totalLibrasRow = array_fill(0, 18, '');
+        $totalLibrasRow = array_fill(0, 19, '');
         $totalLibrasRow[0] = 'Total libras';
         $totalLibrasRow[6] = $sumLibras;
 
-        $totalKilosRow = array_fill(0, 18, '');
+        $totalKilosRow = array_fill(0, 19, '');
         $totalKilosRow[0] = 'Total Kilos';
         $totalKilosRow[7] = $sumKilos;
 
-        $totalTotalRow = array_fill(0, 18, '');
+        $totalTotalRow = array_fill(0, 19, '');
         $totalTotalRow[0] = 'Total Total';
-        $totalTotalRow[17] = $sumTotal;
+        $totalTotalRow[18] = $sumTotal;
 
         $rows[] = $totalPaquetesRow;
         $rows[] = $totalLibrasRow;
@@ -123,6 +124,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
             'Libras',
             'Kilos',
             'Paquetes',
+            'Arancel',
             'Seguro de paquetes',
             'Embalaje',
             'Seguro de envio',

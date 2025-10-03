@@ -31,6 +31,7 @@ export interface PackageRow {
     total: string;
     items_decl: string;
     declarado: string;
+    arancel: string;
     // asegurado: string;  OCULTADO (no se usa por ahora)
 }
 
@@ -48,6 +49,7 @@ interface PackageModalProps {
         name: string;
         unit_price: number;
         unit_type: string;
+        arancel: number;
     }[];
     readOnly?: boolean;
 }
@@ -90,6 +92,7 @@ export default function PackageModal({
                           total: "0",
                           items_decl: "0",
                           declarado: "0",
+                          arancel: "0",
                           // asegurado: "0",// ❌ NO SE USA
                       },
                   ]
@@ -131,6 +134,10 @@ export default function PackageModal({
         updateRow(index, "articulo", art?.name || "");
         updateRow(index, "unidad", art?.unit_type || "UND");
         updateRow(index, "unitario", art?.unit_price?.toString() || "0");
+        // 🔥 Guardar el arancel en la fila
+        if (art?.arancel !== undefined) {
+            updateRow(index, "arancel", art.arancel.toString());
+        }
     };
 
     const addRow = () => {
@@ -153,6 +160,7 @@ export default function PackageModal({
                 total: "0",
                 items_decl: "0",
                 declarado: "0",
+                arancel: "0",
                 // asegurado: "0", // ❌ QUITADO
             },
         ]);

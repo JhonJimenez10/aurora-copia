@@ -29,6 +29,7 @@ class Reception extends Model
         'sender_id',
         'recipient_id',
         'pkg_total',
+        'arancel',
         'ins_pkg',
         'packaging',
         'ship_ins',

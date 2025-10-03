@@ -111,6 +111,7 @@ class ReceptionController extends Controller
                 'sender_id'     => 'required|uuid',
                 'recipient_id'  => 'required|uuid',
                 'pkg_total'     => 'required|numeric',
+                'arancel'       => 'required|numeric',
                 'ins_pkg'       => 'required|numeric',
                 'packaging'     => 'required|numeric',
                 'ship_ins'      => 'required|numeric',
@@ -163,7 +164,7 @@ class ReceptionController extends Controller
 
             $validated['id'] = Str::uuid();
             $validated['enterprise_id'] = auth()->user()->enterprise_id;
-
+            $validated['arancel'] = $validated['arancel'] ?? 0;
             $reception = Reception::create($validated);
 
             $lastDigits = substr($reception->number, -4);
@@ -280,6 +281,7 @@ class ReceptionController extends Controller
             'sender_id'     => 'sometimes|required|uuid',
             'recipient_id'  => 'sometimes|required|uuid',
             'pkg_total'     => 'sometimes|required|numeric',
+            'arancel'       => 'sometimes|required|numeric',
             'ins_pkg'       => 'sometimes|required|numeric',
             'packaging'     => 'sometimes|required|numeric',
             'ship_ins'      => 'sometimes|required|numeric',

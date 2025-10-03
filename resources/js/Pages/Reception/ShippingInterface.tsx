@@ -125,6 +125,7 @@ interface PackageItemDetail {
     total: number;
     items_decl: number;
     decl_val: number;
+    arancel: number;
     ins_val: number;
 }
 
@@ -150,6 +151,7 @@ interface PackageRow {
     total: string;
     items_decl: string;
     declarado: string;
+    arancel: string;
     // asegurado: string; // Si no se usa, se puede eliminar
 }
 interface AgencyDest {
@@ -279,8 +281,29 @@ export default function ShippingInterface({
 
     // lista de artículos (para contenido)
     const [artPackgOptions, setArtPackgOptions] = useState<
-        { id: string; name: string; unit_price: number; unit_type: string }[]
+        {
+            id: string;
+            name: string;
+            unit_price: number;
+            unit_type: string;
+            arancel: number;
+        }[]
     >([]);
+    useEffect(() => {
+        fetch("/art_packages/list/json")
+            .then((r) => r.json())
+            .then((data) => {
+                const mapped = data.map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    unit_price: item.unit_price,
+                    unit_type: item.unit_type,
+                    arancel: item.arancel ?? 0, // 👈 le agregamos aquí
+                }));
+                setArtPackgOptions(mapped);
+            });
+    }, []);
+
     useEffect(() => {
         axios
             .get("/art_packgs/list/json")
@@ -497,13 +520,27 @@ export default function ShippingInterface({
             totalDesaduanizacion = 12;
         }
 
+        // ✅ Calcular Aranceles
+        // ✅ Calcular Aranceles
+        const totalAranceles = packages.reduce((accPkg, pkg) => {
+            const arancelesPkg = pkg.items.reduce((accItem, item) => {
+                const itemsDecl = Number(item.items_decl) || 0;
+                const declarado = Number(item.decl_val) || 0;
+                const arancel = Number(item.arancel) || 0; // porcentaje
+
+                return accItem + itemsDecl * declarado * (arancel / 100);
+            }, 0);
+            return accPkg + arancelesPkg;
+        }, 0);
+
         const subtotalBase = round(
             packageTotal +
                 totalAdditionals +
                 totalSeguroPaquete +
                 totalSeguroEnvio +
                 totalDesaduanizacion +
-                totalTransporteDestino
+                totalTransporteDestino +
+                totalAranceles
         );
 
         const transmision = round(subtotalBase * 0.01);
@@ -554,6 +591,7 @@ export default function ShippingInterface({
             pkg_total: packages.reduce((acc, p) => acc + p.total, 0),
             ins_pkg: totalSeguroPaquete,
             packaging: totalAdditionals,
+            arancel: totalAranceles,
             ship_ins: totalSeguroEnvio,
             clearance: totalDesaduanizacion,
             trans_dest: totalTransporteDestino,
@@ -657,6 +695,7 @@ export default function ShippingInterface({
             total: item.total.toFixed(2),
             items_decl: item.decl_val.toFixed(2),
             declarado: item.decl_val.toFixed(2),
+            arancel: item.arancel.toFixed(2),
             //asegurado: item.ins_val.toFixed(2), // Si no se usa, se puede eliminar
         }));
         setEditingPackageIndex(idx);
@@ -687,8 +726,9 @@ export default function ShippingInterface({
             kilograms: parseFloat(r.peso) * 0.453592,
             unit_price: parseFloat(r.unitario),
             total: parseFloat(r.total),
-            items_decl: parseFloat(r.items_decl),
-            decl_val: parseFloat(r.declarado),
+            items_decl: parseFloat(r.items_decl) || 0, // 👈 forzado a number
+            decl_val: parseFloat(r.declarado) || 0, // 👈 forzado a number
+            arancel: parseFloat(r.arancel) || 0,
             ins_val: 0,
             // ins_val: parseFloat(r.asegurado), // Si no se usa, se puede eliminar
         }));
@@ -2053,6 +2093,38 @@ export default function ShippingInterface({
                                     } else if (totalPesoLbs > 22) {
                                         totalDesaduanizacion = 12;
                                     }
+                                    // ✅ Calcular Aranceles
+                                    const totalAranceles = packages.reduce(
+                                        (accPkg, pkg) => {
+                                            const arancelesPkg =
+                                                pkg.items.reduce(
+                                                    (accItem, item) => {
+                                                        const itemsDecl =
+                                                            Number(
+                                                                item.items_decl
+                                                            ) || 0;
+                                                        const declarado =
+                                                            Number(
+                                                                item.decl_val
+                                                            ) || 0;
+                                                        const arancel =
+                                                            Number(
+                                                                item.arancel
+                                                            ) || 0; // porcentaje
+
+                                                        return (
+                                                            accItem +
+                                                            itemsDecl *
+                                                                declarado *
+                                                                (arancel / 100)
+                                                        );
+                                                    },
+                                                    0
+                                                );
+                                            return accPkg + arancelesPkg;
+                                        },
+                                        0
+                                    );
 
                                     // 🟢 Subtotal base SIN transmisión
                                     const subtotalBase = round(
@@ -2061,7 +2133,8 @@ export default function ShippingInterface({
                                             totalSeguroPaquete +
                                             totalSeguroEnvio +
                                             totalDesaduanizacion +
-                                            totalTransporteDestino
+                                            totalTransporteDestino +
+                                            totalAranceles
                                     );
 
                                     // ✅ Transmisión es el 1% del subtotal base
@@ -2098,6 +2171,13 @@ export default function ShippingInterface({
                                                     )}
                                                 </span>
                                             </div>
+                                            <div className="flex justify-between">
+                                                <span>Aranceles</span>
+                                                <span>
+                                                    ${totalAranceles.toFixed(2)}
+                                                </span>
+                                            </div>
+
                                             <div className="flex justify-between">
                                                 <span>Embalaje</span>
                                                 <span>
