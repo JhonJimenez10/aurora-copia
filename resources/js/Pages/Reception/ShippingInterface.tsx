@@ -693,7 +693,7 @@ export default function ShippingInterface({
             subtotal: (item.quantity * item.unit_price).toFixed(2),
             descuento: "0",
             total: item.total.toFixed(2),
-            items_decl: item.decl_val.toFixed(2),
+            items_decl: item.items_decl.toFixed(2),
             declarado: item.decl_val.toFixed(2),
             arancel: item.arancel.toFixed(2),
             //asegurado: item.ins_val.toFixed(2), // Si no se usa, se puede eliminar
