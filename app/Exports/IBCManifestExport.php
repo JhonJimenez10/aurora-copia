@@ -85,14 +85,14 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
             'consignee_tax_id',
             'comments',
             'goods_country_of_origin',
-            'container_id',
+            'container_id'
         ];
 
         $receptions = Reception::with([
             'sender',
             'recipient',
             'agencyDest',
-            'packages.items.artPackage',
+            'packages.items.artPackage'
         ])
             ->where('enterprise_id', $this->enterpriseId)
             ->whereBetween('date_time', [$this->startDate, $this->endDate])
@@ -100,63 +100,48 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
             ->get();
 
         foreach ($receptions as $reception) {
-            foreach ($reception->packages as $package) {
-                $barcodeBase = explode('.', $package->barcode)[0] ?? $package->barcode;
-
-                // ✅ Concatenar descripción de los artículos
-                $description = $package->items->map(function ($item) {
-                    return $item->artPackage?->translation ?? '';
-                })->filter()->implode(' ');
-                // Obtener primer codigo_hs para hs_code en hawb
-                $firstHsCode = $package->items->first()?->artPackage?->codigo_hs ?? '';
-                // 🔹 Calcular declared_value para la fila HAWB
-                $declaredValue = 0;
-                foreach ($package->items as $item) {
-                    $declaredValue += ($item->items_declrd ?? 0) * ($item->decl_val ?? 0);
-                }
-                // ✅ Fila HAWB
+            // Si no hay paquetes, generamos una fila base igualmente
+            if ($reception->packages->isEmpty()) {
                 $rows[] = [
                     'hawb',
                     '14',
-                    '',                              // profile_key
-                    $barcodeBase,                    // hawb
-                    '',                              // reference
-                    '',                              // internal_reference
-                    '',                              // vend_ref_num
-                    'GYE',                           // origin
-                    'USA',                           // final_destination
                     '',
                     '',
                     '',
-                    '',                  // outlying, service_provider, dsl_station, dls_final_destination
-                    1,                               // num_pieces
-                    $package->kilograms ?? '',       // weight
-                    'KG',                            // weight_units
-                    'APX',                           // contents
-                    'USD',                           // currency_code
-                    $declaredValue,       // declared_value
-                    '',                              // insurance_amount
-                    $description,                    // description
-                    $firstHsCode,                               // hs_code
-                    '',                              // fda_prior_notice
-                    '',                              // terms
-                    'O',                             // packaging (por defecto)
-                    '',                              // service_type
-                    '',                              // collect_amount
-                    '',                              // cust_key
-                    '6264',                          // acct_num
-                    '',                              // dls_acct_num
-                    '',                              // ext_cust_acct
-                    // 🔹 shipper_name → recortar a 30 caracteres
+                    '',
+                    '', // record info
+                    'GYE',
+                    'USA',
+                    '',
+                    '',
+                    '',
+                    '', // origen/destino
+                    0,
+                    0,
+                    'KG',
+                    'APX',
+                    'USD',
+                    0,
+                    '', // peso, contenido
+                    '',
+                    '',
+                    '',
+                    'O',
+                    '',
+                    '',
+                    '',
+                    '6264',
+                    '',
+                    '',
+                    '', // cuentas
                     mb_substr($reception->sender->full_name ?? '', 0, 30),
                     $reception->sender->address ?? '',
                     '',
                     $reception->sender->city ?? '',
                     '',
                     $reception->sender->postal_code ?? '',
-                    'EC',                            // shipper_country
+                    'EC',
                     $reception->sender->phone ?? '',
-                    // 🔹 consignee_person → recortar a 30 caracteres
                     mb_substr($reception->recipient->full_name ?? '', 0, 30),
                     '',
                     $reception->recipient->address ?? '',
@@ -164,17 +149,86 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                     $reception->recipient->city ?? '',
                     $reception->recipient->state ?? '',
                     $reception->recipient->postal_code ?? '',
-                    'US',                            // consignee_country
+                    'US',
                     $reception->recipient->phone ?? '',
                     '',
                     '',
                     '',
-                    'EC',                            // goods_country_of_origin
-                    '0',
+                    'EC',
+                    '0'
+                ];
+                continue;
+            }
+
+            // 🔹 Si sí tiene paquetes
+            foreach ($reception->packages as $package) {
+                $barcodeBase = explode('.', $package->barcode ?? '')[0] ?? '';
+
+                // Concatenar descripción y valores de items
+                $description = $package->items?->map(fn($item) => $item->artPackage?->translation ?? '')->filter()->implode(' ') ?: '';
+                $firstHsCode = $package->items?->first()?->artPackage?->codigo_hs ?? '';
+                $declaredValue = $package->items?->sum(fn($item) => ($item->items_declrd ?? 0) * ($item->decl_val ?? 0)) ?? 0;
+
+                // ✅ Fila HAWB
+                $rows[] = [
+                    'hawb',
+                    '14',
+                    '',
+                    $barcodeBase,
+                    '',
+                    '',
+                    '',
+                    'GYE',
+                    'USA',
+                    '',
+                    '',
+                    '',
+                    '',
+                    1,
+                    $package->kilograms ?? 0,
+                    'KG',
+                    'APX',
+                    'USD',
+                    $declaredValue,
+                    '',
+                    $description,
+                    $firstHsCode,
+                    '',
+                    '',
+                    'O',
+                    '',
+                    '',
+                    '',
+                    '6264',
+                    '',
+                    '',
+                    '',
+                    mb_substr($reception->sender->full_name ?? '', 0, 30),
+                    $reception->sender->address ?? '',
+                    '',
+                    $reception->sender->city ?? '',
+                    '',
+                    $reception->sender->postal_code ?? '',
+                    'EC',
+                    $reception->sender->phone ?? '',
+                    mb_substr($reception->recipient->full_name ?? '', 0, 30),
+                    '',
+                    $reception->recipient->address ?? '',
+                    '',
+                    $reception->recipient->city ?? '',
+                    $reception->recipient->state ?? '',
+                    $reception->recipient->postal_code ?? '',
+                    'US',
+                    $reception->recipient->phone ?? '',
+                    '',
+                    '',
+                    '',
+                    'EC',
+                    '0'
                 ];
 
-                // ✅ SOLO desglosar si hay más de un item
-                if ($package->items->count() > 1) {
+                // 🔹 Desglose de items (solo si existen)
+                if ($package->items && $package->items->count() > 0) {
                     foreach ($package->items as $item) {
                         $rows[] = [
                             'commodity',
@@ -187,71 +241,7 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                             $item->decl_val ?? '',
                             'USD',
                             $item->kilograms ?? '',
-                            'K',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
+                            'K'
                         ];
                     }
                 }
@@ -263,13 +253,8 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
 
     public function styles(Worksheet $sheet)
     {
-        // Aplicar estilo general a toda la hoja
         $sheet->getStyle($sheet->calculateWorksheetDimension())->applyFromArray([
-            'font' => [
-                'name' => 'Arial',
-                'size' => 10,
-                'bold' => false,
-            ],
+            'font' => ['name' => 'Arial', 'size' => 10, 'bold' => false],
         ]);
 
         return [];
