@@ -49,33 +49,37 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
             $formaPago    = $r->pay_method ?? '';
 
             foreach ($r->packages as $p) {
-                // Armar contenido concatenando los nombres de artículos
-                $contenido = $p->items->map(function ($item) {
-                    return optional($item->artPackage)->name;
-                })->filter()->join(', ');
+                // Armar contenido concatenando los nombres de artículos (si los hay)
+                $contenido = '';
+                if ($p->items && $p->items->count() > 0) {
+                    $contenido = $p->items->map(function ($item) {
+                        return optional($item->artPackage)->name ?? '';
+                    })->filter()->join(', ');
+                }
+
                 $rows[] = [
                     $p->barcode ?? '',        // 0 Guia
                     $r->number ?? '',         // 1 Numero recepcion
                     $destino,                 // 2 Destino
                     $destinatario,            // 3 Destinatario
-                    $contenido,               // 4 Contenido
+                    $contenido,               // 4 Contenido (vacío si no hay artPackage)
                     $formaPago,               // 5 Forma de Pago
-                    (float) ($p->pounds ?? 0),    // 4 Libras
-                    (float) ($p->kilograms ?? 0), // 5 Kilos
-                    (float) $r->pkg_total,    // 6 Paquetes
-                    (float) $r->arancel,      // 8 Arancel
-                    (float) $r->ins_pkg,      // 7 Seguro de paquetes
-                    (float) $r->packaging,    // 8 Embalaje
-                    (float) $r->ship_ins,     // 9 Seguro de envio
-                    (float) $r->clearance,    // 10 Desaduanizacion
-                    (float) $r->trans_dest,   // 11 Transporte destino
-                    (float) $r->transmit,     // 12 Transmision
-                    (float) $r->subtotal,     // 13 Subtotal
-                    (float) $r->vat15,        // 14 IVA15%
-                    (float) $r->total,        // 15 Total
+                    (float) ($p->pounds ?? 0),    // 6 Libras
+                    (float) ($p->kilograms ?? 0), // 7 Kilos
+                    (float) $r->pkg_total,    // 8 Paquetes
+                    (float) $r->arancel,      // 9 Arancel
+                    (float) $r->ins_pkg,      // 10 Seguro de paquetes
+                    (float) $r->packaging,    // 11 Embalaje
+                    (float) $r->ship_ins,     // 12 Seguro de envio
+                    (float) $r->clearance,    // 13 Desaduanizacion
+                    (float) $r->trans_dest,   // 14 Transporte destino
+                    (float) $r->transmit,     // 15 Transmision
+                    (float) $r->subtotal,     // 16 Subtotal
+                    (float) $r->vat15,        // 17 IVA15%
+                    (float) $r->total,        // 18 Total
                 ];
 
-                // Acumular
+                // Acumular totales
                 $sumPaquetes += (float) $r->pkg_total;
                 $sumLibras   += (float) ($p->pounds ?? 0);
                 $sumKilos    += (float) ($p->kilograms ?? 0);
