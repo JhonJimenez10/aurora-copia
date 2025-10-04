@@ -48,6 +48,34 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
             $destinatario = optional($r->recipient)->full_name ?? '';
             $formaPago    = $r->pay_method ?? '';
 
+            if ($r->packages->isEmpty()) {
+                $rows[] = [
+                    '',
+                    $r->number ?? '',
+                    $destino,
+                    $destinatario,
+                    '',
+                    $formaPago,
+                    0,
+                    0,
+                    (float) $r->pkg_total,
+                    (float) $r->arancel,
+                    (float) $r->ins_pkg,
+                    (float) $r->packaging,
+                    (float) $r->ship_ins,
+                    (float) $r->clearance,
+                    (float) $r->trans_dest,
+                    (float) $r->transmit,
+                    (float) $r->subtotal,
+                    (float) $r->vat15,
+                    (float) $r->total,
+                ];
+
+                $sumPaquetes += (float) $r->pkg_total;
+                $sumTotal    += (float) $r->total;
+                continue; // saltar al siguiente reception
+            }
+
             foreach ($r->packages as $p) {
                 // Armar contenido concatenando los nombres de artículos (si los hay)
                 $contenido = '';
