@@ -2452,7 +2452,9 @@ export default function ShippingInterface({
                                 setEfectivoRecibido(0);
                                 setReceptionDate(today);
                                 setRoute("ecu-us");
-
+                                // 🧹 Agregar esto para limpiar el campo de Ag.destino
+                                setAgencyDest("");
+                                // Obtener el nuevo número de recepción
                                 axios
                                     .get("/receptions/next-number")
                                     .then((res) =>
