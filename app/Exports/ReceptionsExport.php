@@ -32,47 +32,68 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
             ->whereDate('date_time', '<=', $this->endDate)
             ->get();
 
-        // Agrupar por recepción + guía hija
-        $grouped = [];
+        $rows = [];
 
         foreach ($receptions as $reception) {
+            // si NO tiene paquetes, igual agregamos una fila
+            if ($reception->packages->isEmpty()) {
+                $rows[] = [
+                    'REGISTRO',                     // Tipo de Envío
+                    '0',                            // Subpartida
+                    Carbon::parse($reception->date_time)->format('Y-m-d'),
+                    '0',                            // Saca
+                    '',                             // Guía Hija
+                    optional($reception->sender)->full_name ?? '',
+                    optional($reception->sender)->identification ?? '',
+                    optional($reception->recipient)->full_name ?? '',
+                    optional($reception->recipient)->identification ?? '',
+                    0,                              // Peso Kgs
+                    '',                             // Valor FOB
+                    'Sin paquete',                  // Contenido
+                    0,                              // Piezas
+                    optional($reception->sender)->city ?? '',
+                    optional($reception->sender)->address ?? '',
+                    optional($reception->sender)->phone ?? '',
+                    optional($reception->recipient)->city ?? '',
+                    optional($reception->recipient)->address ?? '',
+                    optional($reception->recipient)->phone ?? '',
+                ];
+                continue; // siguiente recepción
+            }
+
+            // si tiene paquetes, los recorremos normalmente
             foreach ($reception->packages as $package) {
                 $fullBarcode = $package->barcode ?? '';
                 $parts = explode('.', $fullBarcode, 2);
-                $guiaHija = $parts[0];
+                $guiaHija = $parts[0] ?? '';
 
-                $key = $reception->id . '|' . $guiaHija;
+                $contenido = optional($package->artPackage)->name ?? 'Sin artículo';
 
-                if (! isset($grouped[$key])) {
-                    $grouped[$key] = [
-                        'tipo_envio'             => 'REGISTRO',
-                        'subpartida'             => '0',
-                        'fecha'                  => Carbon::parse($reception->date_time)->format('Y-m-d'),
-                        'saca'                   => '0',
-                        'guia_hija'              => $guiaHija,
-                        'remitente'              => $reception->sender->full_name ?? '',
-                        'id_remitente'           => $reception->sender->identification ?? '',
-                        'destinatario'           => $reception->recipient->full_name ?? '',
-                        'id_destinatario'        => $reception->recipient->identification ?? '',
-                        'peso_kgs'               => 0,
-                        'valor_fob'              => '',
-                        'contenido'              => $package->artPackage->name ?? 'Sin artículo',
-                        'piezas'                 => 0,
-                        'remitente_ciudad'       => $reception->sender->city ?? '',
-                        'remitente_direccion'    => $reception->sender->address ?? '',
-                        'remitente_telefono'     => $reception->sender->phone ?? '',
-                        'destinatario_ciudad'    => $reception->recipient->city ?? '',
-                        'destinatario_direccion' => $reception->recipient->address ?? '',
-                        'destinatario_telefono'  => $reception->recipient->phone ?? '',
-                    ];
-                }
-
-                $grouped[$key]['piezas']   += 1;
-                $grouped[$key]['peso_kgs'] += $package->kilograms ?? 0;
+                $rows[] = [
+                    'REGISTRO',
+                    '0',
+                    Carbon::parse($reception->date_time)->format('Y-m-d'),
+                    '0',
+                    $guiaHija,
+                    optional($reception->sender)->full_name ?? '',
+                    optional($reception->sender)->identification ?? '',
+                    optional($reception->recipient)->full_name ?? '',
+                    optional($reception->recipient)->identification ?? '',
+                    (float) ($package->kilograms ?? 0),
+                    '',
+                    $contenido,
+                    1, // cada paquete cuenta como una pieza
+                    optional($reception->sender)->city ?? '',
+                    optional($reception->sender)->address ?? '',
+                    optional($reception->sender)->phone ?? '',
+                    optional($reception->recipient)->city ?? '',
+                    optional($reception->recipient)->address ?? '',
+                    optional($reception->recipient)->phone ?? '',
+                ];
             }
         }
 
-        return collect(array_values($grouped));
+        return collect($rows);
     }
 
     public function headings(): array
