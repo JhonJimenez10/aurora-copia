@@ -490,6 +490,7 @@ export default function ShippingInterface({
         "edwincobos-68@hotmail.com": "SIGSIG",
         "pabloarizaga06@gmail.com": "CUENCA CENTRO",
         "maria33ql@gmail.com": "BIBLIÁN",
+        "lauropoma@gmail.com": "SARAGURO",
     };
 
     const agencyOrigin =

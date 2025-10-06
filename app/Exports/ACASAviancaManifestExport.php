@@ -30,7 +30,8 @@ class ACASAviancaManifestExport implements FromCollection, WithMapping, WithHead
     {
         $query = Reception::with(['sender', 'recipient', 'packages.items.artPackage'])
             ->whereDate('date_time', '>=', $this->startDate)
-            ->whereDate('date_time', '<=', $this->endDate);
+            ->whereDate('date_time', '<=', $this->endDate)
+            ->where('annulled', false);
 
         if (!empty($this->enterpriseId) && $this->enterpriseId !== 'null') {
             $query->where('enterprise_id', $this->enterpriseId);

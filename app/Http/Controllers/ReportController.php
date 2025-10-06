@@ -72,6 +72,7 @@ class ReportController extends Controller
                 ->where('enterprise_id', $enterpriseId)
                 ->whereDate('date_time', '>=', $start)
                 ->whereDate('date_time', '<=', $end)
+                ->where('annulled', false)
                 ->get();
         }
 
@@ -345,6 +346,7 @@ class ReportController extends Controller
                 ->where('enterprise_id', $enterpriseId)
                 ->whereDate('date_time', '>=', $start)
                 ->whereDate('date_time', '<=', $end)
+                ->where('annulled', false)
                 ->get();
 
             foreach ($receptions as $reception) {
@@ -398,6 +400,7 @@ class ReportController extends Controller
                 ->where('enterprise_id', $enterpriseId)
                 ->whereDate('date_time', '>=', $start)
                 ->whereDate('date_time', '<=', $end)
+                ->where('annulled', false)
                 ->get();
 
             foreach ($receptions as $reception) {

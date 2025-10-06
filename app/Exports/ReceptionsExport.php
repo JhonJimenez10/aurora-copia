@@ -28,6 +28,7 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
     {
         $receptions = Reception::with(['sender', 'recipient', 'packages.artPackage'])
             ->where('enterprise_id', $this->enterpriseId)
+            ->where('annulled', false)
             ->whereDate('date_time', '>=', $this->startDate)
             ->whereDate('date_time', '<=', $this->endDate)
             ->get();

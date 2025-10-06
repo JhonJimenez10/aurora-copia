@@ -168,10 +168,23 @@ class ReceptionController extends Controller
             $reception = Reception::create($validated);
 
             $lastDigits = substr($reception->number, -4);
-            $prefix = strtoupper(
-                substr($sender->state ?? '', 0, 2) .
-                    substr($sender->city ?? '', 0, 2)
-            );
+
+            // === NUEVO: prefijo basado en la agencia de origen ===
+
+            // Mapeo manual de provincia según la ciudad/agencia de origen
+            $provinceMap = [
+                'CUENCA CENTRO' => 'AZUAY',
+                'SIGSIG'        => 'AZUAY',
+                'BIBLIAN'       => 'CAÑAR',
+                'LOJA'          => 'LOJA',
+                'SARAGURO'      => 'LOJA',
+                // Puedes agregar más si en el futuro hay más agencias
+            ];
+
+            $city = strtoupper(trim($validated['agency_origin']));
+            $province = $provinceMap[$city] ?? 'XX'; // Por si no está en el mapa
+
+            $prefix = strtoupper(substr($province, 0, 2) . substr($city, 0, 2));
 
             // Paquetes
             foreach ($validated['packages'] as $idx => $pkg) {
