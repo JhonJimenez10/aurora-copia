@@ -335,7 +335,25 @@ export default function ShippingInterface({
     const today = new Date().toISOString().split("T")[0];
     const [receptionDate, setReceptionDate] = useState(today);
     const [route, setRoute] = useState("ecu-us");
-    const [agencyDest, setAgencyDest] = useState("");
+    // LLAMADA A API CUANDO SE CAMBIE LA AGENCIA Y GUARDAR LOS DATOS EN EL ESTADO
+    const [agencyDest, setAgencyDest] = useState<string>("");
+    const [agencyData, setAgencyData] = useState<any>(null);
+    const handleAgencyChange = async (value: string) => {
+        setAgencyDest(value);
+
+        if (!value) return;
+
+        try {
+            const response = await fetch(`/api/agencies-dest/${value}`);
+            const data = await response.json();
+            setAgencyData(data);
+        } catch (error) {
+            console.error(
+                "Error al obtener datos de la agencia destino:",
+                error
+            );
+        }
+    };
     const [additionals, setAdditionals] = useState<AdditionalItem[]>([
         { quantity: 0, unit: "", article: "", unit_price: 0 },
     ]);
@@ -1014,8 +1032,8 @@ export default function ShippingInterface({
                         <div className="flex items-start gap-2">
                             <Select
                                 value={agencyDest}
-                                onValueChange={setAgencyDest}
-                                disabled={readOnly} // Se desactiva el select cuando readOnly es true
+                                onValueChange={handleAgencyChange}
+                                disabled={readOnly}
                             >
                                 <SelectTrigger className="w-full bg-black text-white border border-red-700">
                                     <SelectValue placeholder="Seleccionar destino" />
@@ -2387,6 +2405,7 @@ export default function ShippingInterface({
                 onClose={setShowRecipientModal}
                 onRecipientCreated={handleRecipientCreated}
                 defaultValues={recipientDefaults}
+                agencyData={agencyData}
             />
             <RecipientSearchModal
                 open={showRecipientSearch}

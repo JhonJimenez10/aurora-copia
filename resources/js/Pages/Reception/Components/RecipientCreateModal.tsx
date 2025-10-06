@@ -42,9 +42,20 @@ interface RecipientFormData {
 
 interface RecipientCreateModalProps {
     open: boolean;
-    onClose: (open: boolean) => void;
+    // permitimos que onClose sea tanto (open: boolean) => void como el setter de useState
+    onClose:
+        | ((open: boolean) => void)
+        | React.Dispatch<React.SetStateAction<boolean>>;
     onRecipientCreated: (data: RecipientFormData) => void;
     defaultValues?: Partial<RecipientFormData>;
+    // <-- nueva prop para recibir datos de la agencia destino
+    agencyData?: Partial<{
+        postal_code: string;
+        city: string;
+        canton: string;
+        state: string;
+        [key: string]: any;
+    }>;
 }
 
 export default function RecipientCreateModal({
@@ -52,6 +63,7 @@ export default function RecipientCreateModal({
     onClose,
     onRecipientCreated,
     defaultValues = {},
+    agencyData,
 }: RecipientCreateModalProps) {
     const base: RecipientFormData = {
         country: "ECUADOR",
@@ -79,6 +91,22 @@ export default function RecipientCreateModal({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [defaultValues, open]);
+    // Cuando agencyData cambia, setear los campos de dirección en el formulario
+    useEffect(() => {
+        if (agencyData) {
+            // si tu tabla agencies_dest tiene 'canton' cambia la línea siguiente para usarlo
+            setData("postal_code", (agencyData.postal_code as string) ?? "");
+            setData("city", (agencyData.city as string) ?? "");
+            setData(
+                "canton",
+                (agencyData.canton as string) ??
+                    (agencyData.city as string) ??
+                    ""
+            );
+            setData("state", (agencyData.state as string) ?? "");
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [agencyData]);
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -122,6 +150,14 @@ export default function RecipientCreateModal({
             }
         }
     };
+    // si agencyData existe y tiene algún campo relevante, bloqueamos los inputs
+    const addressDisabled = Boolean(
+        agencyData &&
+            (agencyData.postal_code ||
+                agencyData.city ||
+                agencyData.canton ||
+                agencyData.state)
+    );
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -334,6 +370,7 @@ export default function RecipientCreateModal({
                                 onChange={(e) =>
                                     setData("postal_code", e.target.value)
                                 }
+                                disabled={addressDisabled}
                             />
                         </div>
 
@@ -346,6 +383,7 @@ export default function RecipientCreateModal({
                                 onChange={(e) =>
                                     setData("city", e.target.value)
                                 }
+                                disabled={addressDisabled}
                             />
                         </div>
 
@@ -358,6 +396,7 @@ export default function RecipientCreateModal({
                                 onChange={(e) =>
                                     setData("canton", e.target.value)
                                 }
+                                disabled={addressDisabled}
                             />
                         </div>
 
@@ -370,6 +409,7 @@ export default function RecipientCreateModal({
                                 onChange={(e) =>
                                     setData("state", e.target.value)
                                 }
+                                disabled={addressDisabled}
                             />
                         </div>
 
