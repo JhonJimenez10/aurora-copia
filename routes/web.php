@@ -39,6 +39,73 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // Información de empresa para autocompletar remitente
+    Route::get('/api/enterprise-info', function () {
+        $enterpriseId = auth()->user()->enterprise_id ?? null;
+        $enterprise = \App\Models\Enterprise::find($enterpriseId);
+
+        if (!$enterprise) {
+            return response()->json(['message' => 'Empresa no encontrada'], 404);
+        }
+
+        $addressMap = [
+            'LOJA' => [
+                'postal_code' => '110150',
+                'city' => 'Loja',
+                'canton' => 'Loja',
+                'state' => 'Loja',
+            ],
+            'SIGSIG' => [
+                'postal_code' => '010309',
+                'city' => 'Sigsig',
+                'canton' => 'Sigsig',
+                'state' => 'Azuay',
+            ],
+            'CUENCA' => [
+                'postal_code' => '010101',
+                'city' => 'Cuenca',
+                'canton' => 'Cuenca',
+                'state' => 'Azuay',
+            ],
+            'BIBLIAN' => [
+                'postal_code' => '030105',
+                'city' => 'Biblián',
+                'canton' => 'Biblián',
+                'state' => 'Cañar',
+            ],
+            'SARAGURO' => [
+                'postal_code' => '110205',
+                'city' => 'Saraguro',
+                'canton' => 'Saraguro',
+                'state' => 'Loja',
+            ],
+        ];
+
+        $addressText = strtoupper($enterprise->matrix_address ?? '');
+        $matched = collect($addressMap)->first(function ($_, $key) use ($addressText) {
+            return str_contains($addressText, $key);
+        });
+
+        if (!$matched) {
+            $matched = [
+                'postal_code' => '',
+                'city' => '',
+                'canton' => '',
+                'state' => '',
+            ];
+        }
+
+        return response()->json([
+            'enterprise' => [
+                'id' => $enterprise->id,
+                'name' => $enterprise->name,
+                'ruc' => $enterprise->ruc,
+                'matrix_address' => $enterprise->matrix_address,
+                'branch_address' => $enterprise->branch_address,
+            ],
+            'autofill' => $matched,
+        ]);
+    });
 });
 
 // Auth (login, registro, etc.)

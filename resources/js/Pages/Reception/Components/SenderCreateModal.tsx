@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "@inertiajs/react";
 import {
     Dialog,
@@ -68,6 +68,33 @@ export default function SenderCreateModal({
             blocked: false,
             alert: false,
         });
+    const [loadingEnterprise, setLoadingEnterprise] = useState(false);
+    // ✅ Cargar datos de la empresa para autocompletar
+    useEffect(() => {
+        if (!open) return;
+
+        const fetchEnterpriseData = async () => {
+            try {
+                setLoadingEnterprise(true);
+                const response = await axios.get("/api/enterprise-info");
+                const autofill = response.data.autofill;
+
+                setData((prev) => ({
+                    ...prev,
+                    postal_code: autofill.postal_code || "",
+                    city: autofill.city || "",
+                    canton: autofill.canton || "",
+                    state: autofill.state || "",
+                }));
+            } catch (error) {
+                console.error("Error cargando datos de empresa:", error);
+            } finally {
+                setLoadingEnterprise(false);
+            }
+        };
+
+        fetchEnterpriseData();
+    }, [open]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -320,6 +347,7 @@ export default function SenderCreateModal({
                         <div>
                             <Label className="text-sm">Código postal</Label>
                             <Input
+                                disabled={loadingEnterprise}
                                 className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                 value={data.postal_code}
                                 onChange={(e) =>
@@ -337,6 +365,7 @@ export default function SenderCreateModal({
                         <div>
                             <Label className="text-sm">Parroquia / City</Label>
                             <Input
+                                disabled={loadingEnterprise}
                                 className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                 value={data.city}
                                 onChange={(e) =>
@@ -354,6 +383,7 @@ export default function SenderCreateModal({
                         <div>
                             <Label className="text-sm">Cantón / Country</Label>
                             <Input
+                                disabled={loadingEnterprise}
                                 className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                 value={data.canton}
                                 onChange={(e) =>
@@ -371,6 +401,7 @@ export default function SenderCreateModal({
                         <div>
                             <Label className="text-sm">Provincia / State</Label>
                             <Input
+                                disabled={loadingEnterprise}
                                 className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                 value={data.state}
                                 onChange={(e) =>
