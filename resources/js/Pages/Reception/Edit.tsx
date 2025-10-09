@@ -1,5 +1,5 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Head, usePage } from "@inertiajs/react";
+import { Head } from "@inertiajs/react";
 import ShippingInterface from "./ShippingInterface";
 
 export default function EditReception({ reception }: { reception: any }) {
@@ -7,6 +7,8 @@ export default function EditReception({ reception }: { reception: any }) {
         ...reception,
         sender: reception.sender,
         recipient: reception.recipient,
+
+        // 🧱 Paquetes
         packages: (reception.packages || []).map((pkg: any) => ({
             ...pkg,
             pounds: Number(pkg.pounds) || 0,
@@ -14,9 +16,14 @@ export default function EditReception({ reception }: { reception: any }) {
             total: Number(pkg.total) || 0,
             decl_val: Number(pkg.decl_val) || 0,
             ins_val: Number(pkg.ins_val) || 0,
+
+            // 🔹 Items dentro del paquete
             items: (pkg.package_items || []).map((item: any) => ({
                 ...item,
+                art_package_id: item.art_package_id ?? item.article_id ?? null,
+                name: item.name ?? "",
                 quantity: Number(item.quantity) || 0,
+                unit: item.unit ?? "",
                 length: Number(item.length) || 0,
                 width: Number(item.width) || 0,
                 height: Number(item.height) || 0,
@@ -25,18 +32,25 @@ export default function EditReception({ reception }: { reception: any }) {
                 kilograms: Number(item.kilograms) || 0,
                 unit_price: Number(item.unit_price) || 0,
                 total: Number(item.total) || 0,
-                decl_val: Number(item.decl_val) || 0,
-                ins_val: Number(item.ins_val) || 0,
+
+                // ✅ Campos declarados corregidos
+                items_decl: Number(item.items_declrd) || 0, // ← campo correcto de la BD
+                decl_val: Number(item.decl_val) || 0, // ← valor declarado
+
+                // 🔹 Otros valores opcionales
+                arancel: Number(item.arancel) || 0,
             })),
         })),
+
+        // 🔹 Adicionales
         additionals: (reception.additionals || []).map((add: any) => ({
-            // para el <Select /> usaremos el id del catálogo
             article: add.art_packg_id,
-            // unidad desde la relación (si vino); si no, cadena vacía y luego se rellena al cambiar el select
             unit: add.art_packg?.unit_type ?? "",
             quantity: Number(add.quantity) || 0,
             unit_price: Number(add.unit_price) || 0,
         })),
+
+        // 🔹 Otros campos generales
         payMethod: reception.pay_method || "EFECTIVO",
         efectivoRecibido: Number(reception.cash_recv) || 0,
         receptionDate: reception.date_time?.substring(0, 10),
@@ -49,6 +63,7 @@ export default function EditReception({ reception }: { reception: any }) {
         <AuthenticatedLayout>
             <Head title={`Editar Recepción ${reception.number}`} />
             <div className="py-6 px-4">
+                {/* 👇 si solo quieres visualizar, deja readOnly={true} */}
                 <ShippingInterface initialData={initialData} readOnly={true} />
             </div>
         </AuthenticatedLayout>

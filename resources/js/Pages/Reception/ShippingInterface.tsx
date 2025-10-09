@@ -2113,37 +2113,50 @@ export default function ShippingInterface({
                                         totalDesaduanizacion = 12;
                                     }
                                     // ✅ Calcular Aranceles
-                                    const totalAranceles = packages.reduce(
-                                        (accPkg, pkg) => {
-                                            const arancelesPkg =
-                                                pkg.items.reduce(
-                                                    (accItem, item) => {
-                                                        const itemsDecl =
-                                                            Number(
-                                                                item.items_decl
-                                                            ) || 0;
-                                                        const declarado =
-                                                            Number(
-                                                                item.decl_val
-                                                            ) || 0;
-                                                        const arancel =
-                                                            Number(
-                                                                item.arancel
-                                                            ) || 0; // porcentaje
+                                    let totalAranceles = 0;
 
-                                                        return (
-                                                            accItem +
-                                                            itemsDecl *
-                                                                declarado *
-                                                                (arancel / 100)
-                                                        );
-                                                    },
-                                                    0
-                                                );
-                                            return accPkg + arancelesPkg;
-                                        },
-                                        0
-                                    );
+                                    if (
+                                        readOnly &&
+                                        initialData.arancel !== undefined
+                                    ) {
+                                        // Si estamos editando, usamos el arancel guardado directamente
+                                        totalAranceles =
+                                            Number(initialData.arancel) || 0;
+                                    } else {
+                                        // Sino, calculamos según los items
+                                        totalAranceles = packages.reduce(
+                                            (accPkg, pkg) => {
+                                                const arancelesPkg =
+                                                    pkg.items.reduce(
+                                                        (accItem, item) => {
+                                                            const itemsDecl =
+                                                                Number(
+                                                                    item.items_decl
+                                                                ) || 0;
+                                                            const declarado =
+                                                                Number(
+                                                                    item.decl_val
+                                                                ) || 0;
+                                                            const arancel =
+                                                                Number(
+                                                                    item.arancel
+                                                                ) || 0; // porcentaje
+
+                                                            return (
+                                                                accItem +
+                                                                itemsDecl *
+                                                                    declarado *
+                                                                    (arancel /
+                                                                        100)
+                                                            );
+                                                        },
+                                                        0
+                                                    );
+                                                return accPkg + arancelesPkg;
+                                            },
+                                            0
+                                        );
+                                    }
 
                                     // 🟢 Subtotal base SIN transmisión
                                     const subtotalBase = round(
