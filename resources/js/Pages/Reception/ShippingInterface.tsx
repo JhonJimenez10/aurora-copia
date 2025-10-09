@@ -279,8 +279,8 @@ export default function ShippingInterface({
     const packageSubtotal = packages.reduce((acc, p) => acc + p.total, 0);
     const packageTotal = Math.max(0, packageSubtotal - packageDiscount);
 
-    // lista de artículos (para contenido)
-    const [artPackgOptions, setArtPackgOptions] = useState<
+    // 🔹 Estado para los artículos de PAQUETES
+    const [artPackageOptions, setArtPackageOptions] = useState<
         {
             id: string;
             name: string;
@@ -289,6 +289,17 @@ export default function ShippingInterface({
             arancel: number;
         }[]
     >([]);
+
+    // 🔹 Estado para los artículos de ADICIONALES
+    const [artPackgOptions, setArtPackgOptions] = useState<
+        {
+            id: string;
+            name: string;
+            unit_price: number;
+            unit_type: string;
+        }[]
+    >([]);
+    // ✅ Cargar datos de la tabla art_packages → para PAQUETES
     useEffect(() => {
         fetch("/art_packages/list/json")
             .then((r) => r.json())
@@ -298,16 +309,19 @@ export default function ShippingInterface({
                     name: item.name,
                     unit_price: item.unit_price,
                     unit_type: item.unit_type,
-                    arancel: item.arancel ?? 0, // 👈 le agregamos aquí
+                    arancel: item.arancel ?? 0,
                 }));
-                setArtPackgOptions(mapped);
-            });
+                setArtPackageOptions(mapped);
+            })
+            .catch((err) => console.error("Error cargando art_packages:", err));
     }, []);
 
+    // ✅ Cargar datos de la tabla art_packgs → para ADICIONALES
     useEffect(() => {
         axios
             .get("/art_packgs/list/json")
-            .then((res) => setArtPackgOptions(res.data));
+            .then((res) => setArtPackgOptions(res.data))
+            .catch((err) => console.error("Error cargando art_packgs:", err));
     }, []);
 
     // otros estados (número, fecha, rutas, adicionales, pago...)
@@ -1916,7 +1930,9 @@ export default function ShippingInterface({
                                                                             Number(
                                                                                 selected.unit_price
                                                                             ),
-                                                                        unit: selected.unit_type,
+                                                                        unit:
+                                                                            selected.unit_type ??
+                                                                            "",
                                                                     };
                                                                     setAdditionals(
                                                                         updated
@@ -2398,7 +2414,7 @@ export default function ShippingInterface({
                     handleSavePackage(rows, serviceType, perfumeDesc)
                 }
                 readOnly={readOnly}
-                artPackgOptions={artPackgOptions}
+                artPackgOptions={artPackageOptions}
             />
 
             {/* Modal para CREAR un Sender */}
