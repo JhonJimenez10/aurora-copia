@@ -24,6 +24,8 @@ class Enterprise extends Model
         'commercial_name',
         'matrix_address',
         'branch_address',
+        'province',
+        'city',
         'accounting',
         'phone',
         'email',

@@ -712,10 +712,23 @@ $xmlPath         = $argv[1];
 $pathCertificate = $argv[2];
 $p12Password     = $argv[3];
 
-// Carpeta de salida -> storage_path(config('sri.dir_xml_firmados'))
-$signedDir  = storage_path(config('sri.dir_xml_firmados'));
+// ─────────────────────────────────────────────
+//  Detectar ruta de salida correctamente
+//  Si la ruta de config es absoluta (empieza con C:, D:, etc.),
+//  la usamos tal cual; si no, la pasamos por storage_path()
+// ─────────────────────────────────────────────
+$dirConfig = config('sri.dir_xml_firmados');
+if (preg_match('/^[A-Za-z]:[\/\\\\]/', $dirConfig)) {
+    // Ruta absoluta en Windows (ej. C:/facturas/facturas_firmados)
+    $signedDir = $dirConfig;
+} else {
+    // Ruta relativa a storage
+    $signedDir = storage_path($dirConfig);
+}
+
 $nombreFile = basename($xmlPath);
 $rutaSalida = $signedDir . DIRECTORY_SEPARATOR . $nombreFile;
+
 
 // Validaciones
 foreach (

@@ -32,7 +32,8 @@ class XmlSignerService
         // 2) Paths
         // ───────────────────────────────────────
         $rutaFirmador = base_path('app/Services/firmador.php');
-        $signedDir    = storage_path(config('sri.dir_xml_firmados'));
+        $signedDir = config('sri.dir_xml_firmados');
+
 
         if (!file_exists($xmlPath)) {
             throw new Exception("Archivo XML no encontrado: {$xmlPath}");

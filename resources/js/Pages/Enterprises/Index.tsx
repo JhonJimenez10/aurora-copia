@@ -10,6 +10,8 @@ interface Enterprise {
     email: string;
     commercial_name: string;
     matrix_address: string;
+    province?: string;
+    city?: string;
 }
 
 export default function EnterprisesIndex({
@@ -50,6 +52,12 @@ export default function EnterprisesIndex({
                                         Correo
                                     </th>
                                     <th className="px-4 py-2 text-left">
+                                        Provincia
+                                    </th>
+                                    <th className="px-4 py-2 text-left">
+                                        Ciudad
+                                    </th>
+                                    <th className="px-4 py-2 text-left">
                                         Dirección
                                     </th>
                                     <th className="px-4 py-2 text-left">
@@ -74,6 +82,12 @@ export default function EnterprisesIndex({
                                         </td>
                                         <td className="px-4 py-2">
                                             {enterprise.email}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {enterprise.province || "-"}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {enterprise.city || "-"}
                                         </td>
                                         <td
                                             className="px-4 py-2 max-w-[200px] truncate"

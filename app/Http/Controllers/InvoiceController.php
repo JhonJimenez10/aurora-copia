@@ -29,11 +29,9 @@ class InvoiceController extends Controller
         DB::beginTransaction();
 
         try {
-            // 1) Cargar datos de recepción
             $reception    = Reception::with(['packages.items', 'additionals'])->findOrFail($receptionId);
             $enterpriseId = Auth::user()->enterprise_id;
 
-            // ✅ Validar que la recepción pertenezca a la empresa logueada
             if ($reception->enterprise_id !== $enterpriseId) {
                 return response()->json([
                     'error' => 'No autorizado para facturar esta recepción.',
@@ -41,20 +39,17 @@ class InvoiceController extends Controller
                 ], 403);
             }
 
-            // 2) Calcular secuencial y número
+            // Secuencial y número
             $establishment = '001';
             $emissionPoint = '001';
-
-            $lastInvoice = Invoice::where('enterprise_id', $enterpriseId)
+            $lastInvoice   = Invoice::where('enterprise_id', $enterpriseId)
                 ->orderByDesc('sequential')
                 ->lockForUpdate()
                 ->first();
+            $sequential    = $lastInvoice ? $lastInvoice->sequential + 1 : 1;
+            $number        = sprintf('%s-%s-%09d', $establishment, $emissionPoint, $sequential);
 
-            $sequential = $lastInvoice ? $lastInvoice->sequential + 1 : 1;
-
-            $number = sprintf('%s-%s-%09d', $establishment, $emissionPoint, $sequential);
-
-            // 3) Crear encabezado de factura
+            // Crear encabezado
             $invoice = Invoice::create([
                 'id'             => Str::uuid(),
                 'enterprise_id'  => $enterpriseId,
@@ -72,14 +67,9 @@ class InvoiceController extends Controller
                 'total'          => $reception->total,
                 'sri_status'     => 'GENERATED',
                 'access_key'     => Str::uuid(),
-                'auth_number'    => null,
-                'auth_date'      => null,
-                'observations'   => null,
-                'xml_url'        => null,
-                'auth_xml_url'   => null,
             ]);
 
-            // 4) Detalles de paquetes
+            // Detalles paquetes
             foreach ($reception->packages as $pkg) {
                 $qty = collect($pkg->items)->sum('quantity');
                 $unitPrice = $qty ? round($pkg->total / $qty, 2) : round($pkg->total, 2);
@@ -98,7 +88,7 @@ class InvoiceController extends Controller
                 ]);
             }
 
-            // 5) Detalles de adicionales
+            // Detalles adicionales
             foreach ($reception->additionals as $add) {
                 $article     = ArtPackg::find($add->art_packg_id);
                 $description = $article->name ?? 'Adicional';
@@ -119,49 +109,120 @@ class InvoiceController extends Controller
                 ]);
             }
 
-            DB::commit();
+            DB::commit(); // factura y detalles guardados
 
-            // 6) Generar XML
+            // Generar XML
             $xmlService = new SriFacturaXmlService();
             $result     = $xmlService->generate($invoice);
-            $xmlPath    = $result['xml_path'];
-            $claveAcceso = $result['claveAcceso'];
+            $xmlPath    = $result['xml_path'] ?? null;
+            $claveAcceso = $result['claveAcceso'] ?? null;
+
             $invoice->update([
-                'access_key' => $claveAcceso,
+                'access_key' => $claveAcceso ?? $invoice->access_key,
+                'xml_url'    => $xmlPath ?? $invoice->xml_url,
                 'sri_status' => 'GENERATED',
             ]);
 
-            // 7) Firmar el XML
-            $signer        = new XmlSignerService();
-            $signedXmlPath = $signer->sign($xmlPath, $invoice->id);
-            $invoice->update(['xml_url' => $signedXmlPath]);
+            // ===========================
+            // Certificado .p12
+            // ===========================
+            $p12Path = storage_path('app' . DIRECTORY_SEPARATOR . 'private' . DIRECTORY_SEPARATOR . 'certs' . DIRECTORY_SEPARATOR . $enterpriseId . DIRECTORY_SEPARATOR . 'certificado_' . $enterpriseId . '.p12');
 
-            // 8) Autorizar en el SRI
-            $authorizer = new SriAuthorizationService();
-            $maxAttempts = 3;
+            // Loguear la ruta exacta para depuración
+            Log::info("Buscando .p12 para enterprise_id={$enterpriseId}. Ruta final: {$p12Path}");
+
+            if (!file_exists($p12Path)) {
+                Log::info("No se encontró .p12 para enterprise_id={$enterpriseId}. Se facturará sin SRI. Path: {$p12Path}");
+                return response()->json([
+                    'status'         => 'generado_sin_sri',
+                    'message'        => 'Factura generada sin SRI (no se encontró .p12).',
+                    'xml_generado'   => $xmlPath,
+                    'invoice_id'     => $invoice->id,
+                    'invoice_number' => $invoice->number,
+                ], 201);
+            }
+
+            // Firmar XML
+            try {
+                $signer = new XmlSignerService();
+                $signedXmlPath = $signer->sign($xmlPath, $invoice->id, $p12Path);
+                $invoice->update([
+                    'xml_url'    => $signedXmlPath,
+                    'sri_status' => 'SIGNED',
+                ]);
+            } catch (\Exception $e) {
+                Log::error("Error firmando XML (invoice={$invoice->id}): {$e->getMessage()}");
+                return response()->json([
+                    'status'         => 'generado_sin_sri',
+                    'message'        => 'Factura generada pero no se pudo firmar el XML.',
+                    'xml_generado'   => $xmlPath,
+                    'invoice_id'     => $invoice->id,
+                    'invoice_number' => $invoice->number,
+                ], 201);
+            }
+
+            // ===========================
+            // AUTORIZACIÓN EN EL SRI (mejor controlada)
+            // ===========================
+
             $authorized = false;
             $attempt = 0;
             $authResult = null;
             $authResp = null;
+            $maxAttempts = 3;
+            $lastErrorMessage = null;
+            $authorizer = null;
 
-            while (! $authorized && $attempt < $maxAttempts) {
+            // ⚠️ Controlar error al crear el servicio SRI (cuando el SRI está caído)
+            try {
+                $authorizer = new SriAuthorizationService();
+            } catch (\Exception $e) {
+                $lastErrorMessage = $e->getMessage();
+
+                if (
+                    str_contains($lastErrorMessage, 'Couldn\'t load from') ||
+                    str_contains($lastErrorMessage, 'failed to load external entity') ||
+                    str_contains($lastErrorMessage, 'SOAP-ERROR') ||
+                    str_contains($lastErrorMessage, 'Could not connect')
+                ) {
+                    Log::warning("El SRI no está disponible al intentar inicializar el servicio SOAP: {$lastErrorMessage}");
+
+                    $invoice->update(['sri_status' => 'SIGNED']);
+
+                    return response()->json([
+                        'status'      => 'firmado_no_autorizado',
+                        'message'     => 'El SRI está temporalmente fuera de servicio. Por favor, intente autorizar la factura más tarde.',
+                        'invoice_id'  => $invoice->id,
+                        'xml_firmado' => $xmlPath,
+                    ], 202);
+                }
+
+                // Si el error no fue por el SRI, relanzar para que el catch general lo maneje
+                throw $e;
+            }
+
+            while (!$authorized && $attempt < $maxAttempts) {
+                $attempt++;
                 try {
+                    Log::info("Intento {$attempt}/{$maxAttempts} de autorización SRI para factura {$invoice->number}");
                     $authResult = $authorizer->authorize($signedXmlPath, $claveAcceso);
-                    $authResp = $authResult['response']
-                        ->RespuestaAutorizacionComprobante
-                        ->autorizaciones
-                        ->autorizacion;
-                    $authorized = true;
+                    $authResp = $authResult['response']->RespuestaAutorizacionComprobante->autorizaciones->autorizacion ?? null;
+
+                    if ($authResp && isset($authResp->numeroAutorizacion)) {
+                        $authorized = true;
+                        break;
+                    }
                 } catch (\Exception $e) {
-                    $attempt++;
-                    Log::warning("Intento {$attempt} fallido de autorización SRI para factura {$invoice->number}: {$e->getMessage()}");
-                    sleep(1);
+                    $lastErrorMessage = $e->getMessage();
+                    Log::warning("Intento {$attempt} fallido de autorización SRI para factura {$invoice->number}: {$lastErrorMessage}");
+                    sleep(2);
                 }
             }
 
-            if ($authorized && isset($authResp->numeroAutorizacion)) {
+            // === Resultado final del proceso ===
+            if ($authorized && $authResp) {
                 $invoice->update([
-                    'auth_xml_url' => $authResult['path'],
+                    'auth_xml_url' => $authResult['path'] ?? null,
                     'auth_number'  => $authResp->numeroAutorizacion,
                     'auth_date'    => Carbon::parse($authResp->fechaAutorizacion),
                     'sri_status'   => 'AUTHORIZED',
@@ -171,30 +232,41 @@ class InvoiceController extends Controller
                     'status'         => 'autorizado',
                     'message'        => 'Factura generada, firmada y autorizada correctamente.',
                     'xml_firmado'    => $signedXmlPath,
-                    'xml_autorizado' => $authResult['path'],
+                    'xml_autorizado' => $authResult['path'] ?? null,
                     'invoice_id'     => $invoice->id,
                     'invoice_number' => $invoice->number,
                 ], 201);
-            } else {
-                $invoice->update([
-                    'sri_status' => 'SIGNED',
-                    'auth_number' => null,
-                    'auth_date'   => null,
-                ]);
-
-                return response()->json([
-                    'status'      => 'error',
-                    'message'     => 'Factura firmada pero no autorizada por el SRI. Intente nuevamente más tarde.',
-                    'invoice_id'  => $invoice->id,
-                    'xml_firmado' => $signedXmlPath,
-                ], 202);
             }
+
+            // === Si llega aquí es porque fallaron todos los intentos ===
+            $invoice->update(['sri_status' => 'SIGNED']);
+
+            $mensajeFallo = 'El SRI no respondió correctamente o está temporalmente fuera de servicio. Intente autorizar nuevamente más tarde.';
+
+            if ($lastErrorMessage) {
+                if (
+                    str_contains($lastErrorMessage, 'Couldn\'t load from') ||
+                    str_contains($lastErrorMessage, 'failed to load external entity') ||
+                    str_contains($lastErrorMessage, 'SOAP-ERROR') ||
+                    str_contains($lastErrorMessage, 'Could not connect')
+                ) {
+                    $mensajeFallo = 'El SRI está temporalmente fuera de servicio. Por favor, intente autorizar la factura más tarde.';
+                } else {
+                    Log::debug("Detalle técnico de fallo SRI: " . $lastErrorMessage);
+                }
+            }
+
+            Log::error("Autorización SRI fallida para factura {$invoice->number} tras {$maxAttempts} intentos. {$mensajeFallo}");
+
+            return response()->json([
+                'status'      => 'firmado_no_autorizado',
+                'message'     => $mensajeFallo,
+                'invoice_id'  => $invoice->id,
+                'xml_firmado' => $signedXmlPath,
+            ], 202);
         } catch (\Exception $e) {
             DB::rollBack();
-
-            Log::error("createInvoice error (receptionId={$receptionId}): {$e->getMessage()}", [
-                'trace' => $e->getTraceAsString(),
-            ]);
+            Log::error("createInvoice error (receptionId={$receptionId}): {$e->getMessage()}", ['trace' => $e->getTraceAsString()]);
 
             return response()->json([
                 'error'   => 'Error al crear factura',

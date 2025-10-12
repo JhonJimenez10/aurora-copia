@@ -165,26 +165,17 @@ class ReceptionController extends Controller
             $validated['id'] = Str::uuid();
             $validated['enterprise_id'] = auth()->user()->enterprise_id;
             $validated['arancel'] = $validated['arancel'] ?? 0;
-            $reception = Reception::create($validated);
+            // === NUEVO: obtener provincia y ciudad reales de la empresa ===
+            $enterprise = \App\Models\Enterprise::find($validated['enterprise_id']);
+            $province = strtoupper(substr($enterprise->province ?? 'XX', 0, 2));
+            $city     = strtoupper(substr($enterprise->city ?? 'XX', 0, 2));
 
+            // Crear recepción
+            $reception = Reception::create($validated);
             $lastDigits = substr($reception->number, -4);
 
-            // === NUEVO: prefijo basado en la agencia de origen ===
-
-            // Mapeo manual de provincia según la ciudad/agencia de origen
-            $provinceMap = [
-                'CUENCA CENTRO' => 'AZUAY',
-                'SIGSIG'        => 'AZUAY',
-                'BIBLIAN'       => 'CAÑAR',
-                'LOJA'          => 'LOJA',
-                'SARAGURO'      => 'LOJA',
-                // Puedes agregar más si en el futuro hay más agencias
-            ];
-
-            $city = strtoupper(trim($validated['agency_origin']));
-            $province = $provinceMap[$city] ?? 'XX'; // Por si no está en el mapa
-
-            $prefix = strtoupper(substr($province, 0, 2) . substr($city, 0, 2));
+            // === GENERAR PREFIJO DE CÓDIGO DE BARRAS ===
+            $prefix = $province . $city;
 
             // Paquetes
             foreach ($validated['packages'] as $idx => $pkg) {

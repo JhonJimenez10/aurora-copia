@@ -30,6 +30,8 @@ class EnterpriseController extends Controller
             'commercial_name'    => 'required|string|max:150',
             'matrix_address'     => 'required|string|max:255',
             'branch_address'     => 'required|string|max:255',
+            'province'           => 'nullable|string|max:100',
+            'city'               => 'nullable|string|max:100',
             'accounting'         => 'required|boolean',
             'phone'              => 'nullable|string|max:20',
             'email'              => 'nullable|email|max:100',
@@ -70,42 +72,51 @@ class EnterpriseController extends Controller
 
     public function update(Request $request, $id)
     {
-        // 1) Recupera la empresa
         $enterprise = Enterprise::findOrFail($id);
 
-        // 2) Valida sólo el certificado y la contraseña
         $validated = $request->validate([
-            'signature'          => 'required|file|max:2048',
+            'ruc'                => 'nullable|string|max:20',
+            'name'               => 'nullable|string|max:100',
+            'commercial_name'    => 'nullable|string|max:150',
+            'matrix_address'     => 'nullable|string|max:255',
+            'branch_address'     => 'nullable|string|max:255',
+            'province'           => 'nullable|string|max:100',
+            'city'               => 'nullable|string|max:100',
+            'accounting'         => 'nullable|boolean',
+            'phone'              => 'nullable|string|max:20',
+            'email'              => 'nullable|email|max:100',
+            'signature'          => 'nullable|file|max:2048',
             'signature_password' => 'nullable|string|max:100',
         ]);
 
-        // 3) Borra el certificado anterior (si existe)
-        if ($enterprise->signature) {
-            Storage::disk('private')->delete($enterprise->signature);
+        // 📦 Si se sube un nuevo certificado .p12
+        if ($request->hasFile('signature')) {
+            $dir = "certs/{$enterprise->id}";
+            Storage::disk('private')->deleteDirectory($dir);
+            Storage::disk('private')->makeDirectory($dir);
+
+            $file     = $request->file('signature');
+            $filename = "certificado_{$enterprise->id}.{$file->getClientOriginalExtension()}";
+            $path     = $file->storeAs($dir, $filename, 'private');
+
+            $validated['signature'] = $path;
+            $validated['signature_password'] = $validated['signature_password'] ?? '';
+        } else {
+            unset($validated['signature']);
         }
 
-        // 4) Prepara carpeta nueva
-        $dir = "certs/{$enterprise->id}";
-        Storage::disk('private')->deleteDirectory($dir);
-        Storage::disk('private')->makeDirectory($dir);
+        // 🔄 Solo actualiza los campos que vienen (para no sobreescribir con null)
+        foreach ($validated as $key => $value) {
+            if ($value !== null) {
+                $enterprise->{$key} = $value;
+            }
+        }
 
-        // 5) Guarda el nuevo .p12
-        $file     = $request->file('signature');
-        $filename = "certificado_{$enterprise->id}.{$file->getClientOriginalExtension()}";
-        $path     = $file->storeAs($dir, $filename, 'private');
+        $enterprise->save();
 
-        // 6) Actualiza en la BD la ruta y la password
-        $enterprise->update([
-            'signature'          => $path,
-            'signature_password' => $validated['signature_password'] ?? '',
-        ]);
-
-        // 7) Redirige con mensaje
-        return redirect()
-            ->route('enterprises.index')
-            ->with('success', 'Certificado eliminado y reemplazado correctamente.');
+        return redirect()->route('enterprises.index')
+            ->with('success', 'Empresa actualizada correctamente.');
     }
-
 
 
 

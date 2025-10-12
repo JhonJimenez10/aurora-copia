@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/Components/ui/tabs";
 import {
     DropdownMenu,
@@ -498,17 +498,21 @@ export default function ShippingInterface({
             state: recipientData.state || "",
         });
     };
-    // AGENCIA DE ORGEN según usuario
-    const agencyByEmail: Record<string, string> = {
-        "susanaburneo2010@yahoo.com": "LOJA",
-        "edwincobos-68@hotmail.com": "SIGSIG",
-        "pabloarizaga06@gmail.com": "CUENCA CENTRO",
-        "maria33ql@gmail.com": "BIBLIÁN",
-        "lauropoma@gmail.com": "SARAGURO",
-    };
 
-    const agencyOrigin =
-        agencyByEmail[(auth?.user?.email as string) || ""] || "CUENCA CENTRO";
+    const [agencyOrigin, setAgencyOrigin] = useState("");
+
+    useEffect(() => {
+        const fetchEnterprise = async () => {
+            try {
+                const res = await axios.get("/api/enterprise-info");
+                setAgencyOrigin(res.data.autofill.city.toUpperCase());
+            } catch (err) {
+                console.error("Error al obtener la ciudad de la empresa:", err);
+            }
+        };
+
+        fetchEnterprise();
+    }, []);
 
     const handleSaveReception = async () => {
         // Cálculos globales
@@ -617,7 +621,7 @@ export default function ShippingInterface({
             number: receptionNumber,
             route,
             date_time: receptionDate,
-            agency_origin: "CUENCA CENTRO",
+            agency_origin: agencyOrigin,
             agency_dest: agencyDest,
             sender_id: sender.id,
             recipient_id: recipient.id,

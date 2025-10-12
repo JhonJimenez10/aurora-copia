@@ -23,8 +23,8 @@ class SriAuthorizationService
             'exceptions' => true
         ]);
 
-        $this->autorizadosDir = storage_path(config('sri.dir_xml_autorizados'));
-        $this->noAutorizadosDir = storage_path(config('sri.dir_xml_no_autorizados'));
+        $this->autorizadosDir = config('sri.dir_xml_autorizados');
+        $this->noAutorizadosDir = config('sri.dir_xml_no_autorizados');
     }
 
     public function authorize(string $signedXmlPath, string $accessKey): array

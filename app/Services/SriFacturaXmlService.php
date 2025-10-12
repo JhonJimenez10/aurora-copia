@@ -13,7 +13,7 @@ class SriFacturaXmlService
     {
         $claveAcceso = $this->generateAccessKey($invoice);
 
-        $xmlDir = storage_path(config('sri.dir_xml_origen'));
+        $xmlDir = config('sri.dir_xml_origen');
         if (!is_dir($xmlDir)) {
             mkdir($xmlDir, 0755, true);
         }

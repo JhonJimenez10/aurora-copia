@@ -1,5 +1,5 @@
 import React from "react";
-import { useForm } from "@inertiajs/inertia-react";
+import { useForm } from "@inertiajs/react";
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
 import { Button } from "@/Components/ui/button";
@@ -14,6 +14,8 @@ interface EnterpriseFormProps {
         commercial_name: string;
         matrix_address: string;
         branch_address: string;
+        province?: string;
+        city?: string;
         accounting: boolean;
         phone: string;
         email: string;
@@ -29,6 +31,8 @@ interface FormValues {
     commercial_name: string;
     matrix_address: string;
     branch_address: string;
+    province: string;
+    city: string;
     accounting: boolean;
     phone: string;
     email: string;
@@ -44,6 +48,8 @@ export default function EnterpriseForm({ enterprise }: EnterpriseFormProps) {
             commercial_name: enterprise?.commercial_name || "",
             matrix_address: enterprise?.matrix_address || "",
             branch_address: enterprise?.branch_address || "",
+            province: enterprise?.province || "",
+            city: enterprise?.city || "",
             accounting: enterprise?.accounting || false,
             phone: enterprise?.phone || "",
             email: enterprise?.email || "",
@@ -54,15 +60,16 @@ export default function EnterpriseForm({ enterprise }: EnterpriseFormProps) {
     const submit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        const options = {
+        // 🚀 Opción segura y sin errores de TS
+        const formOptions = {
             preserveScroll: true,
             forceFormData: true,
         };
 
         if (enterprise) {
-            patch(`/enterprises/${enterprise.id}`, options);
+            patch(`/enterprises/${enterprise.id}`, data, formOptions);
         } else {
-            post("/enterprises", options);
+            post("/enterprises", data, formOptions);
         }
     };
 
@@ -91,6 +98,8 @@ export default function EnterpriseForm({ enterprise }: EnterpriseFormProps) {
                                 label: "Dirección Sucursal",
                                 name: "branch_address",
                             },
+                            { label: "Provincia", name: "province" },
+                            { label: "Ciudad", name: "city" },
                             { label: "Correo", name: "email" },
                             { label: "Teléfono", name: "phone" },
                         ].map(({ label, name }) => (
