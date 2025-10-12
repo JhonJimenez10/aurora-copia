@@ -60,16 +60,10 @@ export default function EnterpriseForm({ enterprise }: EnterpriseFormProps) {
     const submit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        // 🚀 Opción segura y sin errores de TS
-        const formOptions = {
-            preserveScroll: true,
-            forceFormData: true,
-        };
-
         if (enterprise) {
-            patch(`/enterprises/${enterprise.id}`, data, formOptions);
+            patch(`/enterprises/${enterprise.id}`);
         } else {
-            post("/enterprises", data, formOptions);
+            post("/enterprises");
         }
     };
 
