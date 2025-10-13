@@ -25,6 +25,16 @@ class ACASAviancaManifestExport implements FromCollection, WithMapping, WithHead
         $this->endDate = $endDate;
         $this->enterpriseId = $enterpriseId;
     }
+    /**
+     * Normaliza cadenas reemplazando ñ/Ñ por n/N
+     */
+    protected function normalizeString(?string $value): string
+    {
+        if (!$value) return '';
+        $search  = ['ñ', 'Ñ'];
+        $replace = ['n', 'N'];
+        return str_replace($search, $replace, $value);
+    }
 
     public function collection()
     {
@@ -88,18 +98,18 @@ class ACASAviancaManifestExport implements FromCollection, WithMapping, WithHead
             'JFK',                             // DESTINO
             $row['pieces'],                    // PIEZAS
             $row['weight'],                    // PESO
-            $row['sender']->full_name ?? '',   // NOMBRE DEL SHP
-            $row['sender']->address ?? '',     // DIRECCION 1 SHP
-            $row['sender']->city ?? '',        // CIUDAD SHP
+            $this->normalizeString($row['sender']->full_name ?? ''),
+            $this->normalizeString($row['sender']->address ?? ''),
+            $this->normalizeString($row['sender']->city ?? ''),
             'EC',                              // ESTADO REGION SHP
             'EC',                              // PAIS SHP
-            $row['sender']->postal_code ?? '', // CODIGO POSTAL SHP
-            $row['recipient']->full_name ?? '', // NOMBRE DEL CNE
-            $row['recipient']->address ?? '',   // DIRECCION 1 CNE
-            $row['recipient']->city ?? '',      // CIUDAD CNE
-            $row['recipient']->state ?? '',     // ESTADO REGION CNE
+            $this->normalizeString($row['sender']->postal_code ?? ''),
+            $this->normalizeString($row['recipient']->full_name ?? ''),
+            $this->normalizeString($row['recipient']->address ?? ''),
+            $this->normalizeString($row['recipient']->city ?? ''),
+            $this->normalizeString($row['recipient']->state ?? ''),
             'US',                               // PAIS CNE
-            $row['recipient']->postal_code ?? '', // CODIGO POSTAL CNE
+            $this->normalizeString($row['recipient']->postal_code ?? ''),
             implode(', ', $row['contents']),      // DESCRIPCIÓN DE LA CARGA
         ];
     }

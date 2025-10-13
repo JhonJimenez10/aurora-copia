@@ -24,6 +24,17 @@ class AirlineManifestExport implements FromCollection, WithDrawings, WithStyles
         $this->end = Carbon::parse($end)->endOfDay();
         $this->enterpriseId = $enterpriseId;
     }
+
+    /**
+     * Normaliza cadenas reemplazando ñ/Ñ por n/N
+     */
+    protected function normalizeString(?string $value): string
+    {
+        if (!$value) return '';
+        $search  = ['ñ', 'Ñ'];
+        $replace = ['n', 'N'];
+        return str_replace($search, $replace, $value);
+    }
     public function collection()
     {
         $rows = [
@@ -92,26 +103,26 @@ class AirlineManifestExport implements FromCollection, WithDrawings, WithStyles
 
         foreach ($receptions as $reception) {
             foreach ($reception->packages as $package) {
-                $contents = $package->items->map(fn($item) => $item->artPackage?->name)->filter()->implode(', ');
+                $contents = $package->items->map(fn($item) => $this->normalizeString($item->artPackage?->name))->filter()->implode(', ');
                 $invoiceCode = Str::before($package->barcode, '.');
 
                 $rows[] = [
                     $invoiceCode,                       // INVOICE
-                    $reception->sender->full_name ?? '',      // SHIPPER
-                    $reception->sender->address ?? '',        // ADDRESS
-                    $reception->sender->city ?? '',           // CITY
-                    $reception->sender->phone ?? '',          // TELEPHONE
-                    $reception->recipient->full_name ?? '',   // CONSIGNEE
-                    $reception->recipient->address ?? '',     // ADDRESS
-                    $reception->recipient->city ?? '',        // CITY
-                    $reception->recipient->postal_code ?? '', // ZIP
-                    $reception->recipient->phone ?? '',       // TELEPHONE
+                    $this->normalizeString($reception->sender->full_name ?? ''),     // SHIPPER
+                    $this->normalizeString($reception->sender->address ?? ''),       // ADDRESS
+                    $this->normalizeString($reception->sender->city ?? ''),          // CITY
+                    $this->normalizeString($reception->sender->phone ?? ''),         // TELEPHONE
+                    $this->normalizeString($reception->recipient->full_name ?? ''),  // CONSIGNEE
+                    $this->normalizeString($reception->recipient->address ?? ''),    // ADDRESS
+                    $this->normalizeString($reception->recipient->city ?? ''),       // CITY
+                    $this->normalizeString($reception->recipient->postal_code ?? ''), // ZIP
+                    $this->normalizeString($reception->recipient->phone ?? ''),      // TELEPHONE
                     $contents,                                // CONTENTS
                     $package->service_type === 'SOBRE' ? 1 : '0',     // ENVELOPE
                     $package->service_type === 'PAQUETE' ? 1 : '0',   // PAQ
                     $package->kilograms,                       // WEIGHT
                     '0',                                         // BAG
-                    $reception->agencyDest->name ?? '',       // DESTINATION
+                    $this->normalizeString($reception->agencyDest->name ?? ''),     // DESTINATION
                     '',                                        // NOTES
                 ];
             }

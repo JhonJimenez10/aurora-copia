@@ -24,6 +24,14 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
         $this->endDate   = $endDate;
         $this->enterpriseId = $enterpriseId;
     }
+    protected function normalizeString(?string $value): string
+    {
+        if (!$value) return '';
+        $search  = ['ñ', 'Ñ'];
+        $replace = ['n', 'N'];
+        return str_replace($search, $replace, $value);
+    }
+
 
     public function collection(): Collection
     {
@@ -44,9 +52,10 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
         $sumTotal    = 0.0;
 
         foreach ($receptions as $r) {
-            $destino      = optional($r->agencyDest)->name ?? '';
-            $destinatario = optional($r->recipient)->full_name ?? '';
-            $formaPago    = $r->pay_method ?? '';
+            $destino      = $this->normalizeString(optional($r->agencyDest)->name ?? '');
+            $destinatario = $this->normalizeString(optional($r->recipient)->full_name ?? '');
+            $formaPago    = $this->normalizeString($r->pay_method ?? '');
+
 
             if ($r->packages->isEmpty()) {
                 $rows[] = [
@@ -81,7 +90,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
                 $contenido = '';
                 if ($p->items && $p->items->count() > 0) {
                     $contenido = $p->items->map(function ($item) {
-                        return optional($item->artPackage)->name ?? '';
+                        return $this->normalizeString(optional($item->artPackage)->name ?? '');
                     })->filter()->join(', ');
                 }
 

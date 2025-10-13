@@ -22,6 +22,17 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
         $this->enterpriseId = $enterpriseId;
     }
 
+    /**
+     * Normaliza cadenas reemplazando ñ/Ñ por n/N
+     */
+    protected function normalizeString(?string $value): string
+    {
+        if (!$value) return '';
+        $search  = ['ñ', 'Ñ'];
+        $replace = ['n', 'N'];
+        return str_replace($search, $replace, $value);
+    }
+
     public function collection(): Collection
     {
         $rows = [];
@@ -134,20 +145,20 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                     '',
                     '',
                     '', // cuentas
-                    mb_substr($reception->sender->full_name ?? '', 0, 30),
-                    $reception->sender->address ?? '',
+                    $this->normalizeString(mb_substr($reception->sender->full_name ?? '', 0, 30)),
+                    $this->normalizeString($reception->sender->address ?? ''),
                     '',
-                    $reception->sender->city ?? '',
+                    $this->normalizeString($reception->sender->city ?? ''),
                     '',
                     $reception->sender->postal_code ?? '',
                     'EC',
                     $reception->sender->phone ?? '',
-                    mb_substr($reception->recipient->full_name ?? '', 0, 30),
+                    $this->normalizeString(mb_substr($reception->recipient->full_name ?? '', 0, 30)),
                     '',
-                    $reception->recipient->address ?? '',
+                    $this->normalizeString($reception->recipient->address ?? ''),
                     '',
-                    $reception->recipient->city ?? '',
-                    $reception->recipient->state ?? '',
+                    $this->normalizeString($reception->recipient->city ?? ''),
+                    $this->normalizeString($reception->recipient->state ?? ''),
                     $reception->recipient->postal_code ?? '',
                     'US',
                     $reception->recipient->phone ?? '',
@@ -165,7 +176,7 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                 $barcodeBase = explode('.', $package->barcode ?? '')[0] ?? '';
 
                 // Concatenar descripción y valores de items
-                $description = $package->items?->map(fn($item) => $item->artPackage?->translation ?? '')->filter()->implode(' ') ?: '';
+                $description = $package->items?->map(fn($item) => $this->normalizeString($item->artPackage?->translation ?? ''))->filter()->implode(' ') ?: '';
                 $firstHsCode = $package->items?->first()?->artPackage?->codigo_hs ?? '';
                 $declaredValue = $package->items?->sum(fn($item) => ($item->items_declrd ?? 0) * ($item->decl_val ?? 0)) ?? 0;
 
@@ -203,20 +214,20 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                     '',
                     '',
                     '',
-                    mb_substr($reception->sender->full_name ?? '', 0, 30),
-                    $reception->sender->address ?? '',
+                    $this->normalizeString(mb_substr($reception->sender->full_name ?? '', 0, 30)),
+                    $this->normalizeString($reception->sender->address ?? ''),
                     '',
-                    $reception->sender->city ?? '',
+                    $this->normalizeString($reception->sender->city ?? ''),
                     '',
                     $reception->sender->postal_code ?? '',
                     'EC',
                     $reception->sender->phone ?? '',
-                    mb_substr($reception->recipient->full_name ?? '', 0, 30),
+                    $this->normalizeString(mb_substr($reception->recipient->full_name ?? '', 0, 30)),
                     '',
-                    $reception->recipient->address ?? '',
+                    $this->normalizeString($reception->recipient->address ?? ''),
                     '',
-                    $reception->recipient->city ?? '',
-                    $reception->recipient->state ?? '',
+                    $this->normalizeString($reception->recipient->city ?? ''),
+                    $this->normalizeString($reception->recipient->state ?? ''),
                     $reception->recipient->postal_code ?? '',
                     'US',
                     $reception->recipient->phone ?? '',
@@ -234,7 +245,7 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                             'commodity',
                             '4',
                             $item->items_declrd ?? '',
-                            $item->artPackage?->translation ?? '',
+                            $this->normalizeString($item->artPackage?->translation ?? ''),
                             '',
                             $item->artPackage?->codigo_hs ?? '',
                             'EC',

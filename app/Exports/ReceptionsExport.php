@@ -24,6 +24,14 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
         $this->enterpriseId = $enterpriseId;
     }
 
+    protected function normalizeString(?string $value): string
+    {
+        if (!$value) return '';
+        $search  = ['ñ', 'Ñ'];
+        $replace = ['n', 'N'];
+        return str_replace($search, $replace, $value);
+    }
+
     public function collection(): Collection
     {
         $receptions = Reception::with(['sender', 'recipient', 'packages.artPackage'])
@@ -44,20 +52,20 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
                     Carbon::parse($reception->date_time)->format('Y-m-d'),
                     '0',                            // Saca
                     '',                             // Guía Hija
-                    optional($reception->sender)->full_name ?? '',
-                    optional($reception->sender)->identification ?? '',
-                    optional($reception->recipient)->full_name ?? '',
-                    optional($reception->recipient)->identification ?? '',
+                    $this->normalizeString(optional($reception->sender)->full_name ?? ''),
+                    $this->normalizeString(optional($reception->sender)->identification ?? ''),
+                    $this->normalizeString(optional($reception->recipient)->full_name ?? ''),
+                    $this->normalizeString(optional($reception->recipient)->identification ?? ''),
                     0,                              // Peso Kgs
                     '',                             // Valor FOB
                     'Sin paquete',                  // Contenido
                     0,                              // Piezas
-                    optional($reception->sender)->city ?? '',
-                    optional($reception->sender)->address ?? '',
-                    optional($reception->sender)->phone ?? '',
-                    optional($reception->recipient)->city ?? '',
-                    optional($reception->recipient)->address ?? '',
-                    optional($reception->recipient)->phone ?? '',
+                    $this->normalizeString(optional($reception->sender)->city ?? ''),
+                    $this->normalizeString(optional($reception->sender)->address ?? ''),
+                    $this->normalizeString(optional($reception->sender)->phone ?? ''),
+                    $this->normalizeString(optional($reception->recipient)->city ?? ''),
+                    $this->normalizeString(optional($reception->recipient)->address ?? ''),
+                    $this->normalizeString(optional($reception->recipient)->phone ?? ''),
                 ];
                 continue; // siguiente recepción
             }
@@ -68,7 +76,7 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
                 $parts = explode('.', $fullBarcode, 2);
                 $guiaHija = $parts[0] ?? '';
 
-                $contenido = optional($package->artPackage)->name ?? 'Sin artículo';
+                $contenido = $this->normalizeString(optional($package->artPackage)->name ?? 'Sin artículo');
 
                 $rows[] = [
                     'REGISTRO',
@@ -76,20 +84,20 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
                     Carbon::parse($reception->date_time)->format('Y-m-d'),
                     '0',
                     $guiaHija,
-                    optional($reception->sender)->full_name ?? '',
-                    optional($reception->sender)->identification ?? '',
-                    optional($reception->recipient)->full_name ?? '',
-                    optional($reception->recipient)->identification ?? '',
+                    $this->normalizeString(optional($reception->sender)->full_name ?? ''),
+                    $this->normalizeString(optional($reception->sender)->identification ?? ''),
+                    $this->normalizeString(optional($reception->recipient)->full_name ?? ''),
+                    $this->normalizeString(optional($reception->recipient)->identification ?? ''),
                     (float) ($package->kilograms ?? 0),
                     '',
                     $contenido,
                     1, // cada paquete cuenta como una pieza
-                    optional($reception->sender)->city ?? '',
-                    optional($reception->sender)->address ?? '',
-                    optional($reception->sender)->phone ?? '',
-                    optional($reception->recipient)->city ?? '',
-                    optional($reception->recipient)->address ?? '',
-                    optional($reception->recipient)->phone ?? '',
+                    $this->normalizeString(optional($reception->sender)->city ?? ''),
+                    $this->normalizeString(optional($reception->sender)->address ?? ''),
+                    $this->normalizeString(optional($reception->sender)->phone ?? ''),
+                    $this->normalizeString(optional($reception->recipient)->city ?? ''),
+                    $this->normalizeString(optional($reception->recipient)->address ?? ''),
+                    $this->normalizeString(optional($reception->recipient)->phone ?? ''),
                 ];
             }
         }
