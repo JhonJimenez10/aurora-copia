@@ -74,7 +74,14 @@ class ACASAviancaManifestExport implements FromCollection, WithMapping, WithHead
                 $grouped[$baseCode]['weight']  += $package->kilograms;
 
                 $description = $package->items
-                    ->map(fn($item) => $item->artPackage?->name)
+                    ->map(function ($item) {
+                        if ($item->artPackage) {
+                            return $item->artPackage->translation
+                                ? $item->artPackage->translation
+                                : $item->artPackage->name;
+                        }
+                        return null;
+                    })
                     ->filter()
                     ->implode(' ');
 
