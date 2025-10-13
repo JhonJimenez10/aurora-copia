@@ -45,7 +45,7 @@ class XmlSignerService
         // ───────────────────────────────────────
         // 3) Ejecutar script de firma
         // ───────────────────────────────────────
-        $php = PHP_BINARY;
+        $php = '/usr/bin/php';
         $cmd = escapeshellarg($php) . ' ' .
             escapeshellarg($rutaFirmador) . ' ' .
             escapeshellarg($xmlPath) . ' ' .
