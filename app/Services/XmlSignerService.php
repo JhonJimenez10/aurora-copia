@@ -46,11 +46,12 @@ class XmlSignerService
         // 3) Ejecutar script de firma
         // ───────────────────────────────────────
         $php = '/usr/bin/php';
-        $cmd = escapeshellarg($php) . ' ' .
+        $cmd = "OPENSSL_CONF=/etc/ssl/openssl.cnf OPENSSL_legacy_provider=1 /usr/bin/php " .
             escapeshellarg($rutaFirmador) . ' ' .
             escapeshellarg($xmlPath) . ' ' .
             escapeshellarg($certificatePath) . ' ' .
             escapeshellarg($certificatePassword) . ' 2>&1';
+
 
         exec($cmd, $output, $status);
 
