@@ -41,58 +41,44 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     // Información de empresa para autocompletar remitente
     Route::get('/api/enterprise-info', function () {
-        $enterpriseId = auth()->user()->enterprise_id ?? null;
-        $enterprise = \App\Models\Enterprise::find($enterpriseId);
+        $user = auth()->user();
+        $enterpriseId = $user->enterprise_id ?? null;
+        $enterprise = $enterpriseId ? \App\Models\Enterprise::find($enterpriseId) : null;
 
+        $defaultAutofill = [
+            'postal_code' => '010101',
+            'city' => 'CUENCA',
+            'canton' => 'Cuenca',
+            'state' => 'Azuay',
+        ];
+
+        // Si no hay empresa (SUDO u otro caso), devolvemos CUENCA directamente
         if (!$enterprise) {
-            return response()->json(['message' => 'Empresa no encontrada'], 404);
+            return response()->json([
+                'enterprise' => [
+                    'id' => null,
+                    'name' => $user->role === 'sudo' ? 'SUDO' : '',
+                    'ruc' => '',
+                    'matrix_address' => '',
+                    'branch_address' => '',
+                ],
+                'autofill' => $defaultAutofill,
+            ]);
         }
 
         $addressMap = [
-            'LOJA' => [
-                'postal_code' => '110150',
-                'city' => 'Loja',
-                'canton' => 'Loja',
-                'state' => 'Loja',
-            ],
-            'SIGSIG' => [
-                'postal_code' => '010309',
-                'city' => 'Sigsig',
-                'canton' => 'Sigsig',
-                'state' => 'Azuay',
-            ],
-            'CUENCA' => [
-                'postal_code' => '010101',
-                'city' => 'Cuenca',
-                'canton' => 'Cuenca',
-                'state' => 'Azuay',
-            ],
-            'BIBLIAN' => [
-                'postal_code' => '030105',
-                'city' => 'Biblián',
-                'canton' => 'Biblián',
-                'state' => 'Cañar',
-            ],
-            'SARAGURO' => [
-                'postal_code' => '110205',
-                'city' => 'Saraguro',
-                'canton' => 'Saraguro',
-                'state' => 'Loja',
-            ],
+            'LOJA' => ['postal_code' => '110150', 'city' => 'Loja', 'canton' => 'Loja', 'state' => 'Loja'],
+            'SIGSIG' => ['postal_code' => '010309', 'city' => 'Sigsig', 'canton' => 'Sigsig', 'state' => 'Azuay'],
+            'CUENCA' => ['postal_code' => '010101', 'city' => 'Cuenca', 'canton' => 'Cuenca', 'state' => 'Azuay'],
+            'BIBLIAN' => ['postal_code' => '030105', 'city' => 'Biblián', 'canton' => 'Biblián', 'state' => 'Cañar'],
+            'SARAGURO' => ['postal_code' => '110205', 'city' => 'Saraguro', 'canton' => 'Saraguro', 'state' => 'Loja'],
         ];
 
         $addressText = strtoupper($enterprise->matrix_address ?? '');
-        $matched = collect($addressMap)->first(function ($_, $key) use ($addressText) {
-            return str_contains($addressText, $key);
-        });
+        $matched = collect($addressMap)->first(fn($_, $key) => str_contains($addressText, $key));
 
         if (!$matched) {
-            $matched = [
-                'postal_code' => '',
-                'city' => '',
-                'canton' => '',
-                'state' => '',
-            ];
+            $matched = $defaultAutofill; // Siempre ponemos CUENCA por defecto si no hay match
         }
 
         return response()->json([
