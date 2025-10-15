@@ -72,6 +72,7 @@ Route::middleware('auth')->group(function () {
             'CUENCA' => ['postal_code' => '010101', 'city' => 'Cuenca', 'canton' => 'Cuenca', 'state' => 'Azuay'],
             'BIBLIAN' => ['postal_code' => '030105', 'city' => 'Biblián', 'canton' => 'Biblián', 'state' => 'Cañar'],
             'SARAGURO' => ['postal_code' => '110205', 'city' => 'Saraguro', 'canton' => 'Saraguro', 'state' => 'Loja'],
+            'CAÑAR' => ['postal_code' => '030101', 'city' => 'Cañar', 'canton' => 'Cañar', 'state' => 'Cañar'],
         ];
 
         $addressText = strtoupper($enterprise->matrix_address ?? '');
