@@ -66,6 +66,7 @@ export default function PackageModal({
     const [serviceType, setServiceType] = useState<string>("PAQUETE");
     const [perfumeDesc, setPerfumeDesc] = useState<string>("");
     const [showAlert, setShowAlert] = useState(false);
+    const [showItemsAlert, setShowItemsAlert] = useState(false);
 
     useEffect(() => {
         if (!open) return;
@@ -176,12 +177,22 @@ export default function PackageModal({
         }
 
         // ✅ VALIDACIÓN DE V. DECLARADO
-        const hasInvalid = rows.some(
+        const hasInvalidDeclarado = rows.some(
             (r) => !r.declarado || parseFloat(r.declarado) <= 0
         );
 
-        if (hasInvalid) {
-            setShowAlert(true); // Mostrar modal de alerta
+        if (hasInvalidDeclarado) {
+            setShowAlert(true); // Mostrar modal de valor declarado
+            return;
+        }
+
+        // ✅ VALIDACIÓN DE ITEMS DECLARADO
+        const hasInvalidItems = rows.some(
+            (r) => !r.items_decl || parseFloat(r.items_decl) <= 0
+        );
+
+        if (hasInvalidItems) {
+            setShowItemsAlert(true); // Mostrar modal de items declarado
             return;
         }
 
@@ -510,6 +521,29 @@ export default function PackageModal({
                         <Button
                             className="mt-4 bg-red-500 hover:bg-red-600"
                             onClick={() => setShowAlert(false)}
+                        >
+                            Entendido
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+            {/* ⚠️ MODAL DE ALERTA ITEMS DECLARADO */}
+            <Dialog
+                open={showItemsAlert}
+                onOpenChange={() => setShowItemsAlert(false)}
+            >
+                <DialogContent className="max-w-sm bg-[#1e1e2f] text-white border border-red-500">
+                    <div className="flex flex-col items-center text-center">
+                        <AlertTriangle className="text-red-400 w-10 h-10 mb-2" />
+                        <DialogTitle className="text-lg font-bold text-red-400">
+                            Atención
+                        </DialogTitle>
+                        <p className="text-sm text-gray-300">
+                            El valor de ITEMS DECLARADO debe ser mayor a cero.
+                        </p>
+                        <Button
+                            className="mt-4 bg-red-500 hover:bg-red-600"
+                            onClick={() => setShowItemsAlert(false)}
                         >
                             Entendido
                         </Button>
