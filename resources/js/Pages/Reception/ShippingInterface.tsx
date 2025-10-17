@@ -348,7 +348,7 @@ export default function ShippingInterface({
 
     const today = new Date().toISOString().split("T")[0];
     const [receptionDate, setReceptionDate] = useState(today);
-    const [route, setRoute] = useState("ecu-us");
+    const [route, setRoute] = useState("ECUADOR - ESTADOS UNIDOS");
     // LLAMADA A API CUANDO SE CAMBIE LA AGENCIA Y GUARDAR LOS DATOS EN EL ESTADO
     const [agencyDest, setAgencyDest] = useState<string>("");
     const [agencyData, setAgencyData] = useState<any>(null);
@@ -1011,7 +1011,7 @@ export default function ShippingInterface({
                                 <SelectValue placeholder="ECUADOR - ESTADOS UNIDOS" />
                             </SelectTrigger>
                             <SelectContent className="bg-black border border-red-700 text-white">
-                                <SelectItem value="ecu-us">
+                                <SelectItem value="ECUADOR - ESTADOS UNIDOS">
                                     ECUADOR - ESTADOS UNIDOS
                                 </SelectItem>
                             </SelectContent>
@@ -2504,7 +2504,7 @@ export default function ShippingInterface({
                                 setPackageDiscount(0);
                                 setEfectivoRecibido(0);
                                 setReceptionDate(today);
-                                setRoute("ecu-us");
+                                setRoute("ECUADOR - ESTADOS UNIDOS");
                                 // 🧹 Agregar esto para limpiar el campo de Ag.destino
                                 setAgencyDest("");
                                 // Obtener el nuevo número de recepción

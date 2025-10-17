@@ -169,6 +169,11 @@ export default function SidebarNavigation() {
                         href: "/reports/acas-avianca-manifest",
                         icon: <FileSpreadsheet className="h-4 w-4" />,
                     },
+                    {
+                        title: "Reporte de Pesos por Agencia",
+                        href: "/reports/weights",
+                        icon: <FileSpreadsheet className="h-4 w-4" />,
+                    },
                 ],
             }
         );

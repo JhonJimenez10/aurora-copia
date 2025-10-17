@@ -22,7 +22,8 @@ use App\Http\Controllers\{
     RoleController,
     UserController,
     BulkImportController,
-    AgencyDestController
+    AgencyDestController,
+    WeightReportController
 };
 
 use App\Http\Middleware\EnsureSudo;
@@ -190,6 +191,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/reports/acas-avianca-manifest/export', [ReportController::class, 'acasAviancaManifestExport'])
         ->name('reports.acas.export');
     Route::resource('agencies_dest', AgencyDestController::class);
+    Route::get('/reports/weights', [WeightReportController::class, 'index'])->name('reports.weights');
+    Route::get('/reports/weights/export', [WeightReportController::class, 'export'])->name('reports.weights.export');
 });
 
 // -----------------------------
