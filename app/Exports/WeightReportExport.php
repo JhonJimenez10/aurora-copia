@@ -28,6 +28,7 @@ class WeightReportExport implements FromCollection, WithHeadings, WithStyles, Sh
         $weights = DB::table('receptions')
             ->join('agencies_dest', 'receptions.agency_dest', '=', 'agencies_dest.id')
             ->join('packages', 'receptions.id', '=', 'packages.reception_id')
+            ->join('enterprises', 'receptions.enterprise_id', '=', 'enterprises.id') // unir empresa
             ->select(
                 'receptions.agency_origin as agencia_origen',
                 DB::raw('SUM(packages.pounds) as total_libras'),
@@ -35,6 +36,12 @@ class WeightReportExport implements FromCollection, WithHeadings, WithStyles, Sh
                 DB::raw('STRING_AGG(DISTINCT receptions.route, \', \') as rutas') // PostgreSQL
             )
             ->where('receptions.annulled', 0)
+            ->where(function ($q) {
+                $q->where(function ($sub) {
+                    $sub->where('receptions.agency_origin', '<>', 'CUENCA')
+                        ->orWhere('enterprises.commercial_name', '<>', 'COAVPRO');
+                });
+            })
             ->when($this->startDate, fn($q) => $q->whereDate('receptions.date_time', '>=', $this->startDate))
             ->when($this->endDate, fn($q) => $q->whereDate('receptions.date_time', '<=', $this->endDate))
             ->groupBy('receptions.agency_origin')
@@ -67,6 +74,7 @@ class WeightReportExport implements FromCollection, WithHeadings, WithStyles, Sh
 
         return collect($rows);
     }
+
 
     public function headings(): array
     {

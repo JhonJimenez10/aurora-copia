@@ -19,18 +19,28 @@ class WeightReportController extends Controller
         $weights = DB::table('receptions')
             ->join('agencies_dest', 'receptions.agency_dest', '=', 'agencies_dest.id')
             ->join('packages', 'receptions.id', '=', 'packages.reception_id')
+            ->join('enterprises', 'receptions.enterprise_id', '=', 'enterprises.id') // unir la empresa
             ->select(
                 'receptions.agency_origin as agencia_origen',
                 DB::raw('SUM(packages.pounds) as total_libras'),
                 DB::raw('SUM(packages.kilograms) as total_kilos'),
-                DB::raw('STRING_AGG(DISTINCT receptions.route, \', \') as rutas') // lista de destinos si usas PostgreSQL
+                DB::raw('STRING_AGG(DISTINCT receptions.route, \', \') as rutas') // PostgreSQL
             )
             ->where('receptions.annulled', 0)
+            ->where(function ($q) {
+                // Excluir CUENCA solo si pertenece a COAVPRO
+                $q->where(function ($sub) {
+                    $sub->where('receptions.agency_origin', '<>', 'CUENCA')
+                        ->orWhere('enterprises.commercial_name', '<>', 'COAVPRO');
+                });
+            })
             ->when($startDate, fn($q) => $q->whereDate('receptions.date_time', '>=', $startDate))
             ->when($endDate, fn($q) => $q->whereDate('receptions.date_time', '<=', $endDate))
+
             ->groupBy('receptions.agency_origin')
             ->orderBy('receptions.agency_origin')
             ->get();
+
 
 
         return Inertia::render('Reports/WeightReport', [
