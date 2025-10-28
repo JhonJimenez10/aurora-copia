@@ -124,14 +124,26 @@ class ReportController extends Controller
     /** Reporte Facturación (igual a tu versión) */
     public function invoiceIndex(Request $request)
     {
-        $start = $request->input('start_date');
-        $end   = $request->input('end_date');
-        $enterpriseId = auth()->user()->enterprise_id ?? session('enterprise_id');
+        $start = $request->query('start_date');
+        $end   = $request->query('end_date');
+        $enterpriseId = $request->query('enterprise_id');
 
+        $enterprises = $this->getVisibleEnterprises();
         $rows = [];
 
-        if ($start && $end && $enterpriseId) {
-            $receptions = Reception::with(['recipient'])
+        if ($enterpriseId && $start && $end) {
+            if (!$this->canChooseAnyEnterprise()) {
+                $enterpriseId = auth()->user()->enterprise_id;
+            }
+
+            // Guardar filtros para exportación
+            session([
+                'reports.invoice.enterprise_id' => (int)$enterpriseId,
+                'reports.invoice.start_date'    => $start,
+                'reports.invoice.end_date'      => $end,
+            ]);
+
+            $receptions = \App\Models\Reception::with(['recipient'])
                 ->where('enterprise_id', $enterpriseId)
                 ->where('annulled', false)
                 ->whereDate('date_time', '>=', $start)
@@ -150,33 +162,45 @@ class ReportController extends Controller
         }
 
         return Inertia::render('Reports/InvoiceReport', [
-            'rows'      => $rows,
-            'startDate' => $start,
-            'endDate'   => $end,
+            'rows'         => $rows,
+            'enterprises'  => $enterprises,
+            'enterpriseId' => $enterpriseId,
+            'startDate'    => $start,
+            'endDate'      => $end,
         ]);
     }
 
     public function invoiceExport(Request $request)
     {
-        $request->validate([
+        $start = $request->query('start_date') ?? session('reports.invoice.start_date');
+        $end   = $request->query('end_date') ?? session('reports.invoice.end_date');
+
+        validator(['start_date' => $start, 'end_date' => $end], [
             'start_date' => ['required', 'date'],
             'end_date'   => ['required', 'date', 'after_or_equal:start_date'],
-        ]);
+        ])->validate();
 
-        $enterpriseId = auth()->user()->enterprise_id ?? session('enterprise_id');
-        abort_unless($enterpriseId, 403, 'Falta enterprise_id');
+        $enterpriseId = $request->query('enterprise_id')
+            ?? session('reports.invoice.enterprise_id')
+            ?? auth()->user()->enterprise_id;
 
-        $start = $request->input('start_date');
-        $end   = $request->input('end_date');
+        if (! $this->canChooseAnyEnterprise()) {
+            $enterpriseId = auth()->user()->enterprise_id;
+        }
 
         $fileName = sprintf(
-            'reporte_factura_%s_a_%s.xlsx',
-            Carbon::parse($start)->format('Ymd'),
-            Carbon::parse($end)->format('Ymd')
+            'reporte_facturacion_%s_%s_emp%s.xlsx',
+            \Carbon\Carbon::parse($start)->format('Ymd'),
+            \Carbon\Carbon::parse($end)->format('Ymd'),
+            $enterpriseId
         );
 
-        return Excel::download(new InvoiceReportExport($start, $end, $enterpriseId), $fileName);
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\InvoiceReportExport($start, $end, (string)$enterpriseId),
+            $fileName
+        );
     }
+
     public function ibcManifestIndex(Request $request)
     {
         $start = $request->query('start_date');
