@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/Components/ui/tabs";
 import {
     DropdownMenu,
@@ -13,18 +13,8 @@ import {
 
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
-import { Info } from "lucide-react";
-
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/Components/ui/select";
-import { Button } from "@/Components/ui/button";
-import { Card, CardContent } from "@/Components/ui/card";
-import {
+    Info,
     Search,
     Edit,
     FileText,
@@ -36,7 +26,18 @@ import {
     Plus,
     Minus,
     Trash2,
+    AlertTriangle,
 } from "lucide-react";
+
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/Components/ui/select";
+import { Button } from "@/Components/ui/button";
+import { Card, CardContent } from "@/Components/ui/card";
 import { Provider as TooltipProvider } from "@radix-ui/react-tooltip";
 import {
     Tooltip,
@@ -44,13 +45,13 @@ import {
     TooltipTrigger,
 } from "@/Components/ui/tooltip";
 
-// Importa los modales
+// Modales
 import SenderCreateModal from "./Components/SenderCreateModal";
 import SenderSearchModal from "./Components/SenderSearchModal";
 import RecipientCreateModal from "./Components/RecipientCreateModal";
 import RecipientSearchModal from "./Components/RecipientSearchModal";
 import PackageModal from "./Components/PackageModal";
-import { useEffect } from "react";
+
 import axios from "axios";
 import {
     Dialog,
@@ -61,7 +62,7 @@ import {
 } from "@/Components/ui/dialog";
 import { v4 as uuidv4 } from "uuid";
 import { usePage } from "@inertiajs/react";
-// ⏫  (después de los imports, antes del componente)
+
 const agencyAddressDefaults: Record<string, Partial<Person>> = {
     QUEENS: {
         postal_code: "11368",
@@ -95,19 +96,6 @@ interface Person {
     canton: string;
     state: string;
 }
-interface PackageItem {
-    id?: string; // ID generado para relacionar luego
-    art_package_id: string;
-    service_type: string;
-    content: string;
-    pounds: number;
-    kilograms: number;
-    total: number;
-    decl_val: number;
-    ins_val: number;
-    perfumeDesc?: string;
-    items: PackageItemDetail[];
-}
 
 interface PackageItemDetail {
     art_package_id: string;
@@ -129,12 +117,27 @@ interface PackageItemDetail {
     ins_val: number;
 }
 
+interface PackageItem {
+    id?: string; // ID generado para relacionar luego
+    art_package_id: string; // id principal de artículo del paquete (usamos el 1ro)
+    service_type: string;
+    content: string;
+    pounds: number;
+    kilograms: number;
+    total: number;
+    decl_val: number;
+    ins_val: number;
+    perfumeDesc?: string;
+    items: PackageItemDetail[];
+}
+
 interface AdditionalItem {
     quantity: number;
     unit: string;
     article: string;
     unit_price: number;
 }
+
 interface PackageRow {
     cantidad: string;
     unidad: string;
@@ -152,8 +155,8 @@ interface PackageRow {
     items_decl: string;
     declarado: string;
     arancel: string;
-    // asegurado: string; // Si no se usa, se puede eliminar
 }
+
 interface AgencyDest {
     id: string;
     name: string;
@@ -167,8 +170,9 @@ interface AgencyDest {
     available_us: boolean;
     value: number | null;
 }
+
 type ShippingInterfaceProps = {
-    initialData?: any; // Puedes usar un tipo más fuerte si quieres
+    initialData?: any;
     readOnly?: boolean;
 };
 
@@ -176,11 +180,11 @@ export default function ShippingInterface({
     initialData,
     readOnly = false,
 }: ShippingInterfaceProps) {
-    // Estados y variables para anular recepción
+    // Estados / anulación
     const receptionId = initialData?.id ?? null;
     const [annulled, setAnnulled] = useState<boolean>(!!initialData?.annulled);
     const [isAnnulling, setIsAnnulling] = useState(false);
-    // Función para anular recepción
+
     const handleAnnulReception = async () => {
         if (!receptionId) return;
         if (
@@ -192,12 +196,9 @@ export default function ShippingInterface({
         }
         try {
             setIsAnnulling(true);
-            // PATCH al backend (ruta que hicimos: receptions.annul)
             await axios.patch(`/receptions/${receptionId}/annul`);
             setAnnulled(true);
             alert("Recepción anulada correctamente.");
-            // Opcional: regresar al listado (Detalle Facturación)
-            // window.location.href = "/receptions";
         } catch (err: any) {
             const status = err?.response?.status;
             if (status === 409) {
@@ -214,15 +215,16 @@ export default function ShippingInterface({
         }
     };
 
-    //Boton y mostrar un loading
+    // Guardar recepción
     const [isSaving, setIsSaving] = useState(false);
 
     const [agencyOptions, setAgencyOptions] = useState<AgencyDest[]>([]);
-
     const { auth } = usePage().props as any;
     const enterpriseId = auth.user.enterprise_id;
+
     const [currentTab, setCurrentTab] = useState("sender");
-    // ⏬  dentro del componente:
+
+    // Defaults destinatario por agencia
     const [recipientDefaults, setRecipientDefaults] = useState<Partial<Person>>(
         {}
     );
@@ -236,7 +238,8 @@ export default function ShippingInterface({
                 });
         }
     }, [enterpriseId]);
-    // datos sender/recipient...
+
+    // Sender/Recipient
     const [sender, setSender] = useState<Person>({
         id: "",
         identification: "",
@@ -262,7 +265,7 @@ export default function ShippingInterface({
         state: "",
     });
 
-    // listas y estados de UI
+    // Paquetes
     const [packages, setPackages] = useState<PackageItem[]>(
         initialData?.packages || []
     );
@@ -274,12 +277,12 @@ export default function ShippingInterface({
         PackageRow[] | undefined
     >(undefined);
 
-    // para cálculo de totales
+    // Totales de paquetes
     const [packageDiscount, setPackageDiscount] = useState(0);
     const packageSubtotal = packages.reduce((acc, p) => acc + p.total, 0);
     const packageTotal = Math.max(0, packageSubtotal - packageDiscount);
 
-    // 🔹 Estado para los artículos de PAQUETES
+    // Artículos para PAQUETES (catálogo principal)
     const [artPackageOptions, setArtPackageOptions] = useState<
         {
             id: string;
@@ -290,7 +293,7 @@ export default function ShippingInterface({
         }[]
     >([]);
 
-    // 🔹 Estado para los artículos de ADICIONALES
+    // Artículos para ADICIONALES (si los usas en otra pestaña)
     const [artPackgOptions, setArtPackgOptions] = useState<
         {
             id: string;
@@ -299,7 +302,8 @@ export default function ShippingInterface({
             unit_type: string;
         }[]
     >([]);
-    // ✅ Cargar datos de la tabla art_packages → para PAQUETES
+
+    // Cargar catálogos
     useEffect(() => {
         fetch("/art_packages/list/json")
             .then((r) => r.json())
@@ -316,7 +320,6 @@ export default function ShippingInterface({
             .catch((err) => console.error("Error cargando art_packages:", err));
     }, []);
 
-    // ✅ Cargar datos de la tabla art_packgs → para ADICIONALES
     useEffect(() => {
         axios
             .get("/art_packgs/list/json")
@@ -324,39 +327,33 @@ export default function ShippingInterface({
             .catch((err) => console.error("Error cargando art_packgs:", err));
     }, []);
 
-    // otros estados (número, fecha, rutas, adicionales, pago...)
+    // Número, fecha, ruta, agencia, etc.
     const [receptionNumber, setReceptionNumber] = useState("000-001");
-    console.log("auth:", auth);
-    console.log("enterpriseId:", enterpriseId);
-    // justo después de recibir props
     const isEditMode = readOnly || !!initialData?.receptionNumber;
 
     useEffect(() => {
-        if (!enterpriseId || isEditMode) return; // 👈 no pedir número si estoy editando
-
+        if (!enterpriseId || isEditMode) return;
         axios
             .get(`/receptions/next-number?enterprise_id=${enterpriseId}`)
             .then((res) => {
-                if (isEditMode) return; // 👈 doble seguro: no sobrescribir si cambió el modo
+                if (isEditMode) return;
                 if (res.data.number) setReceptionNumber(res.data.number);
             })
             .catch((err) => {
                 console.error("Error al obtener el número de recepción:", err);
             });
     }, [enterpriseId, isEditMode]);
-    // 👈 añade `auth` para que se dispare en re-render
 
     const today = new Date().toISOString().split("T")[0];
     const [receptionDate, setReceptionDate] = useState(today);
     const [route, setRoute] = useState("ECUADOR - ESTADOS UNIDOS");
-    // LLAMADA A API CUANDO SE CAMBIE LA AGENCIA Y GUARDAR LOS DATOS EN EL ESTADO
+
+    // Agencia destino (y datos de la misma)
     const [agencyDest, setAgencyDest] = useState<string>("");
     const [agencyData, setAgencyData] = useState<any>(null);
     const handleAgencyChange = async (value: string) => {
         setAgencyDest(value);
-
         if (!value) return;
-
         try {
             const response = await fetch(`/api/agencies-dest/${value}`);
             const data = await response.json();
@@ -368,11 +365,14 @@ export default function ShippingInterface({
             );
         }
     };
+
+    // Adicionales
     const [additionals, setAdditionals] = useState<AdditionalItem[]>([
         { quantity: 0, unit: "", article: "", unit_price: 0 },
     ]);
     const [payMethod, setPayMethod] = useState<string>("EFECTIVO");
     const [efectivoRecibido, setEfectivoRecibido] = useState(0);
+
     useEffect(() => {
         if (initialData) {
             if (initialData.sender) setSender(initialData.sender);
@@ -391,19 +391,104 @@ export default function ShippingInterface({
         }
     }, [initialData]);
 
+    // Modales sender/recipient
     const [showSenderModal, setShowSenderModal] = useState(false);
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [showRecipientModal, setShowRecipientModal] = useState(false);
     const [showRecipientSearch, setShowRecipientSearch] = useState(false);
-    //facturas
+
+    // Factura
     const [invoiceId, setInvoiceId] = useState<string | null>(null);
-    // Para configurar el modal según el estado SRI
     const [modalTitle, setModalTitle] = useState("");
     const [modalTitleClass, setModalTitleClass] = useState("");
     const [modalMessage, setModalMessage] = useState("");
     const [modalLink, setModalLink] = useState("");
     const [modalType, setModalType] = useState<string | undefined>();
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [pdfUrl, setPdfUrl] = useState("");
 
+    // Atajos teclado
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (!event.altKey) return;
+
+            switch (currentTab) {
+                case "packages":
+                    if (event.key.toLowerCase() === "q") {
+                        event.preventDefault();
+                        if (packages.length > 0) {
+                            setPackages((prev) => prev.slice(0, -1));
+                        }
+                    }
+                    if (event.key.toLowerCase() === "a") {
+                        event.preventDefault();
+                        openNewPackageModal();
+                    }
+                    if (event.key.toLowerCase() === "m") {
+                        event.preventDefault();
+                        if (packages.length > 0) {
+                            openEditPackageModal(packages.length - 1);
+                        }
+                    }
+                    break;
+                case "sender":
+                    if (event.key.toLowerCase() === "a") {
+                        event.preventDefault();
+                        setShowSenderModal(true);
+                    }
+                    break;
+                case "recipient":
+                    if (event.key.toLowerCase() === "a") {
+                        event.preventDefault();
+                        if (!agencyDest) return;
+                        setRecipientDefaults(
+                            agencyAddressDefaults[agencyDest] ?? {}
+                        );
+                        setShowRecipientModal(true);
+                    }
+                    break;
+                case "additionals":
+                    if (event.key.toLowerCase() === "a") {
+                        event.preventDefault();
+                        addAdditional();
+                    }
+                    if (event.key.toLowerCase() === "q") {
+                        event.preventDefault();
+                        if (additionals.length > 0) {
+                            removeAdditional(additionals.length - 1);
+                        }
+                    }
+                    break;
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [currentTab, packages, additionals, agencyDest]);
+
+    // Helpers adicionales
+    const openAndPrint = (url: string) => {
+        const win = window.open(url, "_blank");
+        if (!win) {
+            alert("Pop-ups bloqueados. Habilítalos para imprimir.");
+            return;
+        }
+        win.onload = () => {
+            try {
+                win.focus();
+                win.print();
+            } catch {}
+        };
+    };
+
+    const printAllTickets = () => {
+        if (!receptionId) return;
+        openAndPrint(`/receptions/${receptionId}/all-package-tickets.pdf`);
+    };
+
+    const readOnlyProps = readOnly ? { readOnly: true } : {};
+
+    // --- ADICIONALES ---
     const addAdditional = () => {
         if (readOnly) return;
         setAdditionals((prev) => [
@@ -432,13 +517,12 @@ export default function ShippingInterface({
         setAdditionals(updated);
     };
 
-    // Función que abre el modal de búsqueda
+    // Buscar/crear sender/recipient
     const openSearchModal = () => {
         if (readOnly) return;
         setShowSearchModal(true);
     };
 
-    // Cuando se selecciona un sender en el modal de búsqueda
     const handleSenderSelect = (selectedSender: any) => {
         setSender({
             id: selectedSender.id || "",
@@ -454,7 +538,6 @@ export default function ShippingInterface({
         });
     };
 
-    // Cuando se crea un nuevo sender desde el modal de creación
     const handleSenderCreated = (senderData: any) => {
         setSender({
             id: senderData.id || "",
@@ -499,8 +582,8 @@ export default function ShippingInterface({
         });
     };
 
+    // Origen por empresa
     const [agencyOrigin, setAgencyOrigin] = useState("");
-
     useEffect(() => {
         const fetchEnterprise = async () => {
             try {
@@ -510,12 +593,141 @@ export default function ShippingInterface({
                 console.error("Error al obtener la ciudad de la empresa:", err);
             }
         };
-
         fetchEnterprise();
     }, []);
 
+    // ---------- RESTRICCIÓN: 1 SOLO PAQUETE ----------
+    const [showOnePackageAlert, setShowOnePackageAlert] = useState(false);
+
+    const openNewPackageModal = () => {
+        if (readOnly) return;
+        if (packages.length >= 1) {
+            setShowOnePackageAlert(true);
+            return;
+        }
+        setEditingPackageIndex(null);
+        setPackageRowsForEdit(undefined);
+        setShowPackageModal(true);
+    };
+
+    const openEditPackageModal = (idx: number) => {
+        if (readOnly) return;
+        const pkg = packages[idx];
+        // Si guardas filas por paquete, reconstruimos para editar:
+        const rows: PackageRow[] = pkg.items.map((item) => ({
+            cantidad: String(item.quantity),
+            unidad: item.unit,
+            articulo_id: item.art_package_id,
+            articulo:
+                artPackgOptions.find((a) => a.id === item.art_package_id)
+                    ?.name ||
+                item.name ||
+                "",
+            volumen: item.volume,
+            largo: String(item.length),
+            ancho: String(item.width),
+            altura: String(item.height),
+            peso: String(item.weight),
+            unitario: String(item.unit_price),
+            subtotal: (item.quantity * item.unit_price).toFixed(2),
+            descuento: "0",
+            total: item.total.toFixed(2),
+            items_decl: item.items_decl.toFixed(2),
+            declarado: item.decl_val.toFixed(2),
+            arancel: item.arancel.toFixed(2),
+        }));
+        setEditingPackageIndex(idx);
+        setPackageRowsForEdit(rows);
+        setShowPackageModal(true);
+    };
+
+    // GUARDAR o ACTUALIZAR PAQUETE DESDE EL MODAL (PackageItem COMPLETO)
+    const handleSavePackage = (
+        rows: PackageRow[],
+        serviceType: string,
+        perfumeDesc: string
+    ) => {
+        // Guard adicional: si estoy creando y ya hay 1, bloquear
+        if (editingPackageIndex === null && packages.length >= 1) {
+            setShowOnePackageAlert(true);
+            setShowPackageModal(false);
+            return;
+        }
+
+        const details: PackageItemDetail[] = rows.map((r) => ({
+            art_package_id: r.articulo_id,
+            name:
+                artPackgOptions.find((a) => a.id === r.articulo_id)?.name ||
+                r.articulo ||
+                "",
+            quantity: parseFloat(r.cantidad) || 0,
+            unit: r.unidad,
+            volume: r.volumen,
+            length: parseFloat(r.largo) || 0,
+            width: parseFloat(r.ancho) || 0,
+            height: parseFloat(r.altura) || 0,
+            weight: parseFloat(r.peso) || 0,
+            pounds: parseFloat(r.peso) || 0,
+            kilograms: (parseFloat(r.peso) || 0) * 0.453592,
+            unit_price: parseFloat(r.unitario) || 0,
+            total: parseFloat(r.total) || 0,
+            items_decl: parseFloat(r.items_decl) || 0,
+            decl_val: parseFloat(r.declarado) || 0,
+            arancel: parseFloat(r.arancel) || 0,
+            ins_val: 0, // si no se usa, queda 0
+        }));
+
+        // Contenido legible
+        const contenido = rows
+            .map((r) => {
+                const art = artPackgOptions.find((a) => a.id === r.articulo_id);
+                return (art?.name ?? r.articulo).trim();
+            })
+            .filter((name) => name.length > 0)
+            .join(" + ");
+
+        const totalLbs = details.reduce((a, x) => a + (x.pounds || 0), 0);
+        const totalTotal = details.reduce((a, x) => a + (x.total || 0), 0);
+        const totalDecl = details.reduce((a, x) => a + (x.decl_val || 0), 0);
+        const totalIns = details.reduce((a, x) => a + (x.ins_val || 0), 0);
+
+        const newPkg: PackageItem = {
+            id:
+                editingPackageIndex !== null
+                    ? packages[editingPackageIndex].id
+                    : uuidv4(),
+            art_package_id: rows[0]?.articulo_id || "", // tomamos el primero
+            service_type: serviceType || "PAQUETE",
+            content:
+                serviceType === "PERFUMERIA" && perfumeDesc?.trim()
+                    ? `${contenido}${
+                          contenido ? " — " : ""
+                      }${perfumeDesc.trim()}`
+                    : contenido,
+            pounds: totalLbs,
+            kilograms: totalLbs * 0.453592,
+            total: totalTotal,
+            decl_val: totalDecl,
+            ins_val: totalIns,
+            perfumeDesc: perfumeDesc,
+            items: details,
+        };
+
+        setPackages((prev) => {
+            if (editingPackageIndex !== null) {
+                const upd = [...prev];
+                upd[editingPackageIndex] = newPkg;
+                return upd;
+            }
+            return [...prev, newPkg];
+        });
+
+        setShowPackageModal(false);
+        setEditingPackageIndex(null);
+    };
+
+    // Guardar recepción (sin cambios salvo lógica previa tuya)
     const handleSaveReception = async () => {
-        // Cálculos globales
         const round = (num: number) => Math.round(num * 100) / 100;
 
         const totalAdditionals = additionals.reduce(
@@ -542,7 +754,6 @@ export default function ShippingInterface({
         const totalSeguroEnvio = totalPesoLbs * 0.1;
 
         let totalDesaduanizacion = 0;
-
         const algunPaqueteSobre = packages.some(
             (pkg) => pkg.service_type === "SOBRE"
         );
@@ -557,14 +768,12 @@ export default function ShippingInterface({
             totalDesaduanizacion = 12;
         }
 
-        // ✅ Calcular Aranceles
-        // ✅ Calcular Aranceles
+        // Aranceles
         const totalAranceles = packages.reduce((accPkg, pkg) => {
             const arancelesPkg = pkg.items.reduce((accItem, item) => {
                 const itemsDecl = Number(item.items_decl) || 0;
                 const declarado = Number(item.decl_val) || 0;
                 const arancel = Number(item.arancel) || 0; // porcentaje
-
                 return accItem + itemsDecl * declarado * (arancel / 100);
             }, 0);
             return accPkg + arancelesPkg;
@@ -598,7 +807,6 @@ export default function ShippingInterface({
             );
             return;
         }
-
         if (!sender.id) {
             alert("Debe seleccionar un remitente.");
             return;
@@ -616,7 +824,6 @@ export default function ShippingInterface({
             return;
         }
 
-        // 2) preparar payload
         const payload = {
             number: receptionNumber,
             route,
@@ -642,22 +849,18 @@ export default function ShippingInterface({
             packages,
             additionals,
         };
-        if (isSaving) return; // Evitar múltiples clics si ya está guardando
+
+        if (isSaving) return;
         setIsSaving(true);
         try {
-            // 3) Guardar recepción
             const receptionRes = await axios.post("/receptions", payload);
-            const receptionId = receptionRes.data.id;
+            const recId = receptionRes.data.id;
 
-            // 4) Generar factura (sin autorización ni firma)
-            const invoiceRes = await axios.post(
-                `/receptions/${receptionId}/invoice`
-            );
+            const invoiceRes = await axios.post(`/receptions/${recId}/invoice`);
             const { invoice_id, invoice_number, xml_path } = invoiceRes.data;
 
             setInvoiceId(invoice_id);
 
-            // 5) Descargar XML
             try {
                 const xmlRes = await axios.get(
                     `/invoices/${invoice_id}/xml-download`,
@@ -679,11 +882,9 @@ export default function ShippingInterface({
                 alert("No se pudo descargar el XML de la factura.");
             }
 
-            // 6) Generar PDF de tickets
-            setPdfUrl(`/receptions/${receptionId}/all-package-tickets.pdf`);
+            setPdfUrl(`/receptions/${recId}/all-package-tickets.pdf`);
 
-            // 7) Mostrar modal de éxito
-            setModalType(undefined); // Ya no hay 'autorizado' ni 'rechazado'
+            setModalType(undefined);
             setModalTitleClass("text-green-400");
             setModalTitle("Factura generada correctamente");
             setModalMessage(
@@ -692,226 +893,13 @@ export default function ShippingInterface({
             setModalLink(xml_path);
             setShowSuccessModal(true);
         } catch (err: any) {
-            console.error("❌ Error completo:", err); // Agregado
+            console.error("❌ Error completo:", err);
             console.error("❌ Error al procesar:", err.response?.data || err);
             alert("Ocurrió un error al procesar la recepción o la factura.");
         } finally {
-            setIsSaving(false); // ✅ Siempre volver a habilitar el botón
+            setIsSaving(false);
         }
     };
-
-    // ABRIR MODAL NUEVO PAQUETE
-    const openNewPackageModal = () => {
-        if (readOnly) return;
-        setEditingPackageIndex(null);
-        setPackageRowsForEdit(undefined);
-        setShowPackageModal(true);
-    };
-
-    // ABRIR MODAL EDICIÓN DE PAQUETE
-    const openEditPackageModal = (idx: number) => {
-        const pkg = packages[idx];
-        // items siempre definido
-        const rows: PackageRow[] = pkg.items.map((item) => ({
-            cantidad: String(item.quantity),
-            unidad: item.unit,
-            articulo_id: item.art_package_id,
-            articulo:
-                artPackgOptions.find((a) => a.id === item.art_package_id)
-                    ?.name ||
-                item.name ||
-                "",
-            volumen: item.volume,
-            largo: String(item.length),
-            ancho: String(item.width),
-            altura: String(item.height),
-            peso: String(item.weight),
-            unitario: String(item.unit_price),
-            subtotal: (item.quantity * item.unit_price).toFixed(2),
-            descuento: "0",
-            total: item.total.toFixed(2),
-            items_decl: item.items_decl.toFixed(2),
-            declarado: item.decl_val.toFixed(2),
-            arancel: item.arancel.toFixed(2),
-            //asegurado: item.ins_val.toFixed(2), // Si no se usa, se puede eliminar
-        }));
-        setEditingPackageIndex(idx);
-        setPackageRowsForEdit(rows);
-        setShowPackageModal(true);
-    };
-
-    // GUARDAR o ACTUALIZAR PAQUETE DESDE EL MODAL
-    // … dentro de ShippingInterface.tsx …
-
-    const handleSavePackage = (
-        rows: PackageRow[],
-        serviceType: string,
-        perfumeDesc: string
-    ) => {
-        // construyo el detalle igual que antes
-        const details: PackageItemDetail[] = rows.map((r) => ({
-            art_package_id: r.articulo_id,
-            name: r.articulo,
-            quantity: parseFloat(r.cantidad),
-            unit: r.unidad,
-            volume: r.volumen,
-            length: parseFloat(r.largo),
-            width: parseFloat(r.ancho),
-            height: parseFloat(r.altura),
-            weight: parseFloat(r.peso),
-            pounds: parseFloat(r.peso),
-            kilograms: parseFloat(r.peso) * 0.453592,
-            unit_price: parseFloat(r.unitario),
-            total: parseFloat(r.total),
-            items_decl: parseFloat(r.items_decl) || 0, // 👈 forzado a number
-            decl_val: parseFloat(r.declarado) || 0, // 👈 forzado a number
-            arancel: parseFloat(r.arancel) || 0,
-            ins_val: 0,
-            // ins_val: parseFloat(r.asegurado), // Si no se usa, se puede eliminar
-        }));
-
-        // aquí el único cambio: usar directamente r.articulo
-        // reconstruyo el nombre del artículo a partir de artPackgOptions
-        // dentro de handleSavePackage, sustituye tu contenido por esto:
-        const contenido = rows
-            .map((r) => {
-                // intento sacar el nombre del catálogo; si no existe, uso el nombre que ya estaba en la fila:
-                const art = artPackgOptions.find((a) => a.id === r.articulo_id);
-                return art?.name ?? r.articulo;
-            })
-            .filter((name) => name.trim().length > 0)
-            .join(" + ");
-
-        const totalLbs = details.reduce((a, x) => a + x.pounds, 0);
-        const totalTotal = details.reduce((a, x) => a + x.total, 0);
-        const totalDecl = details.reduce((a, x) => a + x.decl_val, 0);
-        const totalIns = details.reduce((a, x) => a + x.ins_val, 0);
-
-        const newPkg: PackageItem = {
-            id:
-                editingPackageIndex !== null
-                    ? packages[editingPackageIndex].id
-                    : uuidv4(),
-            art_package_id: rows[0].articulo_id,
-            service_type: serviceType,
-            content: contenido, // ← aquí ya tienes lo que viste en el modal
-            pounds: totalLbs,
-            kilograms: totalLbs * 0.453592,
-            total: totalTotal,
-            decl_val: totalDecl,
-            ins_val: totalIns,
-            perfumeDesc: perfumeDesc,
-            items: details,
-        };
-
-        setPackages((prev) => {
-            if (editingPackageIndex !== null) {
-                const upd = [...prev];
-                upd[editingPackageIndex] = newPkg;
-                return upd;
-            }
-            return [...prev, newPkg];
-        });
-
-        setShowPackageModal(false);
-        setEditingPackageIndex(null);
-    };
-
-    // Nuevo estado para modal y PDF
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [pdfUrl, setPdfUrl] = useState("");
-    // Effect para atajos en teclado de eliminar, crear y editar por secciones de apartdos.
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (!event.altKey) return;
-
-            switch (currentTab) {
-                case "packages":
-                    if (event.key.toLowerCase() === "q") {
-                        event.preventDefault();
-                        if (packages.length > 0) {
-                            setPackages((prev) => prev.slice(0, -1)); // Elimina el último paquete
-                        }
-                    }
-                    if (event.key.toLowerCase() === "a") {
-                        event.preventDefault();
-                        setEditingPackageIndex(null);
-                        setPackageRowsForEdit(undefined);
-                        setShowPackageModal(true); // Abre modal para agregar paquete
-                    }
-                    if (event.key.toLowerCase() === "m") {
-                        event.preventDefault();
-                        if (packages.length > 0) {
-                            openEditPackageModal(packages.length - 1); // Edita el último paquete
-                        }
-                    }
-                    break;
-
-                case "sender":
-                    if (event.key.toLowerCase() === "a") {
-                        event.preventDefault();
-                        setShowSenderModal(true); // Abre modal para agregar remitente
-                    }
-                    break;
-
-                case "recipient":
-                    if (event.key.toLowerCase() === "a") {
-                        event.preventDefault();
-                        if (!agencyDest) return;
-                        setRecipientDefaults(
-                            agencyAddressDefaults[agencyDest] ?? {}
-                        );
-                        setShowRecipientModal(true); // Abre modal para agregar destinatario
-                    }
-                    break;
-
-                case "additionals":
-                    if (event.key.toLowerCase() === "a") {
-                        event.preventDefault();
-                        addAdditional(); // Agrega adicional
-                    }
-                    if (event.key.toLowerCase() === "q") {
-                        event.preventDefault();
-                        if (additionals.length > 0) {
-                            removeAdditional(additionals.length - 1); // Elimina el último adicional
-                        }
-                    }
-                    break;
-
-                default:
-                    break;
-            }
-        };
-
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [currentTab, packages, additionals, agencyDest]);
-    // Función para editar solo lectura en todos los inputs
-    // Abre una URL y, si es posible, dispara print() del visor
-    const openAndPrint = (url: string) => {
-        const win = window.open(url, "_blank");
-        if (!win) {
-            alert("Pop-ups bloqueados. Habilítalos para imprimir.");
-            return;
-        }
-        // Algunos visores PDF no disparan onload, pero cuando lo hacen, imprime.
-        win.onload = () => {
-            try {
-                win.focus();
-                win.print();
-            } catch {
-                // Si no se puede llamar print(), igual dejamos el PDF abierto.
-            }
-        };
-    };
-
-    // Imprimir todos los tickets de la recepción
-    const printAllTickets = () => {
-        if (!receptionId) return;
-        openAndPrint(`/receptions/${receptionId}/all-package-tickets.pdf`);
-    };
-
-    const readOnlyProps = readOnly ? { readOnly: true } : {};
     return (
         <div className="max-w-6xl mx-auto p-4 bg-black text-white border border-red-700 rounded-xl shadow-xl text-xs">
             <TooltipProvider>
@@ -1644,12 +1632,22 @@ export default function ShippingInterface({
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 <p className="text-[10px]">
-                                                    Agregar paquete
+                                                    {packages.length >= 1
+                                                        ? "Solo se permite 1 paquete por factura"
+                                                        : "Agregar paquete"}
                                                 </p>
                                             </TooltipContent>
                                         </Tooltip>
                                     </div>
                                 </div>
+
+                                {packages.length >= 1 && (
+                                    <div className="mb-1 text-[11px] text-yellow-300">
+                                        Nota: Solo se permite 1 paquete por
+                                        factura. Para añadir más artículos,
+                                        edita el paquete existente.
+                                    </div>
+                                )}
 
                                 <div className="overflow-auto border rounded border-red-700">
                                     <table className="min-w-full text-xs text-left border-collapse">
@@ -1937,6 +1935,24 @@ export default function ShippingInterface({
                                                                         unit:
                                                                             selected.unit_type ??
                                                                             "",
+                                                                        // ⬇️ Si la cantidad está en 0 o vacía, súbela a 1
+                                                                        quantity:
+                                                                            !updated[
+                                                                                index
+                                                                            ]
+                                                                                .quantity ||
+                                                                            Number(
+                                                                                updated[
+                                                                                    index
+                                                                                ]
+                                                                                    .quantity
+                                                                            ) <=
+                                                                                0
+                                                                                ? 1
+                                                                                : updated[
+                                                                                      index
+                                                                                  ]
+                                                                                      .quantity,
                                                                     };
                                                                     setAdditionals(
                                                                         updated
