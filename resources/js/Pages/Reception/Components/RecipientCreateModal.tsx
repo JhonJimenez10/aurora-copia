@@ -229,6 +229,7 @@ export default function RecipientCreateModal({
                                 Apellidos y nombres
                             </Label>
                             <Input
+                                required
                                 className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                 value={data.full_name}
                                 onChange={(e) =>
@@ -243,21 +244,23 @@ export default function RecipientCreateModal({
                         </div>
 
                         {/* País */}
+                        {/* País (nativo, requerido) */}
                         <div>
                             <Label className="text-sm">País</Label>
-                            <Select
+                            <select
+                                required
+                                className="text-sm w-full bg-[#2a2a3d] text-white border border-gray-600 rounded-md h-9 px-3"
                                 value={data.country}
-                                onValueChange={(val) => setData("country", val)}
+                                onChange={(e) =>
+                                    setData("country", e.target.value)
+                                }
                             >
-                                <SelectTrigger className="text-sm w-full bg-[#2a2a3d] text-white border border-gray-600">
-                                    <SelectValue placeholder="Seleccionar país" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-[#2a2a3d] text-white">
-                                    <SelectItem value="ESTADOS UNIDOS">
-                                        ESTADOS UNIDOS
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                                <option value="">Seleccionar país</option>
+                                <option value="ESTADOS UNIDOS">
+                                    ESTADOS UNIDOS
+                                </option>
+                                {/* agrega más si quieres */}
+                            </select>
                             {errors.country && (
                                 <p className="text-red-500 text-xs">
                                     {errors.country}
@@ -269,6 +272,7 @@ export default function RecipientCreateModal({
                         <div className="md:col-span-2">
                             <Label className="text-sm">Dirección</Label>
                             <Input
+                                required
                                 className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                 value={data.address}
                                 onChange={(e) =>
@@ -287,6 +291,7 @@ export default function RecipientCreateModal({
                             <div className="flex-1">
                                 <Label className="text-sm">Celular</Label>
                                 <Input
+                                    required
                                     className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                     value={data.phone}
                                     onChange={(e) =>
@@ -319,6 +324,7 @@ export default function RecipientCreateModal({
                             </Label>
                             <div className="flex items-center gap-2">
                                 <Input
+                                    required
                                     type="email"
                                     className="text-sm bg-[#2a2a3d] text-white border border-gray-600 flex-1"
                                     value={data.email}
@@ -365,6 +371,7 @@ export default function RecipientCreateModal({
                         <div>
                             <Label className="text-sm">Código Postal</Label>
                             <Input
+                                required
                                 className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                 value={data.postal_code}
                                 onChange={(e) =>
@@ -378,6 +385,7 @@ export default function RecipientCreateModal({
                         <div>
                             <Label className="text-sm">Parroquia / City</Label>
                             <Input
+                                required
                                 className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                 value={data.city}
                                 onChange={(e) =>
@@ -391,6 +399,7 @@ export default function RecipientCreateModal({
                         <div>
                             <Label className="text-sm">Cantón / Country</Label>
                             <Input
+                                required
                                 className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                 value={data.canton}
                                 onChange={(e) =>
@@ -404,6 +413,7 @@ export default function RecipientCreateModal({
                         <div>
                             <Label className="text-sm">Provincia / State</Label>
                             <Input
+                                required
                                 className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                 value={data.state}
                                 onChange={(e) =>

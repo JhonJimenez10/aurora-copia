@@ -187,6 +187,7 @@ export default function SenderCreateModal({
                         <div>
                             <Label className="text-sm">Identificación</Label>
                             <Input
+                                required
                                 className={`text-sm bg-[#2a2a3d] text-white border ${
                                     errors.identification
                                         ? "border-red-500"
@@ -211,6 +212,7 @@ export default function SenderCreateModal({
                                 Apellidos y nombres
                             </Label>
                             <Input
+                                required
                                 className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                 value={data.full_name}
                                 onChange={(e) =>
@@ -227,19 +229,18 @@ export default function SenderCreateModal({
                         {/* Country */}
                         <div>
                             <Label className="text-sm">País</Label>
-                            <Select
+                            <select
+                                required
+                                className="text-sm w-full bg-[#2a2a3d] text-white border border-gray-600 rounded-md h-9 px-3"
                                 value={data.country}
-                                onValueChange={(val) => setData("country", val)}
+                                onChange={(e) =>
+                                    setData("country", e.target.value)
+                                }
                             >
-                                <SelectTrigger className="text-sm w-full bg-[#2a2a3d] text-white border border-gray-600">
-                                    <SelectValue placeholder="Select Country" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-[#2a2a3d] text-white">
-                                    <SelectItem value="ECUADOR">
-                                        ECUADOR
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                                <option value="">Seleccionar país</option>
+                                <option value="ECUADOR">ECUADOR</option>
+                                {/* agrega más si quieres */}
+                            </select>
                             {errors.country && (
                                 <p className="text-red-500 text-xs">
                                     {errors.country}
@@ -251,6 +252,7 @@ export default function SenderCreateModal({
                         <div className="md:col-span-2">
                             <Label className="text-sm">Dirección</Label>
                             <Input
+                                required
                                 className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                 value={data.address}
                                 onChange={(e) =>
@@ -269,6 +271,7 @@ export default function SenderCreateModal({
                             <div className="flex-1">
                                 <Label className="text-sm">Celular</Label>
                                 <Input
+                                    required
                                     className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                     value={data.phone}
                                     onChange={(e) =>
@@ -301,6 +304,7 @@ export default function SenderCreateModal({
                             </Label>
                             <div className="flex items-center gap-2">
                                 <Input
+                                    required
                                     type="email"
                                     className="text-sm bg-[#2a2a3d] text-white border border-gray-600 flex-1"
                                     value={data.email}
