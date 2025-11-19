@@ -23,7 +23,8 @@ use App\Http\Controllers\{
     UserController,
     BulkImportController,
     AgencyDestController,
-    WeightReportController
+    WeightReportController,
+    TransferController
 };
 
 use App\Http\Middleware\EnsureSudo;
@@ -160,6 +161,8 @@ Route::middleware(['auth'])->group(function () {
 // RUTAS PARA ADMIN Y SUDO
 // -----------------------------
 Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/transfers/create', [TransferController::class, 'create'])
+        ->name('transfers.create');
     Route::resource('senders', SenderController::class);
     Route::resource('recipients', RecipientController::class);
 

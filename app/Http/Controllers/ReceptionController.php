@@ -15,6 +15,7 @@ use Inertia\Inertia;
 use Illuminate\Support\Str;
 use Milon\Barcode\Facades\DNS1DFacade;
 use App\Models\AgencyDest;
+use Illuminate\Validation\Rule;
 
 class ReceptionController extends Controller
 {
@@ -67,17 +68,21 @@ class ReceptionController extends Controller
                 return response()->json(['error' => 'No se especificó una empresa válida.'], 400);
             }
 
+            // 🔹 1) Buscar la recepción con el MAYOR number (no la última creada)
             $lastReception = Reception::where('enterprise_id', $enterpriseId)
-                ->orderByDesc('created_at')
+                ->where('number', 'like', '%-%-%')   // aseguramos formato con 3 partes
+                ->orderByDesc('number')              // 👈 AQUÍ el cambio importante
                 ->first();
 
             $nextSequential = 1;
 
+            // 🔹 2) Extraer la parte numérica final y sumar 1
             if ($lastReception && preg_match('/\d{3}-\d{3}-(\d{9})/', $lastReception->number, $matches)) {
                 $lastSeq = (int) $matches[1];
                 $nextSequential = $lastSeq + 1;
             }
 
+            // 🔹 3) Siempre usamos el mismo prefijo por ahora: 001-001
             $formattedNumber = sprintf('001-001-%09d', $nextSequential);
 
             return response()->json(['number' => $formattedNumber]);
@@ -92,6 +97,8 @@ class ReceptionController extends Controller
 
 
 
+
+
     public function store(Request $request)
     {
         try {
@@ -100,10 +107,17 @@ class ReceptionController extends Controller
                     'error' => 'Usuario no tiene empresa asignada o no está autenticado.'
                 ], 400);
             }
+            $enterpriseId = auth()->user()->enterprise_id;
 
             $validated = $request->validate([
                 // Campos de la recepción
-                'number'        => 'required|string|max:20',
+                'number' => [
+                    'required',
+                    'string',
+                    'max:20',
+                    Rule::unique('receptions')
+                        ->where(fn($query) => $query->where('enterprise_id', $enterpriseId)),
+                ],
                 'route'         => 'required|string|max:255',
                 'date_time'     => 'required|date',
                 'agency_origin' => 'required|string|max:100',

@@ -20,6 +20,8 @@ import {
     ClipboardList,
     FileSpreadsheet,
     FileSearch,
+    CheckCircle2,
+    ArrowLeftRight,
 } from "lucide-react";
 
 import { Button } from "@/Components/ui/button";
@@ -173,6 +175,30 @@ export default function SidebarNavigation() {
                         title: "Reporte de Pesos por Agencia",
                         href: "/reports/weights",
                         icon: <FileSpreadsheet className="h-4 w-4" />,
+                    },
+                ],
+            },
+            // 🔁 NUEVO MÓDULO: TRASLADOS
+            {
+                title: "Traslados",
+                icon: <ArrowLeftRight className="h-5 w-5" />,
+                children: [
+                    {
+                        title: "Elaborar traslado",
+                        href: "/transfers/create",
+                        icon: <ClipboardList className="h-4 w-4" />,
+                    },
+                ],
+            },
+            // ✅ NUEVO MÓDULO: CLASIFICACIÓN
+            {
+                title: "Clasificación",
+                icon: <CheckCircle2 className="h-5 w-5" />,
+                children: [
+                    {
+                        title: "Confirmar llegada traslado",
+                        href: "/classification/transfers/confirm",
+                        icon: <PackageCheck className="h-4 w-4" />,
                     },
                 ],
             }
