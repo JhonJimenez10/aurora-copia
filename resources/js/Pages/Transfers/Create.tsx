@@ -1,6 +1,6 @@
-import { Head } from "@inertiajs/react";
+import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { PageProps } from "@/types";
+import type { PageProps } from "@/types";
 import { Button } from "@/Components/ui/button";
 import {
     Search,
@@ -11,11 +11,20 @@ import {
     X,
     ChevronRight,
     ChevronLeft,
+    ChevronUp,
+    ChevronDown,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { cn } from "@/lib/utils";
 
-type Props = PageProps<{}>;
+/** ---------------------
+ * Tipos generales
+ * --------------------- */
+type TransfersPageProps = PageProps<{
+    countries: string[];
+    agencies: string[];
+}>;
 
 type ModalProps = {
     title: string;
@@ -26,10 +35,9 @@ type ModalProps = {
 
 function Modal({ title, isOpen, onClose, children }: ModalProps) {
     if (!isOpen) return null;
-
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-            <div className="bg-black border border-red-700 rounded-lg w-full max-w-5xl shadow-lg">
+            <div className="bg-black border border-red-700 rounded-lg w-full max-w-6xl shadow-lg">
                 <div className="flex items-center justify-between px-6 py-3 border-b border-red-700">
                     <h2 className="text-lg font-semibold text-white">
                         {title}
@@ -50,9 +58,9 @@ function Modal({ title, isOpen, onClose, children }: ModalProps) {
     );
 }
 
-// ---------------------
-// Tipos para sacas y paquetes
-// ---------------------
+/** ---------------------
+ * Tipos para sacas y paquetes
+ * --------------------- */
 type SackPackage = {
     id: string;
     code: string;
@@ -63,41 +71,12 @@ type SackPackage = {
 };
 
 type Sack = {
-    number: number; // No. saca
+    number: number;
     refrigerated: boolean;
     seal: string;
     packages: SackPackage[];
 };
 
-// Datos de ejemplo (luego vendrán del backend)
-const mockPackages: SackPackage[] = [
-    {
-        id: "1",
-        code: "AZCU44300.1",
-        content: "3.7 LBS. PONCHOS O CHALINAS",
-        serviceType: "PAQUETE",
-        pounds: 3.7,
-        kilograms: 1.68,
-    },
-    {
-        id: "2",
-        code: "AZCU44601.1",
-        content: "1 LBS. ZAPATOS",
-        serviceType: "PAQUETE",
-        pounds: 1.0,
-        kilograms: 0.45,
-    },
-    {
-        id: "3",
-        code: "AZCU44991.1",
-        content: "2.5 LBS. PERFUMES POR LIBRAS",
-        serviceType: "PERFUMERIA",
-        pounds: 2.5,
-        kilograms: 1.13,
-    },
-];
-
-// Helper para totales
 function calculateTotals(packages: SackPackage[]) {
     const pieces = packages.length;
     const pounds = packages.reduce((sum, p) => sum + p.pounds, 0);
@@ -105,35 +84,92 @@ function calculateTotals(packages: SackPackage[]) {
     return { pieces, pounds, kilograms };
 }
 
-// ---------------------
-// Modal SACAS TRASLADO
-// ---------------------
+/** ---------------------
+ * Tipos búsqueda de traslados
+ * --------------------- */
+type TransferSearchFilters = {
+    startDate: string;
+    endDate: string;
+    country: string;
+    fromCity: string; // "[TODOS]" para todos
+    toCity: string;
+    onlyPending: boolean;
+};
+
+type TransferSearchResult = {
+    id: number | string;
+    number: string;
+    country: string;
+    from_city: string;
+    to_city: string;
+};
+
+/** ---------------------
+ * MODAL: CREAR SACA (ya existente)
+ * --------------------- */
 type SackModalProps = {
     isOpen: boolean;
     onClose: () => void;
     sackNumber: number;
     onSave: (sack: Sack) => void;
+    fromCity?: string;
 };
 
-function SackModal({ isOpen, onClose, sackNumber, onSave }: SackModalProps) {
+function SackModal({
+    isOpen,
+    onClose,
+    sackNumber,
+    onSave,
+    fromCity,
+}: SackModalProps) {
     const [emittedPkgs, setEmittedPkgs] = useState<SackPackage[]>([]);
     const [sackPkgs, setSackPkgs] = useState<SackPackage[]>([]);
     const [selectedLeftId, setSelectedLeftId] = useState<string | null>(null);
     const [selectedRightId, setSelectedRightId] = useState<string | null>(null);
     const [seal, setSeal] = useState("");
     const [refrigerated, setRefrigerated] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (isOpen) {
-            // Cuando se abre el modal reiniciamos estados
-            setEmittedPkgs(mockPackages);
+        const load = async () => {
+            if (!isOpen) return;
+
+            setEmittedPkgs([]);
             setSackPkgs([]);
             setSelectedLeftId(null);
             setSelectedRightId(null);
             setSeal("");
             setRefrigerated(false);
-        }
-    }, [isOpen]);
+            setLoadError(null);
+
+            if (!fromCity) {
+                setLoadError(
+                    "Selecciona primero el 'Trasladar de' en el documento para listar paquetes."
+                );
+                return;
+            }
+
+            setLoading(true);
+            try {
+                const res = await fetch(
+                    `/api/transfers/available-packages?from_city=${encodeURIComponent(
+                        fromCity
+                    )}`
+                );
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data: SackPackage[] = await res.json();
+                setEmittedPkgs(data);
+            } catch {
+                setLoadError(
+                    "No se pudieron cargar los paquetes disponibles. Intenta nuevamente."
+                );
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
+    }, [isOpen, fromCity]);
 
     const moveRight = () => {
         if (!selectedLeftId) return;
@@ -153,11 +189,17 @@ function SackModal({ isOpen, onClose, sackNumber, onSave }: SackModalProps) {
         setSelectedRightId(null);
     };
 
-    const totalsLeft = calculateTotals(emittedPkgs);
-    const totalsRight = calculateTotals(sackPkgs);
+    const totalsLeft = useMemo(
+        () => calculateTotals(emittedPkgs),
+        [emittedPkgs]
+    );
+    const totalsRight = useMemo(() => calculateTotals(sackPkgs), [sackPkgs]);
 
     const handleSaveSack = () => {
-        // Más adelante aquí podemos validar que tenga al menos 1 paquete
+        if (!sackPkgs.length) {
+            alert("Agrega al menos un paquete a la saca.");
+            return;
+        }
         const sack: Sack = {
             number: sackNumber,
             refrigerated,
@@ -177,8 +219,12 @@ function SackModal({ isOpen, onClose, sackNumber, onSave }: SackModalProps) {
                 </span>
             </div>
 
+            {loadError && (
+                <div className="mb-3 text-sm text-red-400">{loadError}</div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-[1.5fr_auto_1.5fr] gap-4">
-                {/* Lista izquierda: paquetes emitidos */}
+                {/* Izquierda: emitidos */}
                 <div>
                     <h3 className="text-sm text-gray-300 mb-2">
                         Buscar paquetes emitidos
@@ -199,30 +245,40 @@ function SackModal({ isOpen, onClose, sackNumber, onSave }: SackModalProps) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {emittedPkgs.map((pkg) => (
-                                    <tr
-                                        key={pkg.id}
-                                        onClick={() =>
-                                            setSelectedLeftId(pkg.id)
-                                        }
-                                        className={cn(
-                                            "border-t border-red-700 cursor-pointer hover:bg-[#1b1b1b]",
-                                            selectedLeftId === pkg.id &&
-                                                "bg-red-900/60"
-                                        )}
-                                    >
-                                        <td className="px-3 py-1">
-                                            {pkg.code}
-                                        </td>
-                                        <td className="px-3 py-1">
-                                            {pkg.content}
-                                        </td>
-                                        <td className="px-3 py-1">
-                                            {pkg.serviceType}
+                                {loading ? (
+                                    <tr>
+                                        <td
+                                            colSpan={3}
+                                            className="text-center py-3 text-gray-300 italic"
+                                        >
+                                            Cargando paquetes...
                                         </td>
                                     </tr>
-                                ))}
-                                {!emittedPkgs.length && (
+                                ) : emittedPkgs.length ? (
+                                    emittedPkgs.map((pkg) => (
+                                        <tr
+                                            key={pkg.id}
+                                            onClick={() =>
+                                                setSelectedLeftId(pkg.id)
+                                            }
+                                            className={cn(
+                                                "border-t border-red-700 cursor-pointer hover:bg-[#1b1b1b]",
+                                                selectedLeftId === pkg.id &&
+                                                    "bg-red-900/60"
+                                            )}
+                                        >
+                                            <td className="px-3 py-1">
+                                                {pkg.code}
+                                            </td>
+                                            <td className="px-3 py-1">
+                                                {pkg.content}
+                                            </td>
+                                            <td className="px-3 py-1">
+                                                {pkg.serviceType}
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
                                     <tr>
                                         <td
                                             colSpan={3}
@@ -235,7 +291,6 @@ function SackModal({ isOpen, onClose, sackNumber, onSave }: SackModalProps) {
                             </tbody>
                         </table>
                     </div>
-                    {/* Totales izquierda */}
                     <div className="mt-2 text-xs text-gray-300 flex justify-between">
                         <span>
                             PAQUETES:{" "}
@@ -258,7 +313,7 @@ function SackModal({ isOpen, onClose, sackNumber, onSave }: SackModalProps) {
                     </div>
                 </div>
 
-                {/* Botones de flechas */}
+                {/* Flechas */}
                 <div className="flex flex-col items-center justify-center gap-3">
                     <Button
                         type="button"
@@ -280,7 +335,7 @@ function SackModal({ isOpen, onClose, sackNumber, onSave }: SackModalProps) {
                     </Button>
                 </div>
 
-                {/* Lista derecha: paquetes de la saca */}
+                {/* Derecha: en saca */}
                 <div>
                     <h3 className="text-sm text-gray-300 mb-2">
                         Buscar paquetes saca
@@ -301,30 +356,31 @@ function SackModal({ isOpen, onClose, sackNumber, onSave }: SackModalProps) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {sackPkgs.map((pkg) => (
-                                    <tr
-                                        key={pkg.id}
-                                        onClick={() =>
-                                            setSelectedRightId(pkg.id)
-                                        }
-                                        className={cn(
-                                            "border-t border-red-700 cursor-pointer hover:bg-[#1b1b1b]",
-                                            selectedRightId === pkg.id &&
-                                                "bg-red-900/60"
-                                        )}
-                                    >
-                                        <td className="px-3 py-1">
-                                            {pkg.code}
-                                        </td>
-                                        <td className="px-3 py-1">
-                                            {pkg.content}
-                                        </td>
-                                        <td className="px-3 py-1">
-                                            {pkg.serviceType}
-                                        </td>
-                                    </tr>
-                                ))}
-                                {!sackPkgs.length && (
+                                {sackPkgs.length ? (
+                                    sackPkgs.map((pkg) => (
+                                        <tr
+                                            key={pkg.id}
+                                            onClick={() =>
+                                                setSelectedRightId(pkg.id)
+                                            }
+                                            className={cn(
+                                                "border-t border-red-700 cursor-pointer hover:bg-[#1b1b1b]",
+                                                selectedRightId === pkg.id &&
+                                                    "bg-red-900/60"
+                                            )}
+                                        >
+                                            <td className="px-3 py-1">
+                                                {pkg.code}
+                                            </td>
+                                            <td className="px-3 py-1">
+                                                {pkg.content}
+                                            </td>
+                                            <td className="px-3 py-1">
+                                                {pkg.serviceType}
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
                                     <tr>
                                         <td
                                             colSpan={3}
@@ -337,7 +393,6 @@ function SackModal({ isOpen, onClose, sackNumber, onSave }: SackModalProps) {
                             </tbody>
                         </table>
                     </div>
-                    {/* Totales derecha */}
                     <div className="mt-2 text-xs text-gray-300 flex justify-between">
                         <span>
                             PAQUETES:{" "}
@@ -361,7 +416,7 @@ function SackModal({ isOpen, onClose, sackNumber, onSave }: SackModalProps) {
                 </div>
             </div>
 
-            {/* Zona inferior: libras/kilos, precinto y refrigerada */}
+            {/* Inferior */}
             <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-sm text-gray-300">
                 <div className="flex gap-6">
                     <span>
@@ -398,7 +453,6 @@ function SackModal({ isOpen, onClose, sackNumber, onSave }: SackModalProps) {
                 </label>
             </div>
 
-            {/* Botones guardar / cancelar */}
             <div className="mt-6 flex justify-end gap-2">
                 <Button
                     type="button"
@@ -420,21 +474,538 @@ function SackModal({ isOpen, onClose, sackNumber, onSave }: SackModalProps) {
     );
 }
 
-// ---------------------
-// PANTALLA PRINCIPAL ELABORAR TRASLADO
-// ---------------------
-export default function TransfersCreate({}: Props) {
-    const [showSearchModal, setShowSearchModal] = useState(false);
-    const [showNewDocModal, setShowNewDocModal] = useState(false);
-    const [showSackModal, setShowSackModal] = useState(false);
+/** ---------------------
+ * MODAL: CONFIRMAR / MODIFICAR TRASLADO EXISTENTE
+ * --------------------- */
+type ConfirmTransferDetails = {
+    id: number | string;
+    number: string;
+    to_city: string;
+    sacks: Array<{
+        number: number;
+        seal: string | null;
+        refrigerated: boolean;
+        pending: SackPackage[];
+        confirmed: SackPackage[];
+    }>;
+};
 
-    // listado de sacas del traslado
+type ConfirmTransferModalProps = {
+    isOpen: boolean;
+    onClose: () => void;
+    transferId: number | string | null;
+    onSaved?: () => void;
+};
+
+function ConfirmTransferModal({
+    isOpen,
+    onClose,
+    transferId,
+    onSaved,
+}: ConfirmTransferModalProps) {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [details, setDetails] = useState<ConfirmTransferDetails | null>(null);
+    const [currentIdx, setCurrentIdx] = useState(0);
+
+    // estados derivados por saca seleccionada
+    const current =
+        details && details.sacks.length ? details.sacks[currentIdx] : null;
+
+    const [selectedPendingId, setSelectedPendingId] = useState<string | null>(
+        null
+    );
+    const [selectedConfirmedId, setSelectedConfirmedId] = useState<
+        string | null
+    >(null);
+
+    useEffect(() => {
+        const load = async () => {
+            if (!isOpen || transferId == null) return;
+            setLoading(true);
+            setError(null);
+            setDetails(null);
+            setSelectedPendingId(null);
+            setSelectedConfirmedId(null);
+            setCurrentIdx(0);
+            try {
+                const res = await fetch(`/api/transfers/${transferId}/details`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data: ConfirmTransferDetails = await res.json();
+                setDetails(data);
+            } catch (e: any) {
+                setError("No se pudo cargar el traslado seleccionado.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
+    }, [isOpen, transferId]);
+
+    const moveToConfirmed = () => {
+        if (!current || !selectedPendingId) return;
+        const sack = { ...current };
+        const pkg = sack.pending.find((p) => p.id === selectedPendingId);
+        if (!pkg) return;
+        sack.pending = sack.pending.filter((p) => p.id !== selectedPendingId);
+        sack.confirmed = [...sack.confirmed, pkg];
+        replaceSack(sack);
+        setSelectedPendingId(null);
+    };
+
+    const moveToPending = () => {
+        if (!current || !selectedConfirmedId) return;
+        const sack = { ...current };
+        const pkg = sack.confirmed.find((p) => p.id === selectedConfirmedId);
+        if (!pkg) return;
+        sack.confirmed = sack.confirmed.filter(
+            (p) => p.id !== selectedConfirmedId
+        );
+        sack.pending = [...sack.pending, pkg];
+        replaceSack(sack);
+        setSelectedConfirmedId(null);
+    };
+
+    const replaceSack = (sack: {
+        number: number;
+        seal: string | null;
+        refrigerated: boolean;
+        pending: SackPackage[];
+        confirmed: SackPackage[];
+    }) => {
+        if (!details) return;
+        const copy = { ...details };
+        copy.sacks = copy.sacks.map((s) =>
+            s.number === sack.number ? sack : s
+        );
+        setDetails(copy);
+    };
+
+    const totalsPending = useMemo(
+        () => calculateTotals(current?.pending ?? []),
+        [current?.pending]
+    );
+    const totalsConfirmed = useMemo(
+        () => calculateTotals(current?.confirmed ?? []),
+        [current?.confirmed]
+    );
+
+    const saveAll = async () => {
+        if (!details) return;
+        const payload = {
+            sacks: details.sacks.map((s) => ({
+                number: s.number,
+                seal: s.seal || null,
+                refrigerated: s.refrigerated,
+                confirmedPackageIds: s.confirmed.map((p) => p.id),
+            })),
+        };
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await fetch(`/api/transfers/${details.id}/sacks`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            if (onSaved) onSaved();
+            onClose();
+        } catch (e: any) {
+            setError("No se pudo guardar la confirmación. Intenta nuevamente.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const gotoPrev = () => {
+        if (!details) return;
+        setSelectedPendingId(null);
+        setSelectedConfirmedId(null);
+        setCurrentIdx((i) => (i > 0 ? i - 1 : details.sacks.length - 1));
+    };
+    const gotoNext = () => {
+        if (!details) return;
+        setSelectedPendingId(null);
+        setSelectedConfirmedId(null);
+        setCurrentIdx((i) => (i + 1) % details.sacks.length);
+    };
+
+    const setSeal = (value: string) => {
+        if (!current) return;
+        replaceSack({ ...current, seal: value });
+    };
+    const setRefrigerated = (value: boolean) => {
+        if (!current) return;
+        replaceSack({ ...current, refrigerated: value });
+    };
+
+    return (
+        <Modal
+            title="Sacas confirmar traslado"
+            isOpen={isOpen}
+            onClose={onClose}
+        >
+            {loading && (
+                <div className="text-sm text-gray-300 italic">Cargando...</div>
+            )}
+            {error && <div className="text-sm text-red-400 mb-3">{error}</div>}
+            {!loading && !error && details && (
+                <>
+                    <div className="mb-3 flex items-center justify-between">
+                        <div className="text-sm text-gray-300">
+                            No. saca:{" "}
+                            <span className="text-white font-semibold">
+                                {current?.number ?? "—"}
+                            </span>
+                        </div>
+                        {details.sacks.length > 1 && (
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    className="bg-red-600 hover:bg-red-700"
+                                    onClick={gotoPrev}
+                                    title="Saca anterior"
+                                >
+                                    <ChevronUp className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    className="bg-red-600 hover:bg-red-700"
+                                    onClick={gotoNext}
+                                    title="Saca siguiente"
+                                >
+                                    <ChevronDown className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-[1.5fr_auto_1.5fr] gap-4">
+                        {/* Pendientes */}
+                        <div>
+                            <h3 className="text-sm text-gray-300 mb-2">
+                                Buscar paquetes pendientes
+                            </h3>
+                            <div className="overflow-x-auto rounded-lg border border-red-700">
+                                <table className="min-w-full text-sm text-white table-auto">
+                                    <thead className="bg-red-800 text-white">
+                                        <tr>
+                                            <th className="px-3 py-2 text-left">
+                                                No. paquete
+                                            </th>
+                                            <th className="px-3 py-2 text-left">
+                                                Contenido
+                                            </th>
+                                            <th className="px-3 py-2 text-left">
+                                                Tipo servicio
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {current && current.pending.length ? (
+                                            current.pending.map((pkg) => (
+                                                <tr
+                                                    key={pkg.id}
+                                                    onClick={() =>
+                                                        setSelectedPendingId(
+                                                            pkg.id
+                                                        )
+                                                    }
+                                                    className={cn(
+                                                        "border-t border-red-700 cursor-pointer hover:bg-[#1b1b1b]",
+                                                        selectedPendingId ===
+                                                            pkg.id &&
+                                                            "bg-red-900/60"
+                                                    )}
+                                                >
+                                                    <td className="px-3 py-1">
+                                                        {pkg.code}
+                                                    </td>
+                                                    <td className="px-3 py-1">
+                                                        {pkg.content}
+                                                    </td>
+                                                    <td className="px-3 py-1">
+                                                        {pkg.serviceType}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td
+                                                    colSpan={3}
+                                                    className="text-center py-3 text-gray-300 italic"
+                                                >
+                                                    No existen paquetes
+                                                    pendientes de confirmar
+                                                    correspondientes a la saca
+                                                    seleccionada.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="mt-2 text-xs text-gray-300 flex justify-between">
+                                <span>
+                                    PAQUETES:{" "}
+                                    <span className="text-white font-semibold">
+                                        {totalsPending.pieces}
+                                    </span>
+                                </span>
+                                <span>
+                                    LBS:{" "}
+                                    <span className="text-white font-semibold">
+                                        {totalsPending.pounds.toFixed(2)}
+                                    </span>
+                                </span>
+                                <span>
+                                    KGS:{" "}
+                                    <span className="text-white font-semibold">
+                                        {totalsPending.kilograms.toFixed(2)}
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Flechas */}
+                        <div className="flex flex-col items-center justify-center gap-3">
+                            <Button
+                                type="button"
+                                size="icon"
+                                className="bg-red-600 hover:bg-red-700"
+                                onClick={moveToConfirmed}
+                                disabled={!selectedPendingId}
+                                title="Confirmar (→)"
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                type="button"
+                                size="icon"
+                                className="bg-red-600 hover:bg-red-700"
+                                onClick={moveToPending}
+                                disabled={!selectedConfirmedId}
+                                title="Revertir (←)"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                        </div>
+
+                        {/* Confirmados */}
+                        <div>
+                            <h3 className="text-sm text-gray-300 mb-2">
+                                Buscar paquetes confirmados
+                            </h3>
+                            <div className="overflow-x-auto rounded-lg border border-red-700">
+                                <table className="min-w-full text-sm text-white table-auto">
+                                    <thead className="bg-red-800 text-white">
+                                        <tr>
+                                            <th className="px-3 py-2 text-left">
+                                                No. paquete
+                                            </th>
+                                            <th className="px-3 py-2 text-left">
+                                                Contenido
+                                            </th>
+                                            <th className="px-3 py-2 text-left">
+                                                Tipo servicio
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {current && current.confirmed.length ? (
+                                            current.confirmed.map((pkg) => (
+                                                <tr
+                                                    key={pkg.id}
+                                                    onClick={() =>
+                                                        setSelectedConfirmedId(
+                                                            pkg.id
+                                                        )
+                                                    }
+                                                    className={cn(
+                                                        "border-t border-red-700 cursor-pointer hover:bg-[#1b1b1b]",
+                                                        selectedConfirmedId ===
+                                                            pkg.id &&
+                                                            "bg-red-900/60"
+                                                    )}
+                                                >
+                                                    <td className="px-3 py-1">
+                                                        {pkg.code}
+                                                    </td>
+                                                    <td className="px-3 py-1">
+                                                        {pkg.content}
+                                                    </td>
+                                                    <td className="px-3 py-1">
+                                                        {pkg.serviceType}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td
+                                                    colSpan={3}
+                                                    className="text-center py-3 text-red-400"
+                                                >
+                                                    No hay paquetes confirmados
+                                                    en esta saca.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="mt-2 text-xs text-gray-300 flex justify-between">
+                                <span>
+                                    PAQUETES:{" "}
+                                    <span className="text-white font-semibold">
+                                        {totalsConfirmed.pieces}
+                                    </span>
+                                </span>
+                                <span>
+                                    LBS:{" "}
+                                    <span className="text-white font-semibold">
+                                        {totalsConfirmed.pounds.toFixed(2)}
+                                    </span>
+                                </span>
+                                <span>
+                                    KGS:{" "}
+                                    <span className="text-white font-semibold">
+                                        {totalsConfirmed.kilograms.toFixed(2)}
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Zona inferior */}
+                    <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-sm text-gray-300">
+                        <div className="flex gap-6">
+                            <span>
+                                LIBRAS:{" "}
+                                <span className="text-white font-semibold">
+                                    {totalsConfirmed.pounds.toFixed(2)}
+                                </span>
+                            </span>
+                            <span>
+                                KILOS:{" "}
+                                <span className="text-white font-semibold">
+                                    {totalsConfirmed.kilograms.toFixed(2)}
+                                </span>
+                            </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <span>Precinto</span>
+                            <input
+                                type="text"
+                                value={current?.seal ?? ""}
+                                onChange={(e) => setSeal(e.target.value)}
+                                className="bg-[#111] border border-red-700 rounded px-3 py-1 text-sm text-white w-40"
+                            />
+                        </div>
+
+                        <label className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                checked={!!current?.refrigerated}
+                                onChange={(e) =>
+                                    setRefrigerated(e.target.checked)
+                                }
+                            />
+                            <span>Mantener refrigerada</span>
+                        </label>
+                    </div>
+
+                    <div className="mt-6 flex justify-end gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="border-red-700 text-gray-200 hover:bg-red-700"
+                            onClick={onClose}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="button"
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={saveAll}
+                            disabled={loading}
+                            title="Guardar (todas las sacas)"
+                        >
+                            Guardar
+                        </Button>
+                    </div>
+                </>
+            )}
+        </Modal>
+    );
+}
+
+/** ---------------------
+ * PANTALLA PRINCIPAL
+ * --------------------- */
+export default function TransfersCreate({
+    countries: countriesProp,
+    agencies: agenciesProp,
+}: TransfersPageProps) {
+    const countries = countriesProp?.length ? countriesProp : ["ECUADOR"];
+    const agencies = agenciesProp ?? [];
+
+    const [showSearchModal, setShowSearchModal] = useState(false);
+    const [showSackModal, setShowSackModal] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+    // NUEVO: modal ver/modificar
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [confirmTransferId, setConfirmTransferId] = useState<
+        number | string | null
+    >(null);
+
+    const [submitting, setSubmitting] = useState(false);
+
+    const [doc, setDoc] = useState<{
+        number: string;
+        country: string;
+        from_city: string;
+        to_city: string;
+    }>({
+        number: "",
+        country: countries[0] ?? "ECUADOR",
+        from_city: agencies[0] ?? "",
+        to_city: agencies[0] ?? "",
+    });
+
     const [sacks, setSacks] = useState<Sack[]>([]);
     const [nextSackNumber, setNextSackNumber] = useState(1);
 
-    // Por ahora son solo valores de ejemplo. Luego los cargaremos desde backend.
-    const countries = ["ECUADOR", "USA"];
-    const agencies = ["CUENCA CENTRO", "QUITO", "GUAYAQUIL"];
+    const [searchFilters, setSearchFilters] = useState<TransferSearchFilters>(
+        () => ({
+            startDate: "",
+            endDate: "",
+            country: countries[0] ?? "ECUADOR",
+            fromCity: "[TODOS]",
+            toCity: agencies[0] ?? "",
+            onlyPending: false,
+        })
+    );
+    const [searchResults, setSearchResults] = useState<TransferSearchResult[]>(
+        []
+    );
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
+    const [selectedResultId, setSelectedResultId] = useState<
+        string | number | null
+    >(null);
+
+    useEffect(() => {
+        if (showSearchModal) {
+            setSearchError(null);
+            setSearchResults([]);
+            setSelectedResultId(null);
+        }
+    }, [showSearchModal]);
 
     const handleSackSaved = (sack: Sack) => {
         setSacks((prev) => [...prev, sack]);
@@ -452,36 +1023,228 @@ export default function TransfersCreate({}: Props) {
         { sacks: 0, pounds: 0, kilograms: 0 }
     );
 
+    const canAddSack = Boolean(doc.from_city && doc.to_city);
+
+    const handleNewTransfer = () => {
+        setDoc({
+            number: "",
+            country: countries[0] ?? "ECUADOR",
+            from_city: agencies[0] ?? "",
+            to_city: agencies[0] ?? "",
+        });
+        setSacks([]);
+        setNextSackNumber(1);
+    };
+
+    const submitTransfer = () => {
+        if (!canAddSack || !sacks.length) {
+            alert(
+                "Completa la cabecera (origen/destino) y agrega al menos una saca."
+            );
+            return;
+        }
+        const payload = {
+            number: doc.number.trim() === "" ? null : doc.number.trim(),
+            country: doc.country,
+            from_city: doc.from_city,
+            to_city: doc.to_city,
+            sacks: sacks.map((s) => ({
+                number: s.number,
+                refrigerated: s.refrigerated,
+                seal: s.seal || null,
+                packages: s.packages.map((p) => ({
+                    id: p.id,
+                    pounds: p.pounds,
+                    kilograms: p.kilograms,
+                })),
+            })),
+        };
+        setSubmitting(true);
+        router.post("/transfers", payload, {
+            onSuccess: () => {
+                handleNewTransfer();
+                setShowSuccessModal(true);
+            },
+            onFinish: () => setSubmitting(false),
+        });
+    };
+
+    /** ---------------------
+     * Búsqueda
+     * --------------------- */
+    const handleSearchSubmit = async (e: FormEvent) => {
+        e.preventDefault();
+        setSearchError(null);
+        setSearchLoading(true);
+        setSearchResults([]);
+        setSelectedResultId(null);
+
+        try {
+            const params = new URLSearchParams();
+            if (searchFilters.startDate)
+                params.append("start_date", searchFilters.startDate);
+            if (searchFilters.endDate)
+                params.append("end_date", searchFilters.endDate);
+            if (searchFilters.country)
+                params.append("country", searchFilters.country);
+            if (
+                searchFilters.fromCity &&
+                searchFilters.fromCity !== "[TODOS]"
+            ) {
+                params.append("from_city", searchFilters.fromCity);
+            }
+            if (searchFilters.toCity)
+                params.append("to_city", searchFilters.toCity);
+            if (searchFilters.onlyPending) params.append("only_pending", "1");
+
+            const url = params.toString()
+                ? `/api/transfers/search?${params.toString()}`
+                : "/api/transfers/search";
+
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data: TransferSearchResult[] = await res.json();
+            setSearchResults(data);
+            if (!data.length)
+                setSearchError(
+                    "No se encontraron documentos con esos filtros."
+                );
+        } catch {
+            setSearchError(
+                "Ocurrió un error al buscar los traslados. Intenta nuevamente."
+            );
+        } finally {
+            setSearchLoading(false);
+        }
+    };
+
+    const handleUseSelectedTransfer = () => {
+        if (!selectedResultId) return;
+        const found = searchResults.find((t) => t.id === selectedResultId);
+        if (!found) return;
+
+        setDoc({
+            number: found.number,
+            country: found.country,
+            from_city: found.from_city,
+            to_city: found.to_city,
+        });
+
+        setSacks([]);
+        setNextSackNumber(1);
+        setShowSearchModal(false);
+    };
+
+    // NUEVO: abrir modal Confirmar/Modificar
+    const openConfirmForSelected = () => {
+        if (!selectedResultId) return;
+        setConfirmTransferId(selectedResultId);
+        setShowConfirmModal(true);
+    };
+
     return (
         <AuthenticatedLayout>
             <Head title="Elaborar Traslado" />
 
             <div className="container mx-auto px-4 py-8">
-                {/* Header tipo AgencyDest */}
                 <div className="bg-gradient-to-r from-red-700 via-red-600 to-yellow-400 text-white px-6 py-4 rounded-t-lg">
                     <h1 className="text-2xl font-bold">Elaborar Traslado</h1>
                     <p className="text-white text-sm">
-                        Gestión de traslados entre agencias destino
+                        Gestión de traslados entre agencias
                     </p>
                 </div>
 
-                {/* Contenido principal */}
                 <div className="bg-black border border-red-700 px-6 py-4 rounded-b-lg shadow-md">
-                    {/* Línea: Documento de traslado */}
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-3">
-                                <span className="text-sm text-gray-300">
-                                    Documento de traslado
-                                </span>
-                                {/* Aquí luego mostraremos el número seleccionado */}
-                                <span className="text-sm text-gray-400 italic">
-                                    (sin documento seleccionado)
-                                </span>
+                    {/* Cabecera */}
+                    <div className="flex items-start justify-between mb-6 gap-4">
+                        <div className="flex-1">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <div className="flex flex-col">
+                                    <label className="text-sm text-gray-300 mb-1">
+                                        Número
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={doc.number}
+                                        onChange={(e) =>
+                                            setDoc((d) => ({
+                                                ...d,
+                                                number: e.target.value,
+                                            }))
+                                        }
+                                        placeholder="Autogenerado si lo dejas vacío"
+                                        className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="text-sm text-gray-300 mb-1">
+                                        País
+                                    </label>
+                                    <select
+                                        value={doc.country}
+                                        onChange={(e) =>
+                                            setDoc((d) => ({
+                                                ...d,
+                                                country: e.target.value,
+                                            }))
+                                        }
+                                        className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white"
+                                    >
+                                        {countries.map((c) => (
+                                            <option key={c} value={c}>
+                                                {c}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="text-sm text-gray-300 mb-1">
+                                        Trasladar de
+                                    </label>
+                                    <select
+                                        value={doc.from_city}
+                                        onChange={(e) =>
+                                            setDoc((d) => ({
+                                                ...d,
+                                                from_city: e.target.value,
+                                            }))
+                                        }
+                                        className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white"
+                                    >
+                                        {agencies.map((a) => (
+                                            <option key={a} value={a}>
+                                                {a}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="flex flex-col">
+                                    <label className="text-sm text-gray-300 mb-1">
+                                        Trasladar a
+                                    </label>
+                                    <select
+                                        value={doc.to_city}
+                                        onChange={(e) =>
+                                            setDoc((d) => ({
+                                                ...d,
+                                                to_city: e.target.value,
+                                            }))
+                                        }
+                                        className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white"
+                                    >
+                                        {agencies.map((a) => (
+                                            <option key={a} value={a}>
+                                                {a}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                                {/* Botón buscar (lupa) */}
+                            <div className="flex items-center gap-2 mt-3">
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -492,18 +1255,17 @@ export default function TransfersCreate({}: Props) {
                                     <Search className="h-4 w-4 text-white" />
                                 </Button>
 
-                                {/* Botón nuevo documento */}
                                 <Button
                                     type="button"
                                     variant="outline"
                                     size="icon"
-                                    onClick={() => setShowNewDocModal(true)}
+                                    onClick={handleNewTransfer}
                                     className="border-red-600 bg-black hover:bg-red-700"
+                                    title="Nuevo traslado"
                                 >
                                     <FilePlus2 className="h-4 w-4 text-white" />
                                 </Button>
 
-                                {/* Botón editar documento (placeholder para futuro) */}
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -516,18 +1278,17 @@ export default function TransfersCreate({}: Props) {
                             </div>
                         </div>
 
-                        {/* Info "Trasladar a" como en la primera pantalla */}
-                        <div className="text-right">
+                        <div className="text-right min-w-[220px]">
                             <span className="block text-sm text-gray-300">
                                 Trasladar a:
                             </span>
-                            <span className="text-sm text-gray-400 italic">
-                                (se definirá según el documento de traslado)
+                            <span className="text-sm text-gray-200 font-semibold">
+                                {doc.to_city || "—"}
                             </span>
                         </div>
                     </div>
 
-                    {/* Tabla principal (No. saca...) */}
+                    {/* Tabla sacas */}
                     <div className="flex gap-4">
                         <div className="flex-1 overflow-x-auto rounded-lg border border-red-700">
                             <table className="min-w-full text-sm text-white table-auto">
@@ -537,7 +1298,7 @@ export default function TransfersCreate({}: Props) {
                                             No. saca
                                         </th>
                                         <th className="px-4 py-2 text-left">
-                                            Agencias destino
+                                            Agencia destino
                                         </th>
                                         <th className="px-4 py-2 text-right">
                                             Piezas
@@ -571,8 +1332,7 @@ export default function TransfersCreate({}: Props) {
                                                         {sack.number}
                                                     </td>
                                                     <td className="px-4 py-2">
-                                                        {/* Luego usaremos la agencia real */}
-                                                        —
+                                                        {doc.to_city || "—"}
                                                     </td>
                                                     <td className="px-4 py-2 text-right">
                                                         {totals.pieces}
@@ -613,13 +1373,22 @@ export default function TransfersCreate({}: Props) {
                             </table>
                         </div>
 
-                        {/* Botones verticales ( + , editar, detalle ) */}
                         <div className="flex flex-col gap-2">
                             <Button
                                 type="button"
                                 size="icon"
-                                className="bg-green-600 hover:bg-green-700"
+                                className={cn(
+                                    "bg-green-600 hover:bg-green-700",
+                                    !canAddSack &&
+                                        "opacity-60 cursor-not-allowed"
+                                )}
                                 onClick={() => setShowSackModal(true)}
+                                disabled={!canAddSack}
+                                title={
+                                    canAddSack
+                                        ? "Agregar saca"
+                                        : "Completa 'Trasladar de' y 'Trasladar a' para agregar sacas"
+                                }
                             >
                                 <Plus className="h-4 w-4" />
                             </Button>
@@ -642,8 +1411,8 @@ export default function TransfersCreate({}: Props) {
                         </div>
                     </div>
 
-                    {/* Barra de totales inferior (SACAS / LIBRAS / KILOS) */}
-                    <div className="mt-4 border-t border-red-700 pt-3 text-sm text-gray-300 flex justify-between">
+                    {/* Totales y guardar */}
+                    <div className="mt-4 border-t border-red-700 pt-3 text-sm text-gray-300 flex flex-wrap gap-4 justify-between">
                         <span>
                             SACAS:{" "}
                             <span className="font-semibold text-white">
@@ -652,10 +1421,7 @@ export default function TransfersCreate({}: Props) {
                         </span>
                         <span>
                             LIBRAS:{" "}
-                            <span
-                                className="font-semibold text
-                                white"
-                            >
+                            <span className="font-semibold text-white">
                                 {overallTotals.pounds.toFixed(2)}
                             </span>
                         </span>
@@ -665,17 +1431,30 @@ export default function TransfersCreate({}: Props) {
                                 {overallTotals.kilograms.toFixed(2)}
                             </span>
                         </span>
+
+                        <div className="ml-auto">
+                            <Button
+                                type="button"
+                                className="bg-red-600 hover:bg-red-700"
+                                onClick={submitTransfer}
+                                disabled={submitting}
+                            >
+                                {submitting
+                                    ? "Guardando..."
+                                    : "Guardar traslado"}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* MODAL 1: BUSCAR DOCUMENTOS TRASLADO */}
+            {/* MODAL: BUSCAR DOCUMENTOS TRASLADO */}
             <Modal
                 title="Buscar documentos traslado"
                 isOpen={showSearchModal}
                 onClose={() => setShowSearchModal(false)}
             >
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={handleSearchSubmit}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex flex-col">
                             <label className="text-sm text-gray-300 mb-1">
@@ -683,6 +1462,13 @@ export default function TransfersCreate({}: Props) {
                             </label>
                             <input
                                 type="date"
+                                value={searchFilters.startDate}
+                                onChange={(e) =>
+                                    setSearchFilters((f) => ({
+                                        ...f,
+                                        startDate: e.target.value,
+                                    }))
+                                }
                                 className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white"
                             />
                         </div>
@@ -692,6 +1478,13 @@ export default function TransfersCreate({}: Props) {
                             </label>
                             <input
                                 type="date"
+                                value={searchFilters.endDate}
+                                onChange={(e) =>
+                                    setSearchFilters((f) => ({
+                                        ...f,
+                                        endDate: e.target.value,
+                                    }))
+                                }
                                 className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white"
                             />
                         </div>
@@ -700,7 +1493,16 @@ export default function TransfersCreate({}: Props) {
                             <label className="text-sm text-gray-300 mb-1">
                                 País
                             </label>
-                            <select className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white">
+                            <select
+                                value={searchFilters.country}
+                                onChange={(e) =>
+                                    setSearchFilters((f) => ({
+                                        ...f,
+                                        country: e.target.value,
+                                    }))
+                                }
+                                className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white"
+                            >
                                 {countries.map((c) => (
                                     <option key={c} value={c}>
                                         {c}
@@ -711,10 +1513,19 @@ export default function TransfersCreate({}: Props) {
 
                         <div className="flex flex-col">
                             <label className="text-sm text-gray-300 mb-1">
-                                Trasladar de
+                                Traslado de
                             </label>
-                            <select className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white">
-                                <option value="TODOS">[TODOS]</option>
+                            <select
+                                value={searchFilters.fromCity}
+                                onChange={(e) =>
+                                    setSearchFilters((f) => ({
+                                        ...f,
+                                        fromCity: e.target.value,
+                                    }))
+                                }
+                                className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white"
+                            >
+                                <option value="[TODOS]">[TODOS]</option>
                                 {agencies.map((a) => (
                                     <option key={a} value={a}>
                                         {a}
@@ -725,9 +1536,19 @@ export default function TransfersCreate({}: Props) {
 
                         <div className="flex flex-col">
                             <label className="text-sm text-gray-300 mb-1">
-                                Trasladar a
+                                Traslado a
                             </label>
-                            <select className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white">
+                            <select
+                                value={searchFilters.toCity}
+                                onChange={(e) =>
+                                    setSearchFilters((f) => ({
+                                        ...f,
+                                        toCity: e.target.value,
+                                    }))
+                                }
+                                className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white"
+                            >
+                                <option value="">[TODOS]</option>
                                 {agencies.map((a) => (
                                     <option key={a} value={a}>
                                         {a}
@@ -740,6 +1561,13 @@ export default function TransfersCreate({}: Props) {
                             <input
                                 id="onlyPending"
                                 type="checkbox"
+                                checked={searchFilters.onlyPending}
+                                onChange={(e) =>
+                                    setSearchFilters((f) => ({
+                                        ...f,
+                                        onlyPending: e.target.checked,
+                                    }))
+                                }
                                 className="mr-2"
                             />
                             <label
@@ -753,38 +1581,84 @@ export default function TransfersCreate({}: Props) {
 
                     <div className="flex justify-end">
                         <Button
-                            type="button"
+                            type="submit"
                             className="bg-red-600 hover:bg-red-700"
+                            disabled={searchLoading}
                         >
                             <Search className="h-4 w-4 mr-2" />
-                            Buscar
+                            {searchLoading ? "Buscando..." : "Buscar"}
                         </Button>
                     </div>
+                </form>
 
-                    <div className="mt-4">
-                        <h3 className="text-sm text-gray-300 mb-2">
-                            Datos para la búsqueda
-                        </h3>
-                        <div className="overflow-x-auto rounded-lg border border-red-700">
-                            <table className="min-w-full text-sm text-white table-auto">
-                                <thead className="bg-red-800 text-white">
+                {/* Resultados */}
+                <div className="mt-4">
+                    {searchError && (
+                        <div className="mb-2 text-sm text-red-400">
+                            {searchError}
+                        </div>
+                    )}
+
+                    <div className="overflow-x-auto rounded-lg border border-red-700">
+                        <table className="min-w-full text-sm text-white table-auto">
+                            <thead className="bg-red-800 text-white">
+                                <tr>
+                                    <th className="px-4 py-2 text-left">
+                                        No. documento
+                                    </th>
+                                    <th className="px-4 py-2 text-left">
+                                        País
+                                    </th>
+                                    <th className="px-4 py-2 text-left">
+                                        Traslado de
+                                    </th>
+                                    <th className="px-4 py-2 text-left">
+                                        Traslado a
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {searchLoading ? (
                                     <tr>
-                                        <th className="px-4 py-2 text-left">
-                                            No. documento
-                                        </th>
-                                        <th className="px-4 py-2 text-left">
-                                            País
-                                        </th>
-                                        <th className="px-4 py-2 text-left">
-                                            Traslado de
-                                        </th>
-                                        <th className="px-4 py-2 text-left">
-                                            Traslado a
-                                        </th>
+                                        <td
+                                            colSpan={4}
+                                            className="text-center py-4 text-gray-300 italic"
+                                        >
+                                            Buscando documentos...
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {/* Por ahora vacío */}
+                                ) : searchResults.length ? (
+                                    searchResults.map((t) => (
+                                        <tr
+                                            key={t.id}
+                                            onClick={() =>
+                                                setSelectedResultId(t.id)
+                                            }
+                                            onDoubleClick={() => {
+                                                setSelectedResultId(t.id);
+                                                openConfirmForSelected();
+                                            }}
+                                            className={cn(
+                                                "border-t border-red-700 cursor-pointer hover:bg-[#1b1b1b]",
+                                                selectedResultId === t.id &&
+                                                    "bg-red-900/60"
+                                            )}
+                                        >
+                                            <td className="px-4 py-2">
+                                                {t.number}
+                                            </td>
+                                            <td className="px-4 py-2">
+                                                {t.country}
+                                            </td>
+                                            <td className="px-4 py-2">
+                                                {t.from_city}
+                                            </td>
+                                            <td className="px-4 py-2">
+                                                {t.to_city}
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
                                     <tr>
                                         <td
                                             colSpan={4}
@@ -793,70 +1667,9 @@ export default function TransfersCreate({}: Props) {
                                             No se encontraron documentos.
                                         </td>
                                     </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </form>
-            </Modal>
-
-            {/* MODAL 2: NUEVO DOCUMENTO DE TRASLADO */}
-            <Modal
-                title="Documentos traslado"
-                isOpen={showNewDocModal}
-                onClose={() => setShowNewDocModal(false)}
-            >
-                <form className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex flex-col">
-                            <label className="text-sm text-gray-300 mb-1">
-                                Número
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="Autogenerado o manual"
-                                className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white"
-                            />
-                        </div>
-
-                        <div className="flex flex-col">
-                            <label className="text-sm text-gray-300 mb-1">
-                                País
-                            </label>
-                            <select className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white">
-                                {countries.map((c) => (
-                                    <option key={c} value={c}>
-                                        {c}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="flex flex-col">
-                            <label className="text-sm text-gray-300 mb-1">
-                                Trasladar de
-                            </label>
-                            <select className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white">
-                                {agencies.map((a) => (
-                                    <option key={a} value={a}>
-                                        {a}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="flex flex-col">
-                            <label className="text-sm text-gray-300 mb-1">
-                                Trasladar a
-                            </label>
-                            <select className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white">
-                                {agencies.map((a) => (
-                                    <option key={a} value={a}>
-                                        {a}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
 
                     <div className="flex justify-end gap-2 mt-4">
@@ -864,26 +1677,71 @@ export default function TransfersCreate({}: Props) {
                             type="button"
                             variant="outline"
                             className="border-red-700 text-gray-200 hover:bg-red-700"
-                            onClick={() => setShowNewDocModal(false)}
+                            onClick={() => setShowSearchModal(false)}
                         >
-                            Cancelar
+                            Cerrar
+                        </Button>
+                        <Button
+                            type="button"
+                            className="bg-yellow-600 hover:bg-yellow-700"
+                            onClick={openConfirmForSelected}
+                            disabled={!selectedResultId}
+                            title="Ver / Modificar"
+                        >
+                            Ver / Modificar
                         </Button>
                         <Button
                             type="button"
                             className="bg-green-600 hover:bg-green-700"
+                            onClick={handleUseSelectedTransfer}
+                            disabled={!selectedResultId}
                         >
-                            Guardar documento
+                            Usar documento
                         </Button>
                     </div>
-                </form>
+                </div>
             </Modal>
 
-            {/* MODAL 3: SACAS TRASLADO */}
+            {/* MODAL: OK */}
+            <Modal
+                title="Traslado registrado"
+                isOpen={showSuccessModal}
+                onClose={() => setShowSuccessModal(false)}
+            >
+                <div className="space-y-4 text-sm text-gray-200">
+                    <p>El traslado se registró correctamente.</p>
+                    <p>
+                        Ahora espera la confirmación de llegada en la agencia
+                        destino.
+                    </p>
+                    <div className="flex justify-end">
+                        <Button
+                            type="button"
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => setShowSuccessModal(false)}
+                        >
+                            Aceptar
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* MODALES */}
             <SackModal
                 isOpen={showSackModal}
                 onClose={() => setShowSackModal(false)}
                 sackNumber={nextSackNumber}
                 onSave={handleSackSaved}
+                fromCity={doc.from_city}
+            />
+
+            <ConfirmTransferModal
+                isOpen={showConfirmModal}
+                onClose={() => setShowConfirmModal(false)}
+                transferId={confirmTransferId}
+                onSaved={() => {
+                    // refrescar la lista si estabas en “solo pendientes”, etc. (opcional)
+                }}
             />
         </AuthenticatedLayout>
     );

@@ -75,4 +75,8 @@ class Package extends Model
     {
         return $this->hasMany(PackageItem::class);
     }
+    public function transferSackItems()
+    {
+        return $this->hasMany(TransferSackPackage::class);
+    }
 }

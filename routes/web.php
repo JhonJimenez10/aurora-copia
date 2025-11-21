@@ -161,8 +161,21 @@ Route::middleware(['auth'])->group(function () {
 // RUTAS PARA ADMIN Y SUDO
 // -----------------------------
 Route::middleware(['auth', 'admin'])->group(function () {
+    // TRASLADOS
     Route::get('/transfers/create', [TransferController::class, 'create'])
         ->name('transfers.create');
+
+    Route::post('/transfers', [TransferController::class, 'store'])
+        ->name('transfers.store');
+
+    // Endpoint JSON para el modal de sacas
+    Route::get('/api/transfers/available-packages', [TransferController::class, 'availablePackages'])
+        ->name('transfers.available-packages');
+    // Endpoint JSON para buscar documentos de traslado
+    Route::get('/api/transfers/search', [TransferController::class, 'search'])
+        ->name('transfers.search');
+    Route::get('/transfers/{transfer}/details', [TransferConfirmController::class, 'show']);
+    Route::put('/transfers/{transfer}/sacks', [TransferConfirmController::class, 'updateSacks']);
     Route::resource('senders', SenderController::class);
     Route::resource('recipients', RecipientController::class);
 
