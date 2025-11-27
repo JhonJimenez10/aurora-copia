@@ -11,6 +11,13 @@ export default function Dashboard() {
     const fixedNotices = [
         {
             id: 1,
+            title: "📢 AVISO IMPORTANTE SOBRE FACTURACIÓN!!!",
+            message:
+                "Estimados clientes: para el correcto manejo de sus envíos, deben emitir una factura exclusiva para productos de comida y otra factura separada únicamente para productos secos. Es decir, un paquete solo de comida y otro paquete solo de productos secos. Agradecemos su comprensión y colaboración.",
+            type: "danger",
+        },
+        {
+            id: 2,
             title: "📢 AVISO IMPORTANTE!!!",
             message:
                 "Se informa a todos los clientes que únicamente se pueden enviar medicinas con receta médica. Además, solo está permitido el envío de productos secos.",
