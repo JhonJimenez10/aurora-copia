@@ -174,13 +174,17 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Endpoint JSON para buscar documentos de traslado
     Route::get('/api/transfers/search', [TransferController::class, 'search'])
         ->name('transfers.search');
-    Route::get('/transfers/{transfer}/details', [TransferConfirmController::class, 'show']);
-    Route::put('/transfers/{transfer}/sacks', [TransferConfirmController::class, 'updateSacks']);
+    //Route::get('/transfers/{transfer}/details', [TransferConfirmController::class, 'show']);
+    //Route::put('/transfers/{transfer}/sacks', [TransferConfirmController::class, 'updateSacks']);
     Route::resource('senders', SenderController::class);
     Route::resource('recipients', RecipientController::class);
 
     Route::resource('art_packages', ArtPackageController::class);
+    Route::patch('/art_packages/{id}/toggle-active', [ArtPackageController::class, 'toggleActive'])
+        ->name('art_packages.toggle-active');
     Route::resource('art_packgs', ArtPackgController::class);
+    Route::patch('/art_packgs/{id}/toggle-active', [ArtPackgController::class, 'toggleActive'])
+        ->name('art_packgs.toggle-active');
     Route::post('/package-items', [PackageItemController::class, 'store'])->name('package_items.store');
     Route::resource('packages', PackageController::class);
     Route::resource('additionals', AdditionalController::class);
@@ -206,7 +210,11 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::get('/reports/acas-avianca-manifest/export', [ReportController::class, 'acasAviancaManifestExport'])
         ->name('reports.acas.export');
+
+    // ✅ AGENCIAS DE DESTINO - Resource y ruta adicional para toggle
     Route::resource('agencies_dest', AgencyDestController::class);
+    Route::patch('/agencies_dest/{id}/toggle-active', [AgencyDestController::class, 'toggleActive'])
+        ->name('agencies_dest.toggle-active');
     Route::get('/reports/weights', [WeightReportController::class, 'index'])->name('reports.weights');
     Route::get('/reports/weights/export', [WeightReportController::class, 'export'])->name('reports.weights.export');
 });

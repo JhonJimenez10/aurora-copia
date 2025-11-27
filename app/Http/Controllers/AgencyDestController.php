@@ -48,6 +48,7 @@ class AgencyDestController extends Controller
             'state'          => 'nullable|string|max:100',
             'available_us'   => 'required|boolean',
             'value'          => 'required|numeric|min:0',
+            'active'         => 'required|boolean',
         ]);
 
         $validated['enterprise_id'] = Auth::user()->enterprise_id;
@@ -81,6 +82,7 @@ class AgencyDestController extends Controller
             'state'          => 'nullable|string|max:100',
             'available_us'   => 'sometimes|required|boolean',
             'value'          => 'sometimes|required|numeric|min:0',
+            'active'         => 'sometimes|required|boolean',
         ]);
 
         $agency->update($validated);
@@ -105,7 +107,9 @@ class AgencyDestController extends Controller
 
         try {
             $agencies = AgencyDest::where('enterprise_id', $user->enterprise_id)
+                ->where('active', true)
                 ->select('id', 'name', 'trade_name', 'address', 'phone', 'city', 'state', 'postal_code', 'value')
+                ->orderBy('name')
                 ->get();
 
             return response()->json($agencies);
@@ -116,5 +120,19 @@ class AgencyDestController extends Controller
                 'trace' => $e->getTraceAsString()
             ], 500);
         }
+    }
+    /**
+     * ✅ Método nuevo: Alternar el estado activo/inactivo de una agencia
+     */
+    public function toggleActive($id)
+    {
+        $agency = AgencyDest::where('enterprise_id', Auth::user()->enterprise_id)->findOrFail($id);
+
+        $agency->active = !$agency->active;
+        $agency->save();
+
+        $status = $agency->active ? 'activada' : 'desactivada';
+
+        return redirect()->route('agencies_dest.index')->with('success', "Agencia {$status} correctamente.");
     }
 }

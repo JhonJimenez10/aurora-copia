@@ -19,6 +19,7 @@ export default function ArtPackageForm({
         agent_val: art_package?.agent_val || "",
         arancel: art_package?.arancel || "",
         canceled: art_package?.canceled || false,
+        active: art_package?.active ?? true,
     });
 
     const submit = (e: React.FormEvent) => {
@@ -140,6 +141,20 @@ export default function ArtPackageForm({
                                         setData("canceled", val)
                                     }
                                 />
+                            </div>
+                        </div>
+                        <div className="pt-4">
+                            <Label>Activo</Label>
+                            <div className="mt-1 flex items-center gap-2">
+                                <Switch
+                                    checked={data.active}
+                                    onCheckedChange={(val) =>
+                                        setData("active", val)
+                                    }
+                                />
+                                <span className="text-xs text-gray-400">
+                                    {data.active ? "Activo" : "Inactivo"}
+                                </span>
                             </div>
                         </div>
                     </div>

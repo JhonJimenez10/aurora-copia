@@ -16,7 +16,8 @@ export default function AgencyDestForm({ agency = null }: { agency?: any }) {
         city: agency?.city || "",
         state: agency?.state || "",
         available_us: agency?.available_us ?? false,
-        value: agency?.value || 0, // nuevo campo
+        value: agency?.value || 0,
+        active: agency?.active ?? true,
     });
 
     const submit = (e: React.FormEvent) => {
@@ -162,6 +163,20 @@ export default function AgencyDestForm({ agency = null }: { agency?: any }) {
                                         setData("available_us", val)
                                     }
                                 />
+                            </div>
+                        </div>
+                        <div className="pt-4">
+                            <Label>Activo</Label>
+                            <div className="mt-1 flex items-center gap-2">
+                                <Switch
+                                    checked={data.active}
+                                    onCheckedChange={(val) =>
+                                        setData("active", val)
+                                    }
+                                />
+                                <span className="text-xs text-gray-400">
+                                    {data.active ? "Activo" : "Inactivo"}
+                                </span>
                             </div>
                         </div>
                     </div>

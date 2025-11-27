@@ -15,6 +15,7 @@ export default function ArtPackgForm({
         unit_type: art_packg?.unit_type || "",
         unit_price: art_packg?.unit_price || "",
         canceled: art_packg?.canceled || false,
+        active: art_packg?.active ?? true,
     });
 
     const submit = (e: React.FormEvent) => {
@@ -80,6 +81,20 @@ export default function ArtPackgForm({
                                         setData("canceled", val)
                                     }
                                 />
+                            </div>
+                        </div>
+                        <div className="pt-4">
+                            <Label>Activo</Label>
+                            <div className="mt-1 flex items-center gap-2">
+                                <Switch
+                                    checked={data.active}
+                                    onCheckedChange={(val) =>
+                                        setData("active", val)
+                                    }
+                                />
+                                <span className="text-xs text-gray-400">
+                                    {data.active ? "Activo" : "Inactivo"}
+                                </span>
                             </div>
                         </div>
                     </div>

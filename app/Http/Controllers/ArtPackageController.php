@@ -46,6 +46,7 @@ class ArtPackageController extends Controller
             'agent_val' => 'required|numeric',
             'arancel' => 'required|numeric',
             'canceled' => 'required|boolean',
+            'active' => 'required|boolean',
         ]);
 
         ArtPackage::create([
@@ -82,6 +83,7 @@ class ArtPackageController extends Controller
             'agent_val' => 'sometimes|required|numeric',
             'arancel' => 'sometimes|required|numeric',
             'canceled' => 'sometimes|required|boolean',
+            'active' => 'sometimes|required|boolean',
         ]);
 
         $artPackage->update($validated);
@@ -104,9 +106,27 @@ class ArtPackageController extends Controller
         $enterpriseId = $request->user()->enterprise_id;
 
         $artPackages = ArtPackage::where('enterprise_id', $enterpriseId)
+            ->where('active', true)
             ->where('canceled', false)
+            ->orderBy('name')
             ->get(['id', 'name', 'translation', 'codigo_hs', 'unit_type', 'unit_price', 'arancel']);
 
         return response()->json($artPackages);
+    }
+
+    /**
+     * ✅ Método nuevo: Alternar el estado activo/inactivo de un artículo
+     */
+    public function toggleActive($id)
+    {
+        $artPackage = ArtPackage::where('enterprise_id', Auth::user()->enterprise_id)
+            ->findOrFail($id);
+
+        $artPackage->active = !$artPackage->active;
+        $artPackage->save();
+
+        $status = $artPackage->active ? 'activado' : 'desactivado';
+
+        return redirect()->route('art_packages.index')->with('success', "Artículo {$status} correctamente.");
     }
 }

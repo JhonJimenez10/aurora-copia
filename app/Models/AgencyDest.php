@@ -24,8 +24,14 @@ class AgencyDest extends Model
         'state',
         'available_us',
         'value',
+        'active',
     ];
 
+    protected $casts = [
+        'available_us' => 'boolean',
+        'active' => 'boolean', // ✅ Agregado
+        'value' => 'decimal:2',
+    ];
     // Relaciones
     public function enterprise()
     {
@@ -35,5 +41,16 @@ class AgencyDest extends Model
     public function receptions()
     {
         return $this->hasMany(Reception::class, 'agency_dest', 'id');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('active', true);
+    }
+
+    // Scope para obtener agencias inactivas
+    public function scopeInactive($query)
+    {
+        return $query->where('active', false);
     }
 }

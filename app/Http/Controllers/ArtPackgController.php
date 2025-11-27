@@ -42,6 +42,7 @@ class ArtPackgController extends Controller
             'unit_type' => 'nullable|string|max:50',
             'unit_price' => 'required|numeric',
             'canceled' => 'required|boolean',
+            'active' => 'required|boolean',
         ]);
 
         $enterpriseId = Auth::user()->enterprise_id;
@@ -81,6 +82,7 @@ class ArtPackgController extends Controller
             'unit_type' => 'nullable|string|max:50',
             'unit_price' => 'sometimes|required|numeric',
             'canceled' => 'sometimes|required|boolean',
+            'active' => 'sometimes|required|boolean',
         ]);
 
         $artPackg->update($validated);
@@ -104,11 +106,27 @@ class ArtPackgController extends Controller
         $enterpriseId = Auth::user()->enterprise_id;
 
         $artPackgs = ArtPackg::where('enterprise_id', $enterpriseId)
+            ->where('active', true)
             ->where('canceled', false)
-            ->select('id', 'name', 'unit_price', 'unit_type')
             ->orderBy('name')
+            ->select('id', 'name', 'unit_price', 'unit_type')
             ->get();
 
         return response()->json($artPackgs);
+    }
+    /**
+     * ✅ Método nuevo: Alternar el estado activo/inactivo de un artículo
+     */
+    public function toggleActive($id)
+    {
+        $artPackg = ArtPackg::where('enterprise_id', Auth::user()->enterprise_id)
+            ->findOrFail($id);
+
+        $artPackg->active = !$artPackg->active;
+        $artPackg->save();
+
+        $status = $artPackg->active ? 'activado' : 'desactivado';
+
+        return redirect()->route('art_packgs.index')->with('success', "Artículo {$status} correctamente.");
     }
 }
