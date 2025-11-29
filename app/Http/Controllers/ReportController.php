@@ -122,41 +122,64 @@ class ReportController extends Controller
     }
 
     /** Reporte Facturación (igual a tu versión) */
+    /** Reporte Facturación con opción "Todos" */
     public function invoiceIndex(Request $request)
     {
         $start = $request->query('start_date');
         $end   = $request->query('end_date');
         $enterpriseId = $request->query('enterprise_id');
 
-        $enterprises = $this->getVisibleEnterprises();
+        // Obtener empresas visibles EXCLUYENDO COAVPRO
+        $enterprises = Enterprise::select('id', 'name', 'commercial_name')
+            ->where('commercial_name', '!=', 'COAVPRO')
+            ->when(!$this->canChooseAnyEnterprise(), fn($q) => $q->where('id', auth()->user()->enterprise_id))
+            ->orderBy('name')
+            ->get();
+
         $rows = [];
 
         if ($enterpriseId && $start && $end) {
+            // Validar que si el usuario NO puede elegir cualquiera, use solo su empresa
             if (!$this->canChooseAnyEnterprise()) {
                 $enterpriseId = auth()->user()->enterprise_id;
             }
 
             // Guardar filtros para exportación
             session([
-                'reports.invoice.enterprise_id' => (int)$enterpriseId,
+                'reports.invoice.enterprise_id' => $enterpriseId, // Puede ser 'all'
                 'reports.invoice.start_date'    => $start,
                 'reports.invoice.end_date'      => $end,
             ]);
 
-            $receptions = \App\Models\Reception::with(['recipient'])
-                ->where('enterprise_id', $enterpriseId)
+            // Construir query base
+            $query = \App\Models\Reception::with(['recipient', 'enterprise'])
                 ->where('annulled', false)
                 ->whereDate('date_time', '>=', $start)
-                ->whereDate('date_time', '<=', $end)
-                ->orderByDesc('date_time')
-                ->get();
+                ->whereDate('date_time', '<=', $end);
+
+            // Si NO es "all", filtrar por enterprise_id
+            if ($enterpriseId !== 'all') {
+                $query->where('enterprise_id', $enterpriseId);
+            } else {
+                // Si es "all", excluir COAVPRO
+                $coavproIds = Enterprise::where('commercial_name', 'COAVPRO')
+                    ->pluck('id')
+                    ->toArray();
+
+                if (!empty($coavproIds)) {
+                    $query->whereNotIn('enterprise_id', $coavproIds);
+                }
+            }
+
+            $receptions = $query->orderByDesc('date_time')->get();
 
             foreach ($receptions as $r) {
                 $rows[] = [
-                    'numero_recepcion' => $r->number ?? '',
-                    'destinatario'     => optional($r->recipient)->full_name ?? '',
-                    'subtotal'         => (float) $r->subtotal,
-                    'total'            => (float) $r->total,
+                    'numero_recepcion'      => $r->number ?? '',
+                    'destinatario'          => optional($r->recipient)->full_name ?? '',
+                    'telefono_destinatario' => optional($r->recipient)->phone ?? '',
+                    'subtotal'              => (float) $r->subtotal,
+                    'total'                 => (float) $r->total,
                 ];
             }
         }
@@ -184,6 +207,7 @@ class ReportController extends Controller
             ?? session('reports.invoice.enterprise_id')
             ?? auth()->user()->enterprise_id;
 
+        // Si el usuario NO puede elegir cualquier empresa, forzar la suya
         if (! $this->canChooseAnyEnterprise()) {
             $enterpriseId = auth()->user()->enterprise_id;
         }
@@ -192,7 +216,7 @@ class ReportController extends Controller
             'reporte_facturacion_%s_%s_emp%s.xlsx',
             \Carbon\Carbon::parse($start)->format('Ymd'),
             \Carbon\Carbon::parse($end)->format('Ymd'),
-            $enterpriseId
+            $enterpriseId === 'all' ? 'TODAS' : $enterpriseId
         );
 
         return \Maatwebsite\Excel\Facades\Excel::download(

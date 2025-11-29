@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Reception;
+use App\Models\Enterprise;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -35,13 +36,27 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
 
     public function collection(): Collection
     {
-        $receptions = Reception::with(['recipient', 'agencyDest', 'packages', 'packages.items.artPackage'])
-            ->where('enterprise_id', $this->enterpriseId)
+        // Construir query base
+        $query = Reception::with(['recipient', 'agencyDest', 'packages', 'packages.items.artPackage'])
             ->where('annulled', false)
             ->whereDate('date_time', '>=', $this->startDate)
-            ->whereDate('date_time', '<=', $this->endDate)
-            ->orderByDesc('date_time')
-            ->get();
+            ->whereDate('date_time', '<=', $this->endDate);
+
+        // Si NO es "all", filtrar por enterprise_id específico
+        if ($this->enterpriseId !== 'all') {
+            $query->where('enterprise_id', $this->enterpriseId);
+        } else {
+            // Si es "all", excluir COAVPRO
+            $coavproIds = Enterprise::where('commercial_name', 'COAVPRO')
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($coavproIds)) {
+                $query->whereNotIn('enterprise_id', $coavproIds);
+            }
+        }
+
+        $receptions = $query->orderByDesc('date_time')->get();
 
         $rows = [];
 
@@ -54,6 +69,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
         foreach ($receptions as $r) {
             $destino      = $this->normalizeString(optional($r->agencyDest)->name ?? '');
             $destinatario = $this->normalizeString(optional($r->recipient)->full_name ?? '');
+            $telefonoDestinatario = $this->normalizeString(optional($r->recipient)->phone ?? '');
             $formaPago    = $this->normalizeString($r->pay_method ?? '');
 
 
@@ -63,6 +79,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
                     $r->number ?? '',
                     $destino,
                     $destinatario,
+                    $telefonoDestinatario,
                     '',
                     $formaPago,
                     0,
@@ -99,6 +116,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
                     $r->number ?? '',         // 1 Numero recepcion
                     $destino,                 // 2 Destino
                     $destinatario,            // 3 Destinatario
+                    $telefonoDestinatario,    // 4 TelefonoDestinatario
                     $contenido,               // 4 Contenido (vacío si no hay artPackage)
                     $formaPago,               // 5 Forma de Pago
                     (float) ($p->pounds ?? 0),    // 6 Libras
@@ -125,25 +143,25 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
         }
 
         // Fila separadora (opcional)
-        $rows[] = array_fill(0, 19, '');
+        $rows[] = array_fill(0, 20, '');
 
         // 4 filas de totales (mismo ancho de columnas)
         // Colocamos el valor SOLO en la columna correspondiente
-        $totalPaquetesRow = array_fill(0, 19, '');
+        $totalPaquetesRow = array_fill(0, 20, '');
         $totalPaquetesRow[0] = 'Total paquetes';
-        $totalPaquetesRow[8] = $sumPaquetes;
+        $totalPaquetesRow[9] = $sumPaquetes;
 
-        $totalLibrasRow = array_fill(0, 19, '');
+        $totalLibrasRow = array_fill(0, 20, '');
         $totalLibrasRow[0] = 'Total libras';
-        $totalLibrasRow[6] = $sumLibras;
+        $totalLibrasRow[7] = $sumLibras;
 
-        $totalKilosRow = array_fill(0, 19, '');
+        $totalKilosRow = array_fill(0, 20, '');
         $totalKilosRow[0] = 'Total Kilos';
-        $totalKilosRow[7] = $sumKilos;
+        $totalKilosRow[8] = $sumKilos;
 
-        $totalTotalRow = array_fill(0, 19, '');
+        $totalTotalRow = array_fill(0, 20, '');
         $totalTotalRow[0] = 'Total Total';
-        $totalTotalRow[18] = $sumTotal;
+        $totalTotalRow[19] = $sumTotal;
 
         $rows[] = $totalPaquetesRow;
         $rows[] = $totalLibrasRow;
@@ -160,6 +178,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
             'Numero recepcion',
             'Destino',
             'Destinatario',
+            'TelefonoDestinatario',
             'Contenido',
             'Forma de Pago',
             'Libras',

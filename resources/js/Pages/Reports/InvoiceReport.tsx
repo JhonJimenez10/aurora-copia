@@ -13,7 +13,11 @@ import {
     SelectValue,
 } from "@/Components/ui/select";
 
-type Enterprise = { id: number | string; name: string };
+type Enterprise = {
+    id: number | string;
+    name: string;
+    commercial_name?: string;
+};
 
 export default function InvoiceReport({
     rows = [],
@@ -76,7 +80,11 @@ export default function InvoiceReport({
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(Number(n ?? 0));
-
+    const filteredEnterprises = useMemo(() => {
+        return enterprises.filter(
+            (e: Enterprise) => e.commercial_name !== "COAVPRO"
+        );
+    }, [enterprises]);
     return (
         <AuthenticatedLayout>
             <Head title="Reporte de Facturación" />
@@ -106,14 +114,25 @@ export default function InvoiceReport({
                                     <SelectValue placeholder="Seleccione empresa" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-slate-900 text-white border border-red-700">
-                                    {enterprises.map((e: Enterprise) => (
-                                        <SelectItem
-                                            key={e.id}
-                                            value={String(e.id)}
-                                        >
-                                            {e.name}
-                                        </SelectItem>
-                                    ))}
+                                    {/* Opción "Todos" */}
+                                    <SelectItem
+                                        value="all"
+                                        className="font-bold text-yellow-400"
+                                    >
+                                        🌟 TODAS LAS EMPRESAS
+                                    </SelectItem>
+
+                                    {/* Empresas individuales (excluyendo COAVPRO) */}
+                                    {filteredEnterprises.map(
+                                        (e: Enterprise) => (
+                                            <SelectItem
+                                                key={e.id}
+                                                value={String(e.id)}
+                                            >
+                                                {e.name}
+                                            </SelectItem>
+                                        )
+                                    )}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -195,13 +214,21 @@ export default function InvoiceReport({
                     {/* Rango seleccionado */}
                     <div className="text-red-400 text-sm italic mb-4">
                         {enterpriseId && startDate && endDate
-                            ? `Empresa #${enterpriseId} | Desde ${format(
-                                  new Date(startDate),
-                                  "PPP",
-                                  { locale: es }
-                              )} hasta ${format(new Date(endDate), "PPP", {
-                                  locale: es,
-                              })}`
+                            ? enterpriseId === "all"
+                                ? `📊 TODAS LAS EMPRESAS (excepto COAVPRO) | Desde ${format(
+                                      new Date(startDate),
+                                      "PPP",
+                                      { locale: es }
+                                  )} hasta ${format(new Date(endDate), "PPP", {
+                                      locale: es,
+                                  })}`
+                                : `Empresa #${enterpriseId} | Desde ${format(
+                                      new Date(startDate),
+                                      "PPP",
+                                      { locale: es }
+                                  )} hasta ${format(new Date(endDate), "PPP", {
+                                      locale: es,
+                                  })}`
                             : "Seleccione empresa y rango de fechas para ver los resultados."}
                     </div>
 
