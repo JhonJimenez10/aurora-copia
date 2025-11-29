@@ -12,12 +12,15 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 
 class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, ShouldAutoSize, WithEvents
 {
     protected string $startDate;
     protected string $endDate;
     protected string $enterpriseId;
+    protected array $enterpriseHeaderRows = []; // 👈 Para guardar las filas de encabezado de empresa
 
     public function __construct(string $startDate, string $endDate, string $enterpriseId)
     {
@@ -25,6 +28,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
         $this->endDate   = $endDate;
         $this->enterpriseId = $enterpriseId;
     }
+
     protected function normalizeString(?string $value): string
     {
         if (!$value) return '';
@@ -33,11 +37,10 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
         return str_replace($search, $replace, $value);
     }
 
-
     public function collection(): Collection
     {
         // Construir query base
-        $query = Reception::with(['recipient', 'agencyDest', 'packages', 'packages.items.artPackage'])
+        $query = Reception::with(['recipient', 'agencyDest', 'packages', 'packages.items.artPackage', 'enterprise'])
             ->where('annulled', false)
             ->whereDate('date_time', '>=', $this->startDate)
             ->whereDate('date_time', '<=', $this->endDate);
@@ -56,117 +59,181 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
             }
         }
 
-        $receptions = $query->orderByDesc('date_time')->get();
+        $receptions = $query->orderBy('enterprise_id')->orderByDesc('date_time')->get();
 
         $rows = [];
+        $currentRow = 2; // Empieza en 2 porque la fila 1 son los encabezados
 
-        // Acumuladores de totales
-        $sumPaquetes = 0.0;
-        $sumLibras   = 0.0;
-        $sumKilos    = 0.0;
-        $sumTotal    = 0.0;
+        // 👇 NUEVO: Acumuladores globales
+        $globalSumPaquetes = 0.0;
+        $globalSumLibras   = 0.0;
+        $globalSumKilos    = 0.0;
+        $globalSumTotal    = 0.0;
 
-        foreach ($receptions as $r) {
-            $destino      = $this->normalizeString(optional($r->agencyDest)->name ?? '');
-            $destinatario = $this->normalizeString(optional($r->recipient)->full_name ?? '');
-            $telefonoDestinatario = $this->normalizeString(optional($r->recipient)->phone ?? '');
-            $formaPago    = $this->normalizeString($r->pay_method ?? '');
+        // 👇 NUEVO: Agrupar por empresa
+        $groupedByEnterprise = $receptions->groupBy('enterprise_id');
 
+        foreach ($groupedByEnterprise as $enterpriseId => $enterpriseReceptions) {
+            $enterprise = $enterpriseReceptions->first()->enterprise;
+            $enterpriseName = $enterprise->name ?? "Empresa #{$enterpriseId}";
 
-            if ($r->packages->isEmpty()) {
-                $rows[] = [
-                    '',
-                    $r->number ?? '',
-                    $destino,
-                    $destinatario,
-                    $telefonoDestinatario,
-                    '',
-                    $formaPago,
-                    0,
-                    0,
-                    (float) $r->pkg_total,
-                    (float) $r->arancel,
-                    (float) $r->ins_pkg,
-                    (float) $r->packaging,
-                    (float) $r->ship_ins,
-                    (float) $r->clearance,
-                    (float) $r->trans_dest,
-                    (float) $r->transmit,
-                    (float) $r->subtotal,
-                    (float) $r->vat15,
-                    (float) $r->total,
-                ];
+            // 👇 Fila de encabezado de empresa (resaltada)
+            $rows[] = [
+                "EMPRESA: {$enterpriseName}",
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                ''
+            ];
 
-                $sumPaquetes += (float) $r->pkg_total;
-                $sumTotal    += (float) $r->total;
-                continue; // saltar al siguiente reception
-            }
+            // Guardar el número de fila para aplicar estilo después
+            $this->enterpriseHeaderRows[] = $currentRow;
+            $currentRow++;
 
-            foreach ($r->packages as $p) {
-                // Armar contenido concatenando los nombres de artículos (si los hay)
-                $contenido = '';
-                if ($p->items && $p->items->count() > 0) {
-                    $contenido = $p->items->map(function ($item) {
-                        return $this->normalizeString(optional($item->artPackage)->name ?? '');
-                    })->filter()->join(', ');
+            // Acumuladores por empresa
+            $sumPaquetes = 0.0;
+            $sumLibras   = 0.0;
+            $sumKilos    = 0.0;
+            $sumTotal    = 0.0;
+
+            foreach ($enterpriseReceptions as $r) {
+                $destino              = $this->normalizeString(optional($r->agencyDest)->name ?? '');
+                $destinatario         = $this->normalizeString(optional($r->recipient)->full_name ?? '');
+                $telefonoDestinatario = $this->normalizeString(optional($r->recipient)->phone ?? '');
+                $formaPago            = $this->normalizeString($r->pay_method ?? '');
+
+                if ($r->packages->isEmpty()) {
+                    $rows[] = [
+                        '',
+                        $r->number ?? '',
+                        $destino,
+                        $destinatario,
+                        $telefonoDestinatario,
+                        '',
+                        $formaPago,
+                        0,
+                        0,
+                        (float) $r->pkg_total,
+                        (float) $r->arancel,
+                        (float) $r->ins_pkg,
+                        (float) $r->packaging,
+                        (float) $r->ship_ins,
+                        (float) $r->clearance,
+                        (float) $r->trans_dest,
+                        (float) $r->transmit,
+                        (float) $r->subtotal,
+                        (float) $r->vat15,
+                        (float) $r->total,
+                    ];
+
+                    $sumPaquetes += (float) $r->pkg_total;
+                    $sumTotal    += (float) $r->total;
+                    $currentRow++;
+                    continue;
                 }
 
-                $rows[] = [
-                    $p->barcode ?? '',        // 0 Guia
-                    $r->number ?? '',         // 1 Numero recepcion
-                    $destino,                 // 2 Destino
-                    $destinatario,            // 3 Destinatario
-                    $telefonoDestinatario,    // 4 TelefonoDestinatario
-                    $contenido,               // 4 Contenido (vacío si no hay artPackage)
-                    $formaPago,               // 5 Forma de Pago
-                    (float) ($p->pounds ?? 0),    // 6 Libras
-                    (float) ($p->kilograms ?? 0), // 7 Kilos
-                    (float) $r->pkg_total,    // 8 Paquetes
-                    (float) $r->arancel,      // 9 Arancel
-                    (float) $r->ins_pkg,      // 10 Seguro de paquetes
-                    (float) $r->packaging,    // 11 Embalaje
-                    (float) $r->ship_ins,     // 12 Seguro de envio
-                    (float) $r->clearance,    // 13 Desaduanizacion
-                    (float) $r->trans_dest,   // 14 Transporte destino
-                    (float) $r->transmit,     // 15 Transmision
-                    (float) $r->subtotal,     // 16 Subtotal
-                    (float) $r->vat15,        // 17 IVA15%
-                    (float) $r->total,        // 18 Total
-                ];
+                foreach ($r->packages as $p) {
+                    $contenido = '';
+                    if ($p->items && $p->items->count() > 0) {
+                        $contenido = $p->items->map(function ($item) {
+                            return $this->normalizeString(optional($item->artPackage)->name ?? '');
+                        })->filter()->join(', ');
+                    }
 
-                // Acumular totales
-                $sumPaquetes += (float) $r->pkg_total;
-                $sumLibras   += (float) ($p->pounds ?? 0);
-                $sumKilos    += (float) ($p->kilograms ?? 0);
-                $sumTotal    += (float) $r->total;
+                    $rows[] = [
+                        $p->barcode ?? '',
+                        $r->number ?? '',
+                        $destino,
+                        $destinatario,
+                        $telefonoDestinatario,
+                        $contenido,
+                        $formaPago,
+                        (float) ($p->pounds ?? 0),
+                        (float) ($p->kilograms ?? 0),
+                        (float) $r->pkg_total,
+                        (float) $r->arancel,
+                        (float) $r->ins_pkg,
+                        (float) $r->packaging,
+                        (float) $r->ship_ins,
+                        (float) $r->clearance,
+                        (float) $r->trans_dest,
+                        (float) $r->transmit,
+                        (float) $r->subtotal,
+                        (float) $r->vat15,
+                        (float) $r->total,
+                    ];
+
+                    $sumPaquetes += (float) $r->pkg_total;
+                    $sumLibras   += (float) ($p->pounds ?? 0);
+                    $sumKilos    += (float) ($p->kilograms ?? 0);
+                    $sumTotal    += (float) $r->total;
+                    $currentRow++;
+                }
             }
+
+            // 👇 Subtotales por empresa
+            $rows[] = array_fill(0, 20, ''); // Fila separadora
+            $currentRow++;
+
+            $subtotalRow = array_fill(0, 20, '');
+            $subtotalRow[0] = "SUBTOTAL {$enterpriseName}";
+            $subtotalRow[7] = $sumLibras;
+            $subtotalRow[8] = $sumKilos;
+            $subtotalRow[9] = $sumPaquetes;
+            $subtotalRow[19] = $sumTotal;
+            $rows[] = $subtotalRow;
+            $currentRow++;
+
+            // Fila separadora entre empresas
+            $rows[] = array_fill(0, 20, '');
+            $currentRow++;
+
+            // Acumular a los totales globales
+            $globalSumPaquetes += $sumPaquetes;
+            $globalSumLibras   += $sumLibras;
+            $globalSumKilos    += $sumKilos;
+            $globalSumTotal    += $sumTotal;
         }
 
-        // Fila separadora (opcional)
-        $rows[] = array_fill(0, 20, '');
+        // 👇 TOTALES GENERALES (si es "all")
+        if ($this->enterpriseId === 'all') {
+            $rows[] = array_fill(0, 20, ''); // Separador
 
-        // 4 filas de totales (mismo ancho de columnas)
-        // Colocamos el valor SOLO en la columna correspondiente
-        $totalPaquetesRow = array_fill(0, 20, '');
-        $totalPaquetesRow[0] = 'Total paquetes';
-        $totalPaquetesRow[9] = $sumPaquetes;
+            $totalPaquetesRow = array_fill(0, 20, '');
+            $totalPaquetesRow[0] = 'TOTAL GENERAL - Paquetes';
+            $totalPaquetesRow[9] = $globalSumPaquetes;
+            $rows[] = $totalPaquetesRow;
 
-        $totalLibrasRow = array_fill(0, 20, '');
-        $totalLibrasRow[0] = 'Total libras';
-        $totalLibrasRow[7] = $sumLibras;
+            $totalLibrasRow = array_fill(0, 20, '');
+            $totalLibrasRow[0] = 'TOTAL GENERAL - Libras';
+            $totalLibrasRow[7] = $globalSumLibras;
+            $rows[] = $totalLibrasRow;
 
-        $totalKilosRow = array_fill(0, 20, '');
-        $totalKilosRow[0] = 'Total Kilos';
-        $totalKilosRow[8] = $sumKilos;
+            $totalKilosRow = array_fill(0, 20, '');
+            $totalKilosRow[0] = 'TOTAL GENERAL - Kilos';
+            $totalKilosRow[8] = $globalSumKilos;
+            $rows[] = $totalKilosRow;
 
-        $totalTotalRow = array_fill(0, 20, '');
-        $totalTotalRow[0] = 'Total Total';
-        $totalTotalRow[19] = $sumTotal;
-
-        $rows[] = $totalPaquetesRow;
-        $rows[] = $totalLibrasRow;
-        $rows[] = $totalKilosRow;
-        $rows[] = $totalTotalRow;
+            $totalTotalRow = array_fill(0, 20, '');
+            $totalTotalRow[0] = 'TOTAL GENERAL';
+            $totalTotalRow[19] = $globalSumTotal;
+            $rows[] = $totalTotalRow;
+        }
 
         return collect($rows);
     }
@@ -211,14 +278,59 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
                 $sheet = $event->sheet->getDelegate();
                 $highestRow = $sheet->getHighestRow();
 
-                // Negrita para las 4 últimas filas (totales)
-                for ($r = $highestRow - 3; $r <= $highestRow; $r++) {
-                    $sheet->getStyle("A{$r}:P{$r}")->getFont()->setBold(true);
+                // 👇 Estilo para encabezados de empresa
+                foreach ($this->enterpriseHeaderRows as $rowNum) {
+                    $sheet->getStyle("A{$rowNum}:T{$rowNum}")
+                        ->applyFromArray([
+                            'font' => [
+                                'bold' => true,
+                                'size' => 12,
+                                'color' => ['rgb' => 'FFFFFF']
+                            ],
+                            'fill' => [
+                                'fillType' => Fill::FILL_SOLID,
+                                'startColor' => ['rgb' => '2563EB'] // Azul
+                            ],
+                            'borders' => [
+                                'allBorders' => [
+                                    'borderStyle' => Border::BORDER_THIN,
+                                ]
+                            ]
+                        ]);
+
+                    // Combinar celdas del encabezado de empresa
+                    $sheet->mergeCells("A{$rowNum}:T{$rowNum}");
                 }
 
-                // Línea superior antes del bloque de totales
-                $sheet->getStyle("A" . ($highestRow - 4) . ":P" . ($highestRow - 4))
-                    ->getBorders()->getTop()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+                // 👇 Negrita para filas de SUBTOTAL y TOTAL GENERAL
+                for ($r = 2; $r <= $highestRow; $r++) {
+                    $cellValue = $sheet->getCell("A{$r}")->getValue();
+
+                    if (
+                        is_string($cellValue) &&
+                        (str_starts_with($cellValue, 'SUBTOTAL') ||
+                            str_starts_with($cellValue, 'TOTAL GENERAL'))
+                    ) {
+
+                        $isGeneralTotal = str_starts_with($cellValue, 'TOTAL GENERAL');
+
+                        $sheet->getStyle("A{$r}:T{$r}")
+                            ->applyFromArray([
+                                'font' => [
+                                    'bold' => true,
+                                    'size' => $isGeneralTotal ? 12 : 10,
+                                    'color' => ['rgb' => $isGeneralTotal ? 'FFFFFF' : '000000']
+                                ],
+                                'fill' => [
+                                    'fillType' => Fill::FILL_SOLID,
+                                    'startColor' => ['rgb' => $isGeneralTotal ? 'DC2626' : 'FCD34D'] // Rojo para general, amarillo para subtotales
+                                ],
+                                'borders' => [
+                                    'top' => ['borderStyle' => Border::BORDER_THIN]
+                                ]
+                            ]);
+                    }
+                }
             },
         ];
     }
