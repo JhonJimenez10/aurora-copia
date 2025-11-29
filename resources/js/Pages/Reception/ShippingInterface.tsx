@@ -2463,9 +2463,27 @@ export default function ShippingInterface({
                 onSelect={handleRecipientSelect}
             />
 
+            {/* MODAL DE ÉXITO */}
             {/* ✅ MODAL DE ÉXITO */}
-            <Dialog open={showSuccessModal} modal={true}>
-                <DialogContent className="bg-[#1e1e2f] text-white border border-purple-700">
+            <Dialog
+                open={showSuccessModal}
+                onOpenChange={(open) => {
+                    // Solo permitir cerrar si el usuario hace clic en "Cerrar"
+                    // No permitir cerrar haciendo clic fuera o presionando ESC
+                    if (!open) return;
+                }}
+            >
+                <DialogContent
+                    className="bg-[#1e1e2f] text-white border border-purple-700"
+                    onPointerDownOutside={(e) => {
+                        // Prevenir cierre al hacer clic fuera del modal
+                        e.preventDefault();
+                    }}
+                    onEscapeKeyDown={(e) => {
+                        // Prevenir cierre al presionar ESC
+                        e.preventDefault();
+                    }}
+                >
                     <DialogHeader>
                         <DialogTitle className={modalTitleClass}>
                             {modalTitle}
@@ -2521,7 +2539,7 @@ export default function ShippingInterface({
                                 setEfectivoRecibido(0);
                                 setReceptionDate(today);
                                 setRoute("ECUADOR - ESTADOS UNIDOS");
-                                // 🧹 Agregar esto para limpiar el campo de Ag.destino
+                                // 🧹 Limpiar el campo de Ag.destino
                                 setAgencyDest("");
                                 // Obtener el nuevo número de recepción
                                 axios
@@ -2584,6 +2602,7 @@ export default function ShippingInterface({
                         >
                             Factura original
                         </Button>
+
                         {/* Descargar factura horizontal A4 */}
                         <Button
                             className="bg-slate-600 hover:bg-slate-700"

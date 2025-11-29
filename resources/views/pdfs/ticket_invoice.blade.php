@@ -192,6 +192,7 @@
                         @php
                             $rows = [
                                 ['SEGURO PAQUETES', $total_seguro_paquetes],
+                                ['ARANCELES', $invoice->reception?->arancel ?? 0],
                                 ['EMBALAJE', $total_embalaje],
                                 ['SEGURO ENVÍO', $total_seguro_envio],
                                 ['DESADUANIZACIÓN', $total_desaduanizacion],

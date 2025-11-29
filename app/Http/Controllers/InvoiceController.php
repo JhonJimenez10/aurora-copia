@@ -340,6 +340,7 @@ class InvoiceController extends Controller
 
         // Adicionales
         $totalSeguroPaquetes   = $reception->ins_pkg;
+        $totalArancel          = $reception->arancel;
         $totalEmbalaje         = $reception->packaging;
         $totalSeguroEnvio      = $reception->ship_ins;
         $totalDesaduanizacion  = $reception->clearance;
@@ -356,6 +357,7 @@ class InvoiceController extends Controller
             'declaredValue' => $declaredValue,
             'contentDescription' => $contentDescription,
             'total_seguro_paquetes' => $totalSeguroPaquetes,
+            'total_arancel' => $totalArancel,
             'total_embalaje' => $totalEmbalaje,
             'total_seguro_envio' => $totalSeguroEnvio,
             'total_desaduanizacion' => $totalDesaduanizacion,
@@ -424,6 +426,7 @@ class InvoiceController extends Controller
 
         // Adicionales
         $totalSeguroPaquetes   = (float) ($reception->ins_pkg     ?? 0);
+        $totalArancel          = (float) ($reception->arancel ?? 0);
         $totalEmbalaje         = (float) ($reception->packaging   ?? 0);
         $totalSeguroEnvio      = (float) ($reception->ship_ins    ?? 0);
         $totalDesaduanizacion  = (float) ($reception->clearance   ?? 0);
@@ -443,6 +446,7 @@ class InvoiceController extends Controller
             'contentDescription' => $contentDescription,
 
             'tarifa_paquetes' => $tarifaPaquetes,
+            'total_arancel' => $totalArancel,
 
             'total_seguro_paquetes' => $totalSeguroPaquetes,
             'total_embalaje' => $totalEmbalaje,
