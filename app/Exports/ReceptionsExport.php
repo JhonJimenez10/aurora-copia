@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Reception;
+use App\Models\Enterprise;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -13,9 +14,9 @@ use Carbon\Carbon;
 
 class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, ShouldAutoSize
 {
-    protected $startDate;
-    protected $endDate;
-    protected $enterpriseId;
+    protected string $startDate;
+    protected string $endDate;
+    protected string $enterpriseId;
 
     public function __construct(string $startDate, string $endDate, string $enterpriseId)
     {
@@ -34,17 +35,36 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
 
     public function collection(): Collection
     {
-        $receptions = Reception::with(['sender', 'recipient', 'packages.artPackage'])
-            ->where('enterprise_id', $this->enterpriseId)
+        // Query base
+        $query = Reception::with(['sender', 'recipient', 'packages.artPackage'])
             ->where('annulled', false)
             ->whereDate('date_time', '>=', $this->startDate)
-            ->whereDate('date_time', '<=', $this->endDate)
+            ->whereDate('date_time', '<=', $this->endDate);
+
+        // Filtro por empresa (igual a Facturación):
+        // - Si es una empresa específica => where enterprise_id
+        // - Si es 'all' => excluir COAVPRO
+        if ($this->enterpriseId !== 'all') {
+            $query->where('enterprise_id', $this->enterpriseId);
+        } else {
+            $coavproIds = Enterprise::where('commercial_name', 'COAVPRO')
+                ->pluck('id')->toArray();
+
+            if (!empty($coavproIds)) {
+                $query->whereNotIn('enterprise_id', $coavproIds);
+            }
+        }
+
+        // Ordenado por empresa y fecha descendente (como en Facturación)
+        $receptions = $query
+            ->orderBy('enterprise_id')
+            ->orderByDesc('date_time')
             ->get();
 
         $rows = [];
 
         foreach ($receptions as $reception) {
-            // si NO tiene paquetes, igual agregamos una fila
+            // Si NO tiene paquetes, igual agregamos una fila
             if ($reception->packages->isEmpty()) {
                 $rows[] = [
                     'REGISTRO',                     // Tipo de Envío
@@ -67,10 +87,10 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
                     $this->normalizeString(optional($reception->recipient)->address ?? ''),
                     $this->normalizeString(optional($reception->recipient)->phone ?? ''),
                 ];
-                continue; // siguiente recepción
+                continue;
             }
 
-            // si tiene paquetes, los recorremos normalmente
+            // Con paquetes: una fila por paquete
             foreach ($reception->packages as $package) {
                 $fullBarcode = $package->barcode ?? '';
                 $parts = explode('.', $fullBarcode, 2);
@@ -91,7 +111,7 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
                     (float) ($package->kilograms ?? 0),
                     '',
                     $contenido,
-                    1, // cada paquete cuenta como una pieza
+                    1, // cada paquete = 1 pieza
                     $this->normalizeString(optional($reception->sender)->city ?? ''),
                     $this->normalizeString(optional($reception->sender)->address ?? ''),
                     $this->normalizeString(optional($reception->sender)->phone ?? ''),

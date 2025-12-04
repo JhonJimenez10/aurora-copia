@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Button } from "@/Components/ui/button";
 import { CalendarIcon, Download, Loader2 } from "lucide-react";
 
-interface AirlineManifestRow {
+interface Row {
     barcode: string;
     shipper: string;
     consignee: string;
@@ -20,37 +20,42 @@ interface AirlineManifestRow {
 interface Enterprise {
     id: number | string;
     name: string;
-}
-
-interface AirlineManifestProps {
-    rows: AirlineManifestRow[];
-    startDate: string;
-    endDate: string;
-    enterpriseId: number | string;
-    enterprises: Enterprise[]; // 🔹 Agregado
+    commercial_name?: string;
 }
 
 export default function AirlineManifestReport({
     rows = [],
     startDate: initialStart = "",
     endDate: initialEnd = "",
-    enterpriseId: initialEnterprise,
-    enterprises = [], // 🔹 Por defecto
-}: AirlineManifestProps) {
+    enterpriseId: initialEnterprise = "",
+    enterprises = [],
+}: {
+    rows: Row[];
+    startDate: string;
+    endDate: string;
+    enterpriseId: string;
+    enterprises: Enterprise[];
+}) {
     const [startDate, setStartDate] = useState<string>(initialStart);
     const [endDate, setEndDate] = useState<string>(initialEnd);
-    const [enterpriseId, setEnterpriseId] = useState<number | string>(
-        initialEnterprise
+    const [enterpriseId, setEnterpriseId] = useState<string>(
+        String(initialEnterprise || "")
     );
     const [loading, setLoading] = useState(false);
     const [filtered, setFiltered] = useState(rows.length > 0);
+
+    // Ocultar COAVPRO en listado individual (la opción "TODAS" lo excluye en backend)
+    const enterpriseOptions = useMemo(
+        () =>
+            (enterprises || []).filter((e) => e.commercial_name !== "COAVPRO"),
+        [enterprises]
+    );
 
     const handleFilter = () => {
         if (!startDate || !endDate) {
             alert("Seleccione fecha de inicio y fecha de fin.");
             return;
         }
-
         setFiltered(false);
         router.get(
             "/reports/airline-manifest",
@@ -83,7 +88,7 @@ export default function AirlineManifestReport({
                 <div className="bg-gradient-to-r from-red-700 via-red-600 to-yellow-400 text-white px-6 py-4 rounded-t-lg">
                     <h1 className="text-2xl font-bold">Manifiesto Aerolínea</h1>
                     <p className="text-white text-sm">
-                        Filtra por fechas y empresa, y exporta el manifiesto en
+                        Filtra por fechas y empresa y exporta el manifiesto en
                         Excel.
                     </p>
                 </div>
@@ -102,8 +107,12 @@ export default function AirlineManifestReport({
                                 }
                                 className="w-full px-3 py-2 bg-slate-800 text-white border border-red-700 rounded-md"
                             >
-                                {enterprises.map((e) => (
-                                    <option key={e.id} value={e.id}>
+                                {/* Opción "TODAS" -> backend excluye COAVPRO */}
+                                <option value="all">
+                                    🌟 TODAS LAS EMPRESAS
+                                </option>
+                                {enterpriseOptions.map((e) => (
+                                    <option key={e.id} value={String(e.id)}>
                                         {e.name}
                                     </option>
                                 ))}
@@ -145,9 +154,11 @@ export default function AirlineManifestReport({
                         <div className="flex gap-2">
                             <Button
                                 onClick={handleFilter}
-                                disabled={!startDate || !endDate}
+                                disabled={
+                                    !startDate || !endDate || !enterpriseId
+                                }
                                 variant="outline"
-                                className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white disabled:opacity-50"
                             >
                                 Filtrar Resultados
                             </Button>
@@ -155,7 +166,7 @@ export default function AirlineManifestReport({
                             <Button
                                 onClick={handleExport}
                                 disabled={!filtered || loading}
-                                className="bg-green-600 hover:bg-green-700"
+                                className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
                             >
                                 {loading ? (
                                     <>
@@ -171,13 +182,6 @@ export default function AirlineManifestReport({
                             </Button>
                         </div>
                     </div>
-
-                    {/* Nota de rango */}
-                    <p className="text-red-400 text-sm italic mb-4">
-                        {startDate && endDate
-                            ? `Mostrando resultados desde ${startDate} hasta ${endDate}`
-                            : "Seleccione un rango de fechas para ver los resultados."}
-                    </p>
 
                     {/* Tabla */}
                     {filtered && rows.length > 0 ? (

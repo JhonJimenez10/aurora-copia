@@ -8,16 +8,14 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ReceptionsExport;
-use Carbon\Carbon;
 use App\Exports\InvoiceReportExport;
 use App\Exports\IBCManifestExport;
 use App\Exports\AirlineManifestExport;
 use App\Exports\ACASAviancaManifestExport;
+use Carbon\Carbon;
 
 class ReportController extends Controller
 {
-    /** Rol en MAYÚSCULAS sin depender de roles() */
-    /** Rol en MAYÚSCULAS sin depender de roles() */
     protected function roleUpper(): string
     {
         $u = auth()->user();
@@ -33,47 +31,50 @@ class ReportController extends Controller
         return in_array($this->roleUpper(), ['SUDO', 'ADMIN'], true);
     }
 
-    /** Helper: obtener empresas visibles según rol */
     protected function getVisibleEnterprises()
     {
-        return Enterprise::select('id', 'name')
+        return Enterprise::select('id', 'name', 'commercial_name')
             ->when(!$this->canChooseAnyEnterprise(), fn($q) => $q->where('id', auth()->user()->enterprise_id))
             ->orderBy('name')
             ->get();
     }
 
+    /* =======================
+       Recepciones (resumen)
+       ======================= */
     public function index(Request $request)
     {
         $start        = $request->query('start_date');
         $end          = $request->query('end_date');
-        $enterpriseId = $request->query('enterprise_id');
+        $enterpriseId = $request->query('enterprise_id'); // 'all' o id
 
-        // Empresas para el selector:
         $enterprises = $this->getVisibleEnterprises();
+        $receptions  = [];
 
-
-        $receptions = [];
-
-        // No cargar datos hasta tener empresa + fechas
         if ($enterpriseId && $start && $end) {
-            // Si el rol NO puede elegir cualquiera (p. ej. CUSTOMER), forzar su empresa
-            if (! $this->canChooseAnyEnterprise()) {
-                $enterpriseId = auth()->user()->enterprise_id;
+            if (!$this->canChooseAnyEnterprise()) {
+                $enterpriseId = (string) auth()->user()->enterprise_id;
             }
 
-            // Guardar filtros para export
             session([
-                'reports.enterprise_id' => (int)$enterpriseId,
+                'reports.enterprise_id' => $enterpriseId,
                 'reports.start_date'    => $start,
                 'reports.end_date'      => $end,
             ]);
 
-            $receptions = Reception::with(['sender', 'recipient', 'packages.artPackage'])
-                ->where('enterprise_id', $enterpriseId)
-                ->whereDate('date_time', '>=', $start)
-                ->whereDate('date_time', '<=', $end)
+            $query = Reception::with(['sender', 'recipient', 'packages.artPackage'])
                 ->where('annulled', false)
-                ->get();
+                ->whereDate('date_time', '>=', $start)
+                ->whereDate('date_time', '<=', $end);
+
+            if ($enterpriseId !== 'all') {
+                $query->where('enterprise_id', $enterpriseId);
+            } else {
+                $coavproIds = Enterprise::where('commercial_name', 'COAVPRO')->pluck('id')->toArray();
+                if (!empty($coavproIds)) $query->whereNotIn('enterprise_id', $coavproIds);
+            }
+
+            $receptions = $query->orderBy('enterprise_id')->orderByDesc('date_time')->get();
         }
 
         return Inertia::render('Reports/Index', [
@@ -85,14 +86,8 @@ class ReportController extends Controller
         ]);
     }
 
-    /**
-     * Exportar a Excel (GET)
-     * - Fechas: toma query o sesión (valida siempre)
-     * - Empresa: ADMIN y SUDO pueden elegir cualquiera; otros, la suya
-     */
     public function export(Request $request)
     {
-        // Fechas desde query o sesión (para mantener el flujo “antes”)
         $start = $request->query('start_date') ?? session('reports.start_date');
         $end   = $request->query('end_date')   ?? session('reports.end_date');
 
@@ -101,74 +96,59 @@ class ReportController extends Controller
             'end_date'   => ['required', 'date', 'after_or_equal:start_date'],
         ])->validate();
 
-        // Empresa efectiva
         $enterpriseId = $request->query('enterprise_id')
             ?? session('reports.enterprise_id')
-            ?? auth()->user()->enterprise_id;
+            ?? (string) auth()->user()->enterprise_id;
 
-        if (! $this->canChooseAnyEnterprise()) {
-            // CUSTOMER (u otros): solo su empresa
-            $enterpriseId = auth()->user()->enterprise_id;
+        if (!$this->canChooseAnyEnterprise()) {
+            $enterpriseId = (string) auth()->user()->enterprise_id;
         }
 
         $fileName = sprintf(
             'envios_%s_%s_emp%s.xlsx',
             Carbon::parse($start)->format('Ymd'),
             Carbon::parse($end)->format('Ymd'),
-            $enterpriseId
+            $enterpriseId === 'all' ? 'TODAS' : $enterpriseId
         );
 
-        return Excel::download(new ReceptionsExport($start, $end, (string)$enterpriseId), $fileName);
+        return Excel::download(new ReceptionsExport($start, $end, (string) $enterpriseId), $fileName);
     }
 
-    /** Reporte Facturación (igual a tu versión) */
-    /** Reporte Facturación con opción "Todos" */
+    /* =======================
+       Facturación (resumen)
+       ======================= */
     public function invoiceIndex(Request $request)
     {
         $start = $request->query('start_date');
         $end   = $request->query('end_date');
         $enterpriseId = $request->query('enterprise_id');
 
-        // Obtener empresas visibles EXCLUYENDO COAVPRO
         $enterprises = Enterprise::select('id', 'name', 'commercial_name')
             ->where('commercial_name', '!=', 'COAVPRO')
             ->when(!$this->canChooseAnyEnterprise(), fn($q) => $q->where('id', auth()->user()->enterprise_id))
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name')->get();
 
         $rows = [];
 
         if ($enterpriseId && $start && $end) {
-            // Validar que si el usuario NO puede elegir cualquiera, use solo su empresa
-            if (!$this->canChooseAnyEnterprise()) {
-                $enterpriseId = auth()->user()->enterprise_id;
-            }
+            if (!$this->canChooseAnyEnterprise()) $enterpriseId = auth()->user()->enterprise_id;
 
-            // Guardar filtros para exportación
             session([
-                'reports.invoice.enterprise_id' => $enterpriseId, // Puede ser 'all'
+                'reports.invoice.enterprise_id' => $enterpriseId,
                 'reports.invoice.start_date'    => $start,
                 'reports.invoice.end_date'      => $end,
             ]);
 
-            // Construir query base
-            $query = \App\Models\Reception::with(['recipient', 'enterprise'])
+            $query = Reception::with(['recipient', 'enterprise'])
                 ->where('annulled', false)
                 ->whereDate('date_time', '>=', $start)
                 ->whereDate('date_time', '<=', $end);
 
-            // Si NO es "all", filtrar por enterprise_id
             if ($enterpriseId !== 'all') {
                 $query->where('enterprise_id', $enterpriseId);
             } else {
-                // Si es "all", excluir COAVPRO
-                $coavproIds = Enterprise::where('commercial_name', 'COAVPRO')
-                    ->pluck('id')
-                    ->toArray();
-
-                if (!empty($coavproIds)) {
-                    $query->whereNotIn('enterprise_id', $coavproIds);
-                }
+                $coavproIds = Enterprise::where('commercial_name', 'COAVPRO')->pluck('id')->toArray();
+                if (!empty($coavproIds)) $query->whereNotIn('enterprise_id', $coavproIds);
             }
 
             $receptions = $query->orderByDesc('date_time')->get();
@@ -207,60 +187,62 @@ class ReportController extends Controller
             ?? session('reports.invoice.enterprise_id')
             ?? auth()->user()->enterprise_id;
 
-        // Si el usuario NO puede elegir cualquier empresa, forzar la suya
-        if (! $this->canChooseAnyEnterprise()) {
-            $enterpriseId = auth()->user()->enterprise_id;
-        }
+        if (!$this->canChooseAnyEnterprise()) $enterpriseId = auth()->user()->enterprise_id;
 
         $fileName = sprintf(
             'reporte_facturacion_%s_%s_emp%s.xlsx',
-            \Carbon\Carbon::parse($start)->format('Ymd'),
-            \Carbon\Carbon::parse($end)->format('Ymd'),
+            Carbon::parse($start)->format('Ymd'),
+            Carbon::parse($end)->format('Ymd'),
             $enterpriseId === 'all' ? 'TODAS' : $enterpriseId
         );
 
-        return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\InvoiceReportExport($start, $end, (string)$enterpriseId),
-            $fileName
-        );
+        return Excel::download(new InvoiceReportExport($start, $end, (string) $enterpriseId), $fileName);
     }
 
+    /* =======================
+       IBC (resumen)
+       ======================= */
     public function ibcManifestIndex(Request $request)
     {
-        $start = $request->query('start_date');
-        $end   = $request->query('end_date');
-        $enterpriseId = $request->query('enterprise_id');
-        $enterprises = $this->getVisibleEnterprises();
+        $start        = $request->query('start_date');
+        $end          = $request->query('end_date');
+        $enterpriseId = $request->query('enterprise_id'); // 'all' o id
+        $enterprises  = $this->getVisibleEnterprises();
 
         $rows = [];
 
         if ($enterpriseId && $start && $end) {
-            if (! $this->canChooseAnyEnterprise()) {
-                $enterpriseId = auth()->user()->enterprise_id;
+            if (!$this->canChooseAnyEnterprise()) {
+                $enterpriseId = (string) auth()->user()->enterprise_id;
             }
 
-            // Guardar filtros en sesión para exportación
             session([
-                'reports.ibc.enterprise_id' => (int)$enterpriseId,
+                'reports.ibc.enterprise_id' => $enterpriseId,
                 'reports.ibc.start_date'    => $start,
                 'reports.ibc.end_date'      => $end,
             ]);
 
-            // 🔹 Cargar datos de recepciones
-            $receptions = Reception::with(['sender', 'recipient', 'packages'])
-                ->where('enterprise_id', $enterpriseId)
+            $query = Reception::with(['sender', 'recipient', 'packages'])
                 ->where('annulled', false)
                 ->whereDate('date_time', '>=', $start)
-                ->whereDate('date_time', '<=', $end)
-                ->get();
+                ->whereDate('date_time', '<=', $end);
+
+            if ($enterpriseId !== 'all') {
+                $query->where('enterprise_id', $enterpriseId);
+            } else {
+                $coavproIds = Enterprise::where('commercial_name', 'COAVPRO')->pluck('id')->toArray();
+                if (!empty($coavproIds)) $query->whereNotIn('enterprise_id', $coavproIds);
+            }
+
+            $receptions = $query->orderBy('enterprise_id')->orderByDesc('date_time')->get();
 
             foreach ($receptions as $reception) {
                 foreach ($reception->packages as $package) {
                     $rows[] = [
-                        'hawb'            => explode('.', $package->barcode)[0] ?? $package->barcode,
-                        'shipper_name'    => optional($reception->sender)->full_name ?? '',
+                        'hawb'             => explode('.', $package->barcode)[0] ?? $package->barcode,
+                        'shipper_name'     => optional($reception->sender)->full_name ?? '',
                         'consignee_person' => optional($reception->recipient)->full_name ?? '',
-                        'weight'          => $package->weight ?? '',
+                        'weight'           => $package->weight ?? '',
                     ];
                 }
             }
@@ -270,12 +252,10 @@ class ReportController extends Controller
             'startDate'    => $start,
             'endDate'      => $end,
             'enterpriseId' => $enterpriseId,
-            'rows'         => $rows, // 👈 Ahora enviamos datos reales
-            'enterprises'  => $enterprises, // <-- listado de empresas
-
+            'rows'         => $rows,
+            'enterprises'  => $enterprises,
         ]);
     }
-
 
     public function ibcManifestExport(Request $request)
     {
@@ -289,24 +269,22 @@ class ReportController extends Controller
 
         $enterpriseId = $request->query('enterprise_id')
             ?? session('reports.ibc.enterprise_id')
-            ?? auth()->user()->enterprise_id;
+            ?? (string) auth()->user()->enterprise_id;
 
-        if (! $this->canChooseAnyEnterprise()) {
-            $enterpriseId = auth()->user()->enterprise_id;
+        if (!$this->canChooseAnyEnterprise()) {
+            $enterpriseId = (string) auth()->user()->enterprise_id;
         }
 
         $fileName = sprintf(
             'manifiesto_ibc_%s_%s_emp%s.xlsx',
-            \Carbon\Carbon::parse($start)->format('Ymd'),
-            \Carbon\Carbon::parse($end)->format('Ymd'),
-            $enterpriseId
+            Carbon::parse($start)->format('Ymd'),
+            Carbon::parse($end)->format('Ymd'),
+            $enterpriseId === 'all' ? 'TODAS' : $enterpriseId
         );
 
-        return \Maatwebsite\Excel\Facades\Excel::download(
-            new IBCManifestExport($start, $end, (string) $enterpriseId),
-            $fileName
-        );
+        return Excel::download(new IBCManifestExport($start, $end, (string) $enterpriseId), $fileName);
     }
+
     public function ibcManifestExportCsv(Request $request)
     {
         $start = $request->query('start_date') ?? session('reports.ibc.start_date');
@@ -319,83 +297,56 @@ class ReportController extends Controller
 
         $enterpriseId = $request->query('enterprise_id')
             ?? session('reports.ibc.enterprise_id')
-            ?? auth()->user()->enterprise_id;
+            ?? (string) auth()->user()->enterprise_id;
 
-        if (! $this->canChooseAnyEnterprise()) {
-            $enterpriseId = auth()->user()->enterprise_id;
+        if (!$this->canChooseAnyEnterprise()) {
+            $enterpriseId = (string) auth()->user()->enterprise_id;
         }
 
         $fileName = sprintf(
             'manifiesto_ibc_%s_%s_emp%s.csv',
-            \Carbon\Carbon::parse($start)->format('Ymd'),
-            \Carbon\Carbon::parse($end)->format('Ymd'),
-            $enterpriseId
+            Carbon::parse($start)->format('Ymd'),
+            Carbon::parse($end)->format('Ymd'),
+            $enterpriseId === 'all' ? 'TODAS' : $enterpriseId
         );
 
-        return \Maatwebsite\Excel\Facades\Excel::download(
+        return Excel::download(
             new \App\Exports\IBCManifestCsvExport($start, $end, (string) $enterpriseId),
             $fileName,
             \Maatwebsite\Excel\Excel::CSV
         );
     }
-    public function airlineManifestExport(Request $request)
-    {
-        // Tomar fechas desde request
-        $startDate = $request->input('start_date');
-        $endDate   = $request->input('end_date');
 
-        // Validar fechas
-        $request->validate([
-            'start_date' => ['required', 'date'],
-            'end_date'   => ['required', 'date', 'after_or_equal:start_date'],
-        ]);
-
-        // Normalizar fechas para incluir todo el día
-        $start = Carbon::parse($startDate)->startOfDay();
-        $end   = Carbon::parse($endDate)->endOfDay();
-
-        // Determinar empresa
-        $enterpriseId = $request->input('enterprise_id') ?? auth()->user()->enterprise_id;
-
-        // Si el usuario NO puede elegir empresa, forzar la suya
-        if (! $this->canChooseAnyEnterprise()) {
-            $enterpriseId = auth()->user()->enterprise_id;
-        }
-
-        // Nombre de archivo
-        $fileName = sprintf(
-            'airline_manifest_%s_%s_emp%s.xlsx',
-            $start->format('Ymd'),
-            $end->format('Ymd'),
-            $enterpriseId
-        );
-
-        // Exportar Excel
-        return Excel::download(
-            new AirlineManifestExport($start, $end, (string) $enterpriseId),
-            $fileName
-        );
-    }
-
+    /* =======================
+       Airline (ARREGLADO)
+       ======================= */
     public function airlineManifestIndex(Request $request)
     {
-        $enterprises = $this->getVisibleEnterprises();
-        $start = $request->query('start_date');
-        $end   = $request->query('end_date');
-        $enterpriseId = $request->query('enterprise_id', auth()->user()->enterprise_id);
+        $enterprises  = $this->getVisibleEnterprises();
+        $start        = $request->query('start_date');
+        $end          = $request->query('end_date');
+        $enterpriseId = $request->query('enterprise_id'); // puede ser 'all' o id
 
+        // Si el usuario no puede elegir, forzar su empresa
         if (!$this->canChooseAnyEnterprise()) {
-            $enterpriseId = auth()->user()->enterprise_id;
+            $enterpriseId = (string) auth()->user()->enterprise_id;
         }
 
         $rows = [];
         if ($start && $end && $enterpriseId) {
-            $receptions = Reception::with(['sender', 'recipient', 'agencyDest', 'packages.items.artPackage'])
-                ->where('enterprise_id', $enterpriseId)
-                ->whereDate('date_time', '>=', $start)
-                ->whereDate('date_time', '<=', $end)
+            $query = Reception::with(['sender', 'recipient', 'agencyDest', 'packages.items.artPackage'])
                 ->where('annulled', false)
-                ->get();
+                ->whereDate('date_time', '>=', $start)
+                ->whereDate('date_time', '<=', $end);
+
+            if ($enterpriseId !== 'all') {
+                $query->where('enterprise_id', $enterpriseId);
+            } else {
+                $coavproIds = Enterprise::where('commercial_name', 'COAVPRO')->pluck('id')->toArray();
+                if (!empty($coavproIds)) $query->whereNotIn('enterprise_id', $coavproIds);
+            }
+
+            $receptions = $query->orderBy('enterprise_id')->orderByDesc('date_time')->get();
 
             foreach ($receptions as $reception) {
                 foreach ($reception->packages as $package) {
@@ -424,63 +375,99 @@ class ReportController extends Controller
             'rows'         => $rows,
         ]);
     }
+
+    public function airlineManifestExport(Request $request)
+    {
+        $start = $request->input('start_date');
+        $end   = $request->input('end_date');
+
+        $request->validate([
+            'start_date' => ['required', 'date'],
+            'end_date'   => ['required', 'date', 'after_or_equal:start_date'],
+        ]);
+
+        $enterpriseId = $request->input('enterprise_id') ?? (string) auth()->user()->enterprise_id;
+
+        if (!$this->canChooseAnyEnterprise()) {
+            $enterpriseId = (string) auth()->user()->enterprise_id;
+        }
+
+        $fileName = sprintf(
+            'airline_manifest_%s_%s_emp%s.xlsx',
+            Carbon::parse($start)->format('Ymd'),
+            Carbon::parse($end)->format('Ymd'),
+            $enterpriseId === 'all' ? 'TODAS' : $enterpriseId
+        );
+
+        return Excel::download(
+            new AirlineManifestExport($start, $end, (string) $enterpriseId),
+            $fileName
+        );
+    }
+
+    /* =======================
+       ACAS (sin cambios)
+       ======================= */
     public function acasAviancaManifestIndex(Request $request)
     {
-        $start = $request->query('start_date');
-        $end   = $request->query('end_date');
-        $enterpriseId = $request->query('enterprise_id') ?? auth()->user()->enterprise_id;
+        $start        = $request->query('start_date');
+        $end          = $request->query('end_date');
+        $enterpriseId = $request->query('enterprise_id'); // puede ser 'all' o id
 
         $enterprises = $this->getVisibleEnterprises();
         $rows = [];
 
-        if ($enterpriseId && $start && $end) {
-            if (!$this->canChooseAnyEnterprise()) {
-                $enterpriseId = auth()->user()->enterprise_id;
-            }
+        // Si el usuario NO puede elegir empresa, forzar la suya
+        if (!$this->canChooseAnyEnterprise()) {
+            $enterpriseId = (string) auth()->user()->enterprise_id;
+        }
 
+        if ($enterpriseId && $start && $end) {
             session([
                 'reports.acas.enterprise_id' => $enterpriseId,
                 'reports.acas.start_date'    => $start,
                 'reports.acas.end_date'      => $end,
             ]);
 
-            $receptions = Reception::with(['sender', 'recipient', 'packages.items.artPackage'])
-                ->where('enterprise_id', $enterpriseId)
-                ->whereDate('date_time', '>=', $start)
-                ->whereDate('date_time', '<=', $end)
+            $query = Reception::with(['sender', 'recipient', 'packages.items.artPackage'])
                 ->where('annulled', false)
-                ->get();
+                ->whereDate('date_time', '>=', $start)
+                ->whereDate('date_time', '<=', $end);
 
+            if ($enterpriseId !== 'all') {
+                $query->where('enterprise_id', $enterpriseId);
+            } else {
+                $coavproIds = Enterprise::where('commercial_name', 'COAVPRO')->pluck('id')->toArray();
+                if (!empty($coavproIds)) $query->whereNotIn('enterprise_id', $coavproIds);
+            }
+
+            $receptions = $query->orderBy('enterprise_id')->orderByDesc('date_time')->get();
+
+            // Agrupar como el export: por HAWB base
+            $grouped = [];
             foreach ($receptions as $reception) {
                 foreach ($reception->packages as $package) {
-                    $contents = $package->items->map(fn($item) => $item->artPackage?->name)->filter()->implode(', ');
+                    $baseCode = \Illuminate\Support\Str::before((string) ($package->barcode ?? ''), '.');
 
-                    $rows[] = [
-                        'hawb'              => $package->barcode,
-                        'origin'            => 'GYE',
-                        'destination'       => 'JFK',
-                        'pieces'            => 1,
-                        'weight'            => $package->kilograms,
-                        'shipper_name'      => optional($reception->sender)->full_name ?? '',
-                        'shipper_address'   => optional($reception->sender)->address ?? '',
-                        'shipper_city'      => optional($reception->sender)->city ?? '',
-                        'shipper_state'     => 'EC',
-                        'shipper_country'   => 'EC',
-                        'shipper_postal'    => optional($reception->sender)->postal_code ?? '',
-                        'consignee_name'    => optional($reception->recipient)->full_name ?? '',
-                        'consignee_address' => optional($reception->recipient)->address ?? '',
-                        'consignee_city'    => optional($reception->recipient)->city ?? '',
-                        'consignee_state'   => optional($reception->recipient)->state ?? '',
-                        'consignee_country' => 'US',
-                        'consignee_postal'  => optional($reception->recipient)->postal_code ?? '',
-                        'contents'          => $contents,
-                    ];
+                    if (!isset($grouped[$baseCode])) {
+                        $grouped[$baseCode] = [
+                            'hawb'        => $baseCode,
+                            'origin'      => 'GYE',
+                            'destination' => 'JFK',
+                            'pieces'      => 0,
+                            'weight'      => 0.0,
+                        ];
+                    }
+                    $grouped[$baseCode]['pieces'] += 1;
+                    $grouped[$baseCode]['weight'] += (float) ($package->kilograms ?? 0);
                 }
             }
+
+            $rows = array_values($grouped);
         }
 
         return Inertia::render('Reports/ACASAviancaManifestReport', [
-            'enterprises' => Enterprise::select('id', 'name')->get(), // 👈 Enviar lista de empresas
+            'enterprises'  => $enterprises,
             'startDate'    => $start,
             'endDate'      => $end,
             'enterpriseId' => $enterpriseId,
@@ -488,36 +475,32 @@ class ReportController extends Controller
         ]);
     }
 
-
     public function acasAviancaManifestExport(Request $request)
     {
         $start = $request->query('start_date') ?? session('reports.acas.start_date');
-        $end   = $request->query('end_date') ?? session('reports.acas.end_date');
+        $end   = $request->query('end_date')   ?? session('reports.acas.end_date');
 
         validator(['start_date' => $start, 'end_date' => $end], [
             'start_date' => ['required', 'date'],
             'end_date'   => ['required', 'date', 'after_or_equal:start_date'],
         ])->validate();
 
-        $enterpriseId = $request->query('enterprise_id');
+        $enterpriseId = $request->query('enterprise_id')
+            ?? session('reports.acas.enterprise_id')
+            ?? (string) auth()->user()->enterprise_id;
 
-        if (empty($enterpriseId) || $enterpriseId === 'null') {
-            $enterpriseId = session('reports.acas.enterprise_id') ?? auth()->user()->enterprise_id;
+        if (!$this->canChooseAnyEnterprise()) {
+            $enterpriseId = (string) auth()->user()->enterprise_id;
         }
-
-        if (! $this->canChooseAnyEnterprise()) {
-            $enterpriseId = auth()->user()->enterprise_id;
-        }
-
 
         $fileName = sprintf(
             'acas_avianca_manifest_%s_%s_emp%s.xlsx',
-            Carbon::parse($start)->format('Ymd'),
-            Carbon::parse($end)->format('Ymd'),
-            $enterpriseId
+            \Carbon\Carbon::parse($start)->format('Ymd'),
+            \Carbon\Carbon::parse($end)->format('Ymd'),
+            $enterpriseId === 'all' ? 'TODAS' : $enterpriseId
         );
 
-        return Excel::download(
+        return \Maatwebsite\Excel\Facades\Excel::download(
             new ACASAviancaManifestExport($start, $end, $enterpriseId),
             $fileName
         );

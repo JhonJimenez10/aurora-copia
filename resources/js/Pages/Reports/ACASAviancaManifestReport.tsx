@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Button } from "@/Components/ui/button";
 import { CalendarIcon, Download, Loader2 } from "lucide-react";
+
 interface Enterprise {
     id: number | string;
     name: string;
+    commercial_name?: string;
 }
-interface ACASAviancaRow {
+interface Row {
     hawb: string;
     origin: string;
     destination: string;
@@ -15,32 +17,33 @@ interface ACASAviancaRow {
     weight: number | string;
 }
 
-interface ACASAviancaManifestProps {
-    rows: ACASAviancaRow[];
-    startDate: string;
-    endDate: string;
-    enterpriseId: number | string;
-    enterprises: Enterprise[]; // 👈 Nueva prop
-}
-
 export default function ACASAviancaManifestReport({
     rows = [],
     startDate: initialStart = "",
     endDate: initialEnd = "",
-    enterpriseId: initialEnterprise,
+    enterpriseId: initialEnterprise = "",
     enterprises = [],
-}: ACASAviancaManifestProps) {
+}: {
+    rows: Row[];
+    startDate: string;
+    endDate: string;
+    enterpriseId: string | number;
+    enterprises: Enterprise[];
+}) {
     const [startDate, setStartDate] = useState<string>(initialStart);
     const [endDate, setEndDate] = useState<string>(initialEnd);
-    const [enterpriseId, setEnterpriseId] = useState<number | string>(
-        initialEnterprise ?? enterprises[0]?.id ?? ""
+    const [enterpriseId, setEnterpriseId] = useState<string>(
+        String(initialEnterprise || "")
     );
     const [loading, setLoading] = useState(false);
     const [filtered, setFiltered] = useState(rows.length > 0);
 
+    // Opciones (dejamos todas; "TODAS" se maneja en backend excluyendo COAVPRO)
+    const enterpriseOptions = useMemo(() => enterprises || [], [enterprises]);
+
     const handleFilter = () => {
-        if (!startDate || !endDate) {
-            alert("Seleccione fecha de inicio y fecha de fin.");
+        if (!startDate || !endDate || !enterpriseId) {
+            alert("Seleccione empresa y rango de fechas.");
             return;
         }
         setFiltered(false);
@@ -56,8 +59,8 @@ export default function ACASAviancaManifestReport({
     };
 
     const handleExport = () => {
-        if (!startDate || !endDate) {
-            alert("Seleccione fecha de inicio y fecha de fin.");
+        if (!startDate || !endDate || !enterpriseId) {
+            alert("Seleccione empresa y rango de fechas.");
             return;
         }
         setLoading(true);
@@ -67,21 +70,21 @@ export default function ACASAviancaManifestReport({
 
     return (
         <AuthenticatedLayout>
-            <Head title="Reporte Manifiesto ACAS Avianca" />
+            <Head title="Manifiesto ACAS Avianca" />
             <div className="container mx-auto px-4 py-8">
                 <div className="bg-gradient-to-r from-red-700 via-red-600 to-yellow-400 text-white px-6 py-4 rounded-t-lg">
                     <h1 className="text-2xl font-bold">
                         Manifiesto ACAS Avianca
                     </h1>
                     <p className="text-white text-sm">
-                        Filtra por fechas y exporta el manifiesto en Excel.
+                        Filtre por fechas y empresa y exporte el manifiesto en
+                        Excel.
                     </p>
                 </div>
 
                 <div className="bg-black border border-red-700 px-6 py-6 rounded-b-lg shadow-md">
-                    {/* Filtros */}
                     <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
-                        {/* Combo de empresas */}
+                        {/* Empresa */}
                         <div className="w-full md:max-w-xs">
                             <label className="block text-sm font-medium text-red-400 mb-1">
                                 Empresa
@@ -93,13 +96,18 @@ export default function ACASAviancaManifestReport({
                                 }
                                 className="w-full px-3 py-2 bg-slate-800 text-white border border-red-700 rounded-md"
                             >
-                                {enterprises.map((e) => (
-                                    <option key={e.id} value={e.id}>
+                                <option value="all">
+                                    🌟 TODAS LAS EMPRESAS
+                                </option>
+                                {enterpriseOptions.map((e) => (
+                                    <option key={e.id} value={String(e.id)}>
                                         {e.name}
                                     </option>
                                 ))}
                             </select>
                         </div>
+
+                        {/* Desde */}
                         <div className="w-full md:max-w-xs">
                             <label className="block text-sm font-medium text-red-400 mb-1">
                                 Desde
@@ -117,6 +125,7 @@ export default function ACASAviancaManifestReport({
                             </div>
                         </div>
 
+                        {/* Hasta */}
                         <div className="w-full md:max-w-xs">
                             <label className="block text-sm font-medium text-red-400 mb-1">
                                 Hasta
@@ -132,12 +141,15 @@ export default function ACASAviancaManifestReport({
                             </div>
                         </div>
 
+                        {/* Botones */}
                         <div className="flex gap-2">
                             <Button
                                 onClick={handleFilter}
-                                disabled={!startDate || !endDate}
+                                disabled={
+                                    !startDate || !endDate || !enterpriseId
+                                }
                                 variant="outline"
-                                className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white disabled:opacity-50"
                             >
                                 Filtrar Resultados
                             </Button>
@@ -145,7 +157,7 @@ export default function ACASAviancaManifestReport({
                             <Button
                                 onClick={handleExport}
                                 disabled={!filtered || loading}
-                                className="bg-green-600 hover:bg-green-700"
+                                className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
                             >
                                 {loading ? (
                                     <>
@@ -162,13 +174,7 @@ export default function ACASAviancaManifestReport({
                         </div>
                     </div>
 
-                    <p className="text-red-400 text-sm italic mb-4">
-                        {startDate && endDate
-                            ? `Mostrando resultados desde ${startDate} hasta ${endDate}`
-                            : "Seleccione un rango de fechas para ver los resultados."}
-                    </p>
-
-                    {/* Tabla simplificada */}
+                    {/* Tabla */}
                     {filtered && rows.length > 0 ? (
                         <div className="overflow-auto rounded-lg border border-red-700 bg-slate-900">
                             <table className="w-full table-auto text-sm text-white">

@@ -3,121 +3,119 @@
 namespace App\Exports;
 
 use App\Models\Reception;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use Carbon\Carbon;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use App\Models\Enterprise;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class ACASAviancaManifestExport implements FromCollection, WithMapping, WithHeadings, WithStyles
 {
-    protected $startDate;
-    protected $endDate;
-    protected $enterpriseId;
-
-    protected $groupedData;
+    protected string $startDate;
+    protected string $endDate;
+    protected string $enterpriseId; // puede ser 'all' o un id
+    protected Collection $groupedData;
 
     public function __construct($startDate, $endDate, $enterpriseId)
     {
-        $this->startDate = $startDate;
-        $this->endDate = $endDate;
-        $this->enterpriseId = $enterpriseId;
+        $this->startDate    = (string) $startDate;
+        $this->endDate      = (string) $endDate;
+        $this->enterpriseId = (string) $enterpriseId;
+        $this->groupedData  = collect();
     }
-    /**
-     * Normaliza cadenas reemplazando ñ/Ñ por n/N
-     */
+
+    /** Reemplaza ñ/Ñ por n/N */
     protected function normalizeString(?string $value): string
     {
         if (!$value) return '';
-        $search  = ['ñ', 'Ñ'];
-        $replace = ['n', 'N'];
-        return str_replace($search, $replace, $value);
+        return str_replace(['ñ', 'Ñ'], ['n', 'N'], $value);
     }
 
-    public function collection()
+    public function collection(): Collection
     {
         $query = Reception::with(['sender', 'recipient', 'packages.items.artPackage'])
+            ->where('annulled', false)
             ->whereDate('date_time', '>=', $this->startDate)
-            ->whereDate('date_time', '<=', $this->endDate)
-            ->where('annulled', false);
+            ->whereDate('date_time', '<=', $this->endDate);
 
-        if (!empty($this->enterpriseId) && $this->enterpriseId !== 'null') {
+        // Soporte "TODAS" => excluir COAVPRO
+        if ($this->enterpriseId !== 'all') {
             $query->where('enterprise_id', $this->enterpriseId);
+        } else {
+            $coavproIds = Enterprise::where('commercial_name', 'COAVPRO')->pluck('id')->toArray();
+            if (!empty($coavproIds)) {
+                $query->whereNotIn('enterprise_id', $coavproIds);
+            }
         }
 
-        $receptions = $query->get();
+        $receptions = $query->orderBy('enterprise_id')->orderByDesc('date_time')->get();
 
-        $grouped = []; // ❌ Usamos array normal para evitar error de Collection
+        $grouped = []; // agrupación por HAWB base (antes del .)
 
         foreach ($receptions as $reception) {
             foreach ($reception->packages as $package) {
+                $baseCode = Str::before((string) ($package->barcode ?? ''), '.');
 
-                // ✅ Código base antes del punto
-                $baseCode = Str::before($package->barcode, '.');
-
-                // Inicializar si no existe
                 if (!isset($grouped[$baseCode])) {
                     $grouped[$baseCode] = [
                         'hawb'      => $baseCode,
                         'sender'    => $reception->sender,
                         'recipient' => $reception->recipient,
                         'pieces'    => 0,
-                        'weight'    => 0,
+                        'weight'    => 0.0,
                         'contents'  => [],
                     ];
                 }
 
-                // Actualizar valores
-                $grouped[$baseCode]['pieces']  += 1;
-                $grouped[$baseCode]['weight']  += $package->kilograms;
+                $grouped[$baseCode]['pieces'] += 1;
+                $grouped[$baseCode]['weight'] += (float) ($package->kilograms ?? 0);
 
-                $description = $package->items
+                // Descripción desde items (translation o name)
+                $desc = $package->items
                     ->map(function ($item) {
                         if ($item->artPackage) {
-                            return $item->artPackage->translation
-                                ? $item->artPackage->translation
-                                : $item->artPackage->name;
+                            return $item->artPackage->translation ?: $item->artPackage->name;
                         }
                         return null;
                     })
                     ->filter()
                     ->implode(' ');
 
-                if (!empty($description)) {
-                    $grouped[$baseCode]['contents'][] = $description;
+                if (!empty($desc)) {
+                    $grouped[$baseCode]['contents'][] = $desc;
                 }
             }
         }
 
-        // Convertimos a Collection solo al final
         $this->groupedData = collect(array_values($grouped));
-
         return $this->groupedData;
     }
 
     public function map($row): array
     {
+        // $row es un array con claves hawb, sender, recipient, pieces, weight, contents
         return [
-            $row['hawb'],                     // HAWB (sin .1, .2)
-            'GYE',                             // Origen
-            'JFK',                             // DESTINO
-            $row['pieces'],                    // PIEZAS
-            $row['weight'],                    // PESO
-            $this->normalizeString($row['sender']->full_name ?? ''),
-            $this->normalizeString($row['sender']->address ?? ''),
-            $this->normalizeString($row['sender']->city ?? ''),
-            'EC',                              // ESTADO REGION SHP
-            'EC',                              // PAIS SHP
-            $this->normalizeString($row['sender']->postal_code ?? ''),
-            $this->normalizeString($row['recipient']->full_name ?? ''),
-            $this->normalizeString($row['recipient']->address ?? ''),
-            $this->normalizeString($row['recipient']->city ?? ''),
-            $this->normalizeString($row['recipient']->state ?? ''),
-            'US',                               // PAIS CNE
-            $this->normalizeString($row['recipient']->postal_code ?? ''),
-            implode(', ', $row['contents']),      // DESCRIPCIÓN DE LA CARGA
+            $row['hawb'],                                           // HAWB
+            'GYE',                                                  // Origen
+            'JFK',                                                  // Destino
+            (int) $row['pieces'],                                   // Piezas
+            (float) $row['weight'],                                 // Peso
+            $this->normalizeString(optional($row['sender'])->full_name ?? ''),   // SHP nombre
+            $this->normalizeString(optional($row['sender'])->address ?? ''),     // SHP dir
+            $this->normalizeString(optional($row['sender'])->city ?? ''),        // SHP ciudad
+            'EC',                                                   // SHP estado/región
+            'EC',                                                   // SHP país
+            $this->normalizeString(optional($row['sender'])->postal_code ?? ''), // SHP CP
+            $this->normalizeString(optional($row['recipient'])->full_name ?? ''),    // CNE nombre
+            $this->normalizeString(optional($row['recipient'])->address ?? ''),      // CNE dir
+            $this->normalizeString(optional($row['recipient'])->city ?? ''),         // CNE ciudad
+            $this->normalizeString(optional($row['recipient'])->state ?? ''),        // CNE estado/región
+            'US',                                                   // CNE país
+            $this->normalizeString(optional($row['recipient'])->postal_code ?? ''),  // CNE CP
+            $this->normalizeString(implode(', ', $row['contents'] ?? [])),          // Descripción carga
         ];
     }
 
@@ -147,26 +145,21 @@ class ACASAviancaManifestExport implements FromCollection, WithMapping, WithHead
 
     public function styles(Worksheet $sheet)
     {
+        // Encabezado en negrita y centrado
         $sheet->getStyle('1:1')->applyFromArray([
-            'font' => [
-                'bold' => true,
-                'color' => ['argb' => 'FFFFFFFF'],
-            ],
+            'font' => ['bold' => true],
             'alignment' => [
                 'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
-                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
-            ],
-            'fill' => [
-                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                'startColor' => [
-                    'argb' => 'FF17365D',
-                ],
+                'vertical'   => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
             ],
         ]);
 
+        // AutoSize a todas las columnas
         $highestColumn = $sheet->getHighestColumn();
         foreach (range('A', $highestColumn) as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
+
+        return [];
     }
 }

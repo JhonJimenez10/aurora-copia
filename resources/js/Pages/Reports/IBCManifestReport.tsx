@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Head } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Button } from "@/Components/ui/button";
@@ -10,12 +10,19 @@ export default function IBCManifestReport({
     startDate: initialStart,
     endDate: initialEnd,
     enterpriseId: initialEnterpriseId,
-    enterprises = [], // <-- recibir listado de empresas desde backend
+    enterprises = [], // [{ id, name, commercial_name }]
 }: any) {
     const [startDate, setStartDate] = useState(initialStart || "");
     const [endDate, setEndDate] = useState(initialEnd || "");
     const [enterpriseId, setEnterpriseId] = useState(initialEnterpriseId || "");
     const [loading, setLoading] = useState(false);
+
+    // Igual que facturación: ocultar COAVPRO en opciones individuales
+    const filteredEnterprises = useMemo(() => {
+        return (enterprises || []).filter(
+            (e: any) => e?.commercial_name !== "COAVPRO"
+        );
+    }, [enterprises]);
 
     const handleExport = (csv: boolean = false) => {
         if (!startDate || !endDate) {
@@ -34,7 +41,7 @@ export default function IBCManifestReport({
         <AuthenticatedLayout>
             <Head title="Manifiesto Aduana IBC" />
             <div className="container mx-auto px-4 py-8">
-                {/* HEADER */}
+                {/* Header */}
                 <div className="bg-gradient-to-r from-red-700 via-red-600 to-yellow-400 text-white px-6 py-4 rounded-t-lg">
                     <h1 className="text-2xl font-bold">
                         Manifiesto Aduana IBC
@@ -59,7 +66,12 @@ export default function IBCManifestReport({
                                 className="w-full px-3 py-2 bg-slate-800 text-white border border-red-700 rounded-md"
                             >
                                 <option value="">Seleccione empresa</option>
-                                {enterprises.map((ent: any) => (
+                                {/* Opción TODAS (excluye COAVPRO en backend) */}
+                                <option value="all">
+                                    🌟 TODAS LAS EMPRESAS
+                                </option>
+                                {/* Empresas individuales (excluyendo COAVPRO) */}
+                                {filteredEnterprises.map((ent: any) => (
                                     <option key={ent.id} value={ent.id}>
                                         {ent.name}
                                     </option>
@@ -152,14 +164,22 @@ export default function IBCManifestReport({
 
                     {/* Rango seleccionado */}
                     <div className="text-red-400 text-sm italic">
-                        {startDate && endDate
-                            ? `Mostrando resultados desde ${format(
-                                  new Date(startDate),
-                                  "PPP",
-                                  { locale: es }
-                              )} hasta ${format(new Date(endDate), "PPP", {
-                                  locale: es,
-                              })}`
+                        {startDate && endDate && enterpriseId
+                            ? enterpriseId === "all"
+                                ? `📦 TODAS LAS EMPRESAS (excepto COAVPRO) | Desde ${format(
+                                      new Date(startDate),
+                                      "PPP",
+                                      { locale: es }
+                                  )} hasta ${format(new Date(endDate), "PPP", {
+                                      locale: es,
+                                  })}`
+                                : `Empresa #${enterpriseId} | Desde ${format(
+                                      new Date(startDate),
+                                      "PPP",
+                                      { locale: es }
+                                  )} hasta ${format(new Date(endDate), "PPP", {
+                                      locale: es,
+                                  })}`
                             : "Seleccione un rango de fechas y empresa para habilitar exportación."}
                     </div>
                 </div>

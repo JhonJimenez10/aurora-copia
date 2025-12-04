@@ -14,7 +14,11 @@ import {
     SelectValue,
 } from "@/Components/ui/select";
 
-type Enterprise = { id: number | string; name: string };
+type Enterprise = {
+    id: number | string;
+    name: string;
+    commercial_name?: string;
+};
 
 export default function ReportsIndex({
     enterprises = [],
@@ -49,7 +53,6 @@ export default function ReportsIndex({
         });
         if (enterpriseId) params.set("enterprise_id", String(enterpriseId));
 
-        // GET tradicional (no Inertia) — como te funcionaba antes
         window.location.href = `/reports/export?${params.toString()}`;
 
         setTimeout(() => setLoading(false), 1000);
@@ -81,6 +84,13 @@ export default function ReportsIndex({
             maximumFractionDigits: 2,
         }).format(Number(n ?? 0));
 
+    // Igual que Facturación: ocultar COAVPRO del dropdown individual
+    const filteredEnterprises = useMemo(() => {
+        return enterprises.filter(
+            (e: Enterprise) => e.commercial_name !== "COAVPRO"
+        );
+    }, [enterprises]);
+
     return (
         <AuthenticatedLayout>
             <Head title="Reportes de Envíos" />
@@ -111,14 +121,25 @@ export default function ReportsIndex({
                                     <SelectValue placeholder="Seleccione empresa" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-slate-900 text-white border border-red-700">
-                                    {enterprises.map((e: Enterprise) => (
-                                        <SelectItem
-                                            key={e.id}
-                                            value={String(e.id)}
-                                        >
-                                            {e.name}
-                                        </SelectItem>
-                                    ))}
+                                    {/* Opción "Todos" (excluye COAVPRO en backend) */}
+                                    <SelectItem
+                                        value="all"
+                                        className="font-bold text-yellow-400"
+                                    >
+                                        🌟 TODAS LAS EMPRESAS
+                                    </SelectItem>
+
+                                    {/* Empresas individuales (excluyendo COAVPRO) */}
+                                    {filteredEnterprises.map(
+                                        (e: Enterprise) => (
+                                            <SelectItem
+                                                key={e.id}
+                                                value={String(e.id)}
+                                            >
+                                                {e.name}
+                                            </SelectItem>
+                                        )
+                                    )}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -179,7 +200,7 @@ export default function ReportsIndex({
                             </Button>
                             <Button
                                 onClick={handleExport}
-                                disabled={loading || !startDate || !endDate}
+                                disabled={loading || !actionsEnabled}
                                 className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
                             >
                                 {loading ? (
@@ -200,13 +221,21 @@ export default function ReportsIndex({
                     {/* Rango seleccionado */}
                     <div className="text-red-400 text-sm italic mb-4">
                         {enterpriseId && startDate && endDate
-                            ? `Empresa #${enterpriseId} | Desde ${format(
-                                  new Date(startDate),
-                                  "PPP",
-                                  { locale: es }
-                              )} hasta ${format(new Date(endDate), "PPP", {
-                                  locale: es,
-                              })}`
+                            ? enterpriseId === "all"
+                                ? `📦 TODAS LAS EMPRESAS (excepto COAVPRO) | Desde ${format(
+                                      new Date(startDate),
+                                      "PPP",
+                                      { locale: es }
+                                  )} hasta ${format(new Date(endDate), "PPP", {
+                                      locale: es,
+                                  })}`
+                                : `Empresa #${enterpriseId} | Desde ${format(
+                                      new Date(startDate),
+                                      "PPP",
+                                      { locale: es }
+                                  )} hasta ${format(new Date(endDate), "PPP", {
+                                      locale: es,
+                                  })}`
                             : "Seleccione empresa y rango de fechas para ver los envíos."}
                     </div>
 

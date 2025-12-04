@@ -3,39 +3,36 @@
 namespace App\Exports;
 
 use App\Models\Reception;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithDrawings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use Carbon\Carbon;
-use Illuminate\Support\Str;
 
 class AirlineManifestExport implements FromCollection, WithDrawings, WithStyles
 {
-    protected $start;
-    protected $end;
-    protected $enterpriseId;
+    protected Carbon $start;
+    protected Carbon $end;
+    protected string $enterpriseId; // puede ser 'all' o un id
 
     public function __construct($start, $end, $enterpriseId)
     {
-        $this->start = Carbon::parse($start)->startOfDay();
-        $this->end = Carbon::parse($end)->endOfDay();
-        $this->enterpriseId = $enterpriseId;
+        $this->start        = Carbon::parse($start)->startOfDay();
+        $this->end          = Carbon::parse($end)->endOfDay();
+        $this->enterpriseId = (string) $enterpriseId;
     }
 
-    /**
-     * Normaliza cadenas reemplazando ñ/Ñ por n/N
-     */
     protected function normalizeString(?string $value): string
     {
         if (!$value) return '';
-        $search  = ['ñ', 'Ñ'];
-        $replace = ['n', 'N'];
-        return str_replace($search, $replace, $value);
+        return str_replace(['ñ', 'Ñ'], ['n', 'N'], $value);
     }
-    public function collection()
+
+    public function collection(): Collection
     {
         $rows = [
             ['', '', '', '', 'Cuencanito Express S.A.S.'],
@@ -89,41 +86,47 @@ class AirlineManifestExport implements FromCollection, WithDrawings, WithStyles
             ],
         ];
 
-        $receptions = Reception::with([
-            'sender',
-            'recipient',
-            'agencyDest',
-            'packages.items.artPackage'
-        ])
-            ->where('enterprise_id', $this->enterpriseId)
+        // Query base
+        $query = Reception::with(['sender', 'recipient', 'agencyDest', 'packages.items.artPackage'])
             ->where('annulled', false)
-            ->whereDate('date_time', '>=', $this->start)
-            ->whereDate('date_time', '<=', $this->end)
-            ->get();
+            ->whereBetween('date_time', [$this->start, $this->end]);
+
+        // Filtro por empresa con soporte 'all' (excluye COAVPRO)
+        if ($this->enterpriseId !== 'all') {
+            $query->where('enterprise_id', $this->enterpriseId);
+        } else {
+            $coavproIds = \App\Models\Enterprise::where('commercial_name', 'COAVPRO')->pluck('id')->toArray();
+            if (!empty($coavproIds)) {
+                $query->whereNotIn('enterprise_id', $coavproIds);
+            }
+        }
+
+        // Orden como en otros reportes
+        $receptions = $query->orderBy('enterprise_id')->orderByDesc('date_time')->get();
 
         foreach ($receptions as $reception) {
             foreach ($reception->packages as $package) {
-                $contents = $package->items->map(fn($item) => $this->normalizeString($item->artPackage?->name))->filter()->implode(', ');
-                $invoiceCode = Str::before($package->barcode, '.');
+                $contents    = $package->items->map(fn($i) => $this->normalizeString($i->artPackage?->name))->filter()->implode(', ');
+                $invoiceCode = Str::before((string) ($package->barcode ?? ''), '.');
 
                 $rows[] = [
-                    $invoiceCode,                       // INVOICE
-                    $this->normalizeString($reception->sender->full_name ?? ''),     // SHIPPER
-                    $this->normalizeString($reception->sender->address ?? ''),       // ADDRESS
-                    $this->normalizeString($reception->sender->city ?? ''),          // CITY
-                    $this->normalizeString($reception->sender->phone ?? ''),         // TELEPHONE
-                    $this->normalizeString($reception->recipient->full_name ?? ''),  // CONSIGNEE
-                    $this->normalizeString($reception->recipient->address ?? ''),    // ADDRESS
-                    $this->normalizeString($reception->recipient->city ?? ''),       // CITY
-                    $this->normalizeString($reception->recipient->postal_code ?? ''), // ZIP
-                    $this->normalizeString($reception->recipient->phone ?? ''),      // TELEPHONE
-                    $contents,                                // CONTENTS
-                    $package->service_type === 'SOBRE' ? 1 : '0',     // ENVELOPE
-                    $package->service_type === 'PAQUETE' ? 1 : '0',   // PAQ
-                    $package->kilograms,                       // WEIGHT
-                    '0',                                         // BAG
-                    $this->normalizeString($reception->agencyDest->name ?? ''),     // DESTINATION
-                    '',                                        // NOTES
+                    $invoiceCode,
+                    $this->normalizeString($reception->sender->full_name ?? ''),
+                    $this->normalizeString($reception->sender->address ?? ''),
+                    $this->normalizeString($reception->sender->city ?? ''),
+                    $this->normalizeString($reception->sender->phone ?? ''),
+                    $this->normalizeString($reception->recipient->full_name ?? ''),
+                    $this->normalizeString($reception->recipient->address ?? ''),
+                    $this->normalizeString($reception->recipient->city ?? ''),
+                    $this->normalizeString($reception->recipient->postal_code ?? ''),
+                    $this->normalizeString($reception->recipient->phone ?? ''),
+                    $contents,
+                    $package->service_type === 'SOBRE'   ? 1 : 0,
+                    $package->service_type === 'PAQUETE' ? 1 : 0,
+                    $package->kilograms ?? 0,
+                    0,
+                    $this->normalizeString($reception->agencyDest->name ?? ''),
+                    '',
                 ];
             }
         }
@@ -146,38 +149,59 @@ class AirlineManifestExport implements FromCollection, WithDrawings, WithStyles
 
     public function styles(Worksheet $sheet)
     {
-        $sheet->mergeCells('A1:C4'); // Ajustar columnas E, F, G para que quepan textos largos 
+        // Bloque de cabecera (logo + datos)
+        $sheet->mergeCells('A1:C4');
+
         $sheet->getColumnDimension('E')->setWidth(12);
         $sheet->getColumnDimension('F')->setWidth(12);
-        $sheet->getColumnDimension('G')->setWidth(12); // Fusionar y dar estilo a las filas de la información de la empresa
+        $sheet->getColumnDimension('G')->setWidth(12);
+
         foreach (range(1, 4) as $row) {
             $sheet->mergeCells("E{$row}:G{$row}");
-            $sheet->getStyle("E{$row}:G{$row}")->applyFromArray(['alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER], 'font' => ['bold' => false, 'italic' => true, 'size' => 11]]);
+            $sheet->getStyle("E{$row}:G{$row}")->applyFromArray([
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical'   => Alignment::VERTICAL_CENTER
+                ],
+                'font' => ['bold' => false, 'italic' => true, 'size' => 11]
+            ]);
         }
-        // Ajustar valor de MAWB en B6
-        $sheet->setCellValue('B6', '729 9102 3376');
-        // Ajustar estilo de las etiquetas de DATE, MAWB, CARRIER...
-        $sheet->getStyle('A5:A9')->getFont()->setBold(true);
-        // ✅ Estilo para las cabeceras en inglés y español 
-        $sheet->getStyle('A11:Q12')->applyFromArray(['font' => ['bold' => true, 'size' => 8], 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],]);
 
-        $sheet->getRowDimension(11);
-        $sheet->getRowDimension(12);
+        // MAWB ejemplo
+        $sheet->setCellValue('B6', '729 9102 3376');
+
+        // Estilos de etiquetas
+        $sheet->getStyle('A5:A9')->getFont()->setBold(true);
+
+        // Cabeceras
+        $sheet->getStyle('A11:Q12')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 8],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical'   => Alignment::VERTICAL_CENTER,
+                'wrapText'   => true
+            ],
+        ]);
 
         foreach (range('A', 'Q') as $col) {
             if (!in_array($col, ['E', 'F', 'G'])) {
                 $sheet->getColumnDimension($col)->setAutoSize(true);
             }
         }
-        // Datos paquete: tamaño 5, alineado izquierda
+
+        // Detalle
         $highestRow = $sheet->getHighestRow();
-        $sheet->getStyle("A13:Q{$highestRow}")->applyFromArray([
-            'font' => ['size' => 5],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_LEFT,
-                'vertical' => Alignment::VERTICAL_CENTER,
-                'wrapText' => true
-            ]
-        ]);
+        if ($highestRow >= 13) {
+            $sheet->getStyle("A13:Q{$highestRow}")->applyFromArray([
+                'font' => ['size' => 8],
+                'alignment' => [
+                    'horizontal' => Alignment::HORIZONTAL_LEFT,
+                    'vertical'   => Alignment::VERTICAL_CENTER,
+                    'wrapText'   => true
+                ]
+            ]);
+        }
+
+        return [];
     }
 }

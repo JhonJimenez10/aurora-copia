@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Reception;
+use App\Models\Enterprise;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -13,7 +14,7 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
 {
     protected string $startDate;
     protected string $endDate;
-    protected string $enterpriseId;
+    protected string $enterpriseId; // 'all' o id
 
     public function __construct(string $startDate, string $endDate, string $enterpriseId)
     {
@@ -22,22 +23,17 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
         $this->enterpriseId = $enterpriseId;
     }
 
-    /**
-     * Normaliza cadenas reemplazando ñ/Ñ por n/N
-     */
     protected function normalizeString(?string $value): string
     {
         if (!$value) return '';
-        $search  = ['ñ', 'Ñ'];
-        $replace = ['n', 'N'];
-        return str_replace($search, $replace, $value);
+        return str_replace(['ñ', 'Ñ'], ['n', 'N'], $value);
     }
 
     public function collection(): Collection
     {
         $rows = [];
 
-        // 🔹 Cabeceras iniciales
+        // Cabeceras fijas (sin cambios)
         $rows[] = ['#'];
         $rows[] = ['#'];
         $rows[] = ['email', '1', 'all', 'gerenica@cuencanitoexpress.com'];
@@ -99,19 +95,23 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
             'container_id'
         ];
 
-        $receptions = Reception::with([
-            'sender',
-            'recipient',
-            'agencyDest',
-            'packages.items.artPackage'
-        ])
-            ->where('enterprise_id', $this->enterpriseId)
+        // Query con soporte 'all' (excluye COAVPRO) y orden igual a Facturación
+        $query = Reception::with(['sender', 'recipient', 'agencyDest', 'packages.items.artPackage'])
             ->whereBetween('date_time', [$this->startDate, $this->endDate])
-            ->where('annulled', false)
-            ->get();
+            ->where('annulled', false);
+
+        if ($this->enterpriseId !== 'all') {
+            $query->where('enterprise_id', $this->enterpriseId);
+        } else {
+            $coavproIds = Enterprise::where('commercial_name', 'COAVPRO')->pluck('id')->toArray();
+            if (!empty($coavproIds)) {
+                $query->whereNotIn('enterprise_id', $coavproIds);
+            }
+        }
+
+        $receptions = $query->orderBy('enterprise_id')->orderByDesc('date_time')->get();
 
         foreach ($receptions as $reception) {
-            // Si no hay paquetes, generamos una fila base igualmente
             if ($reception->packages->isEmpty()) {
                 $rows[] = [
                     'hawb',
@@ -120,20 +120,19 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                     '',
                     '',
                     '',
-                    '', // record info
+                    '',
                     'GYE',
                     'USA',
                     '',
                     '',
                     '',
-                    '', // origen/destino
+                    '',
                     0,
                     0,
                     'KG',
                     'APX',
                     'USD',
                     0,
-                    '', // peso, contenido
                     '',
                     '',
                     '',
@@ -144,7 +143,7 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                     '6264',
                     '',
                     '',
-                    '', // cuentas
+                    '',
                     $this->normalizeString(mb_substr($reception->sender->full_name ?? '', 0, 30)),
                     $this->normalizeString($reception->sender->address ?? ''),
                     '',
@@ -171,16 +170,12 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                 continue;
             }
 
-            // 🔹 Si sí tiene paquetes
             foreach ($reception->packages as $package) {
-                $barcodeBase = explode('.', $package->barcode ?? '')[0] ?? '';
+                $barcodeBase   = explode('.', $package->barcode ?? '')[0] ?? '';
+                $firstHsCode   = $package->items?->first()?->artPackage?->codigo_hs ?? '';
+                $description   = $package->items?->map(fn($i) => $this->normalizeString($i->artPackage?->translation ?? ''))->filter()->implode(' ') ?: '';
+                $declaredValue = $package->items?->sum(fn($i) => ($i->items_declrd ?? 0) * ($i->decl_val ?? 0)) ?? 0;
 
-                // Concatenar descripción y valores de items
-                $description = $package->items?->map(fn($item) => $this->normalizeString($item->artPackage?->translation ?? ''))->filter()->implode(' ') ?: '';
-                $firstHsCode = $package->items?->first()?->artPackage?->codigo_hs ?? '';
-                $declaredValue = $package->items?->sum(fn($item) => ($item->items_declrd ?? 0) * ($item->decl_val ?? 0)) ?? 0;
-
-                // ✅ Fila HAWB
                 $rows[] = [
                     'hawb',
                     '14',
@@ -238,7 +233,6 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                     '0'
                 ];
 
-                // 🔹 Desglose de items (solo si existen)
                 if ($package->items && $package->items->count() > 0) {
                     foreach ($package->items as $item) {
                         $rows[] = [
@@ -267,7 +261,6 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
         $sheet->getStyle($sheet->calculateWorksheetDimension())->applyFromArray([
             'font' => ['name' => 'Arial', 'size' => 10, 'bold' => false],
         ]);
-
         return [];
     }
 }

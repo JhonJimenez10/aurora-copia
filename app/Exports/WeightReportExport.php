@@ -16,65 +16,71 @@ class WeightReportExport implements FromCollection, WithHeadings, WithStyles, Sh
 {
     protected string $startDate;
     protected string $endDate;
+    protected string $enterpriseId; // 'all' o uuid
 
-    public function __construct(string $startDate, string $endDate)
+    public function __construct(string $startDate, string $endDate, string $enterpriseId)
     {
-        $this->startDate = $startDate;
-        $this->endDate   = $endDate;
+        $this->startDate    = $startDate;
+        $this->endDate      = $endDate;
+        $this->enterpriseId = $enterpriseId;
     }
 
     public function collection(): Collection
     {
-        $weights = DB::table('receptions')
-            ->join('agencies_dest', 'receptions.agency_dest', '=', 'agencies_dest.id')
+        $q = DB::table('receptions')
             ->join('packages', 'receptions.id', '=', 'packages.reception_id')
-            ->join('enterprises', 'receptions.enterprise_id', '=', 'enterprises.id') // unir empresa
+            ->join('enterprises', 'receptions.enterprise_id', '=', 'enterprises.id')
             ->select(
                 'receptions.agency_origin as agencia_origen',
-                DB::raw('SUM(packages.pounds) as total_libras'),
-                DB::raw('SUM(packages.kilograms) as total_kilos'),
-                DB::raw('STRING_AGG(DISTINCT receptions.route, \', \') as rutas') // PostgreSQL
+                DB::raw('SUM(packages.pounds)    AS total_libras'),
+                DB::raw('SUM(packages.kilograms) AS total_kilos'),
+                DB::raw('STRING_AGG(DISTINCT receptions.route, \', \') AS rutas') // PostgreSQL
             )
             ->where('receptions.annulled', 0)
-            ->where(function ($q) {
-                $q->where(function ($sub) {
-                    $sub->where('receptions.agency_origin', '<>', 'CUENCA')
-                        ->orWhere('enterprises.commercial_name', '<>', 'COAVPRO');
-                });
-            })
             ->when($this->startDate, fn($q) => $q->whereDate('receptions.date_time', '>=', $this->startDate))
-            ->when($this->endDate, fn($q) => $q->whereDate('receptions.date_time', '<=', $this->endDate))
-            ->groupBy('receptions.agency_origin')
+            ->when($this->endDate,   fn($q) => $q->whereDate('receptions.date_time', '<=', $this->endDate));
+
+        // Filtro por empresa:
+        if ($this->enterpriseId === 'all') {
+            // "Todos" EXCLUYENDO COAVPRO
+            $q->where('enterprises.commercial_name', '!=', 'COAVPRO');
+        } else {
+            $q->where('receptions.enterprise_id', $this->enterpriseId);
+        }
+
+        $weights = $q->groupBy('receptions.agency_origin')
             ->orderBy('receptions.agency_origin')
             ->get();
 
         $rows = [];
-        $totalLibras = 0;
-        $totalKilos = 0;
+        $totalLibras = 0.0;
+        $totalKilos  = 0.0;
 
         foreach ($weights as $r) {
+            $lb = (float) ($r->total_libras ?? 0);
+            $kg = (float) ($r->total_kilos  ?? 0);
+
             $rows[] = [
                 $r->agencia_origen,
                 $r->rutas,
-                (float) $r->total_libras,
-                (float) $r->total_kilos,
+                $lb,
+                $kg,
             ];
 
-            $totalLibras += (float) $r->total_libras;
-            $totalKilos += (float) $r->total_kilos;
+            $totalLibras += $lb;
+            $totalKilos  += $kg;
         }
 
-        // Fila final TOTAL GENERAL
+        // Fila total
         $rows[] = [
-            "TOTAL GENERAL: " . count($weights) . " registros",
-            "-",
+            'TOTAL GENERAL: ' . count($weights) . ' registros',
+            '-',
             $totalLibras,
             $totalKilos,
         ];
 
         return collect($rows);
     }
-
 
     public function headings(): array
     {
@@ -89,7 +95,7 @@ class WeightReportExport implements FromCollection, WithHeadings, WithStyles, Sh
     public function styles(Worksheet $sheet)
     {
         return [
-            1 => ['font' => ['bold' => true]], // encabezados en negrita
+            1 => ['font' => ['bold' => true]],
         ];
     }
 
@@ -98,22 +104,19 @@ class WeightReportExport implements FromCollection, WithHeadings, WithStyles, Sh
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $highestRow = $sheet->getHighestRow();
+                $last  = $sheet->getHighestRow();
 
-                // Estilo moderno para la fila TOTAL GENERAL
-                $sheet->getStyle("A{$highestRow}:D{$highestRow}")->applyFromArray([
-                    'font' => [
-                        'bold' => true,
-                        'color' => ['rgb' => 'FFFFFF'],
-                    ],
+                $sheet->getStyle("A{$last}:D{$last}")->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                     'fill' => [
-                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_GRADIENT_LINEAR,
-                        'rotation' => 0,
-                        'startColor' => ['rgb' => 'FF5722'], // naranja
-                        'endColor' => ['rgb' => 'FFC107'],   // amarillo
+                        'fillType'   => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_GRADIENT_LINEAR,
+                        'rotation'   => 0,
+                        'startColor' => ['rgb' => 'FF5722'],
+                        'endColor'   => ['rgb' => 'FFC107'],
                     ],
                     'alignment' => [
                         'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                        'vertical'   => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
                     ],
                 ]);
             },

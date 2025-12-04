@@ -1,4 +1,5 @@
-import { useState } from "react";
+// resources/js/Pages/Reports/WeightReport.tsx
+import { useMemo, useState } from "react";
 import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Button } from "@/Components/ui/button";
@@ -6,33 +7,44 @@ import { CalendarIcon, Download, Loader2, Scale } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
+type Enterprise = { id: string | number; name: string };
+
 export default function WeightReport({
     rows = [],
     startDate: initialStart,
     endDate: initialEnd,
+    enterprises = [],
+    enterpriseId: initialEnterpriseId,
 }: any) {
     const [startDate, setStartDate] = useState(initialStart || "");
     const [endDate, setEndDate] = useState(initialEnd || "");
+    const [enterpriseId, setEnterpriseId] = useState<string>(
+        initialEnterpriseId ? String(initialEnterpriseId) : "all"
+    );
     const [loading, setLoading] = useState(false);
 
+    const actionsEnabled = useMemo(
+        () => !!startDate && !!endDate && !!enterpriseId,
+        [startDate, endDate, enterpriseId]
+    );
+
     const handleFilter = () => {
-        if (!startDate || !endDate) {
-            alert("Seleccione fecha de inicio y fecha de fin.");
-            return;
-        }
-        router.get("/reports/weights", {
-            start_date: startDate,
-            end_date: endDate,
-        });
+        if (!actionsEnabled) return;
+        router.get(
+            "/reports/weights",
+            {
+                start_date: startDate,
+                end_date: endDate,
+                enterprise_id: enterpriseId,
+            },
+            { preserveState: true, preserveScroll: true, replace: true }
+        );
     };
 
     const handleExport = () => {
-        if (!startDate || !endDate) {
-            alert("Seleccione fecha de inicio y fecha de fin.");
-            return;
-        }
+        if (!actionsEnabled) return;
         setLoading(true);
-        window.location.href = `/reports/weights/export?start_date=${startDate}&end_date=${endDate}`;
+        window.location.href = `/reports/weights/export?start_date=${startDate}&end_date=${endDate}&enterprise_id=${enterpriseId}`;
         setTimeout(() => setLoading(false), 1000);
     };
 
@@ -41,6 +53,15 @@ export default function WeightReport({
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(Number(n ?? 0));
+
+    const totalLbs = rows.reduce(
+        (sum: number, r: any) => sum + parseFloat(r.total_libras || 0),
+        0
+    );
+    const totalKg = rows.reduce(
+        (sum: number, r: any) => sum + parseFloat(r.total_kilos || 0),
+        0
+    );
 
     return (
         <AuthenticatedLayout>
@@ -52,16 +73,38 @@ export default function WeightReport({
                     <div>
                         <h1 className="text-2xl font-bold">Reporte de Pesos</h1>
                         <p className="text-white text-sm">
-                            Peso total (en libras y kilos) facturado por agencia
-                            de origen.
+                            Peso total (en libras y kilos) por agencia de
+                            origen.
                         </p>
                     </div>
                 </div>
 
-                {/* Contenido principal */}
+                {/* Contenido */}
                 <div className="bg-black border border-red-700 px-6 py-4 rounded-b-lg shadow-md">
                     {/* Filtros */}
                     <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-4">
+                        {/* Empresa */}
+                        <div className="w-full md:max-w-sm">
+                            <label className="block text-sm font-medium text-red-400 mb-1">
+                                Empresa
+                            </label>
+                            <select
+                                value={enterpriseId}
+                                onChange={(e) =>
+                                    setEnterpriseId(e.target.value)
+                                }
+                                className="w-full px-3 py-2 bg-slate-800 text-white border border-red-700 rounded-md"
+                            >
+                                {/* 👇 Mostrar igual que los demás: "Todos" */}
+                                <option value="all">Todos</option>
+                                {enterprises.map((e: Enterprise) => (
+                                    <option key={e.id} value={String(e.id)}>
+                                        {e.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
                         {/* Desde */}
                         <div className="w-full md:max-w-xs">
                             <label
@@ -109,14 +152,15 @@ export default function WeightReport({
                             <Button
                                 onClick={handleFilter}
                                 variant="outline"
-                                className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                                disabled={!actionsEnabled}
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white disabled:opacity-50"
                             >
                                 Filtrar Resultados
                             </Button>
                             <Button
                                 onClick={handleExport}
-                                disabled={loading}
-                                className="bg-green-600 hover:bg-green-700"
+                                disabled={!actionsEnabled || loading}
+                                className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
                             >
                                 {loading ? (
                                     <>
@@ -133,9 +177,9 @@ export default function WeightReport({
                         </div>
                     </div>
 
-                    {/* Rango de fechas */}
+                    {/* Rango */}
                     <div className="text-red-400 text-sm italic mb-4">
-                        {startDate && endDate
+                        {actionsEnabled
                             ? `Mostrando resultados desde ${format(
                                   new Date(startDate),
                                   "PPP",
@@ -143,7 +187,7 @@ export default function WeightReport({
                               )} hasta ${format(new Date(endDate), "PPP", {
                                   locale: es,
                               })}`
-                            : "Seleccione un rango de fechas para ver los resultados."}
+                            : "Seleccione empresa y rango de fechas para ver los resultados."}
                     </div>
 
                     {/* Tabla */}
@@ -181,14 +225,22 @@ export default function WeightReport({
                                                 key={idx}
                                                 className="text-center"
                                             >
-                                                <td>{r.agencia_origen}</td>
-                                                <td>{r.rutas || "-"}</td>
-                                                <td>{fmt(r.total_libras)}</td>
-                                                <td>{fmt(r.total_kilos)}</td>
+                                                <td className="px-4 py-2">
+                                                    {r.agencia_origen}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {r.rutas || "-"}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {fmt(r.total_libras)}
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    {fmt(r.total_kilos)}
+                                                </td>
                                             </tr>
                                         ))}
 
-                                        {/* FILA DE TOTAL GENERAL */}
+                                        {/* Totales */}
                                         <tr className="font-bold text-white text-center bg-gradient-to-r from-red-700 via-yellow-500 to-red-700 border-t-2 border-red-600">
                                             <td className="px-4 py-2 text-left">
                                                 TOTAL GENERAL: {rows.length}{" "}
@@ -196,28 +248,10 @@ export default function WeightReport({
                                             </td>
                                             <td className="px-4 py-2">-</td>
                                             <td className="px-4 py-2">
-                                                {fmt(
-                                                    rows.reduce(
-                                                        (sum: number, r: any) =>
-                                                            sum +
-                                                            parseFloat(
-                                                                r.total_libras
-                                                            ),
-                                                        0
-                                                    )
-                                                )}
+                                                {fmt(totalLbs)}
                                             </td>
                                             <td className="px-4 py-2">
-                                                {fmt(
-                                                    rows.reduce(
-                                                        (sum: number, r: any) =>
-                                                            sum +
-                                                            parseFloat(
-                                                                r.total_kilos
-                                                            ),
-                                                        0
-                                                    )
-                                                )}
+                                                {fmt(totalKg)}
                                             </td>
                                         </tr>
                                     </>
@@ -225,9 +259,11 @@ export default function WeightReport({
                                     <tr>
                                         <td
                                             colSpan={4}
-                                            className="text-center text-red-400"
+                                            className="text-center text-red-400 px-4 py-6"
                                         >
-                                            Sin resultados.
+                                            {actionsEnabled
+                                                ? "Sin resultados."
+                                                : "Seleccione filtros para ver resultados."}
                                         </td>
                                     </tr>
                                 )}
