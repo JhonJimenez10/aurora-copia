@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Reception;
+use App\Models\Enterprise;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -19,6 +20,8 @@ class AirlineManifestExport implements FromCollection, WithDrawings, WithStyles
     protected Carbon $end;
     protected string $enterpriseId; // puede ser 'all' o un id
 
+    private const MAX_LEN = 30;
+
     public function __construct($start, $end, $enterpriseId)
     {
         $this->start        = Carbon::parse($start)->startOfDay();
@@ -26,10 +29,18 @@ class AirlineManifestExport implements FromCollection, WithDrawings, WithStyles
         $this->enterpriseId = (string) $enterpriseId;
     }
 
+    /** Reemplaza ñ/Ñ por n/N */
     protected function normalizeString(?string $value): string
     {
         if (!$value) return '';
         return str_replace(['ñ', 'Ñ'], ['n', 'N'], $value);
+    }
+
+    /** Normaliza y recorta a 30 caracteres (UTF-8 seguro) */
+    protected function clip30(?string $value): string
+    {
+        $t = trim($this->normalizeString($value ?? ''));
+        return $t === '' ? '' : mb_substr($t, 0, self::MAX_LEN, 'UTF-8');
     }
 
     public function collection(): Collection
@@ -95,7 +106,7 @@ class AirlineManifestExport implements FromCollection, WithDrawings, WithStyles
         if ($this->enterpriseId !== 'all') {
             $query->where('enterprise_id', $this->enterpriseId);
         } else {
-            $coavproIds = \App\Models\Enterprise::where('commercial_name', 'COAVPRO')->pluck('id')->toArray();
+            $coavproIds = Enterprise::where('commercial_name', 'COAVPRO')->pluck('id')->toArray();
             if (!empty($coavproIds)) {
                 $query->whereNotIn('enterprise_id', $coavproIds);
             }
@@ -106,17 +117,20 @@ class AirlineManifestExport implements FromCollection, WithDrawings, WithStyles
 
         foreach ($receptions as $reception) {
             foreach ($reception->packages as $package) {
-                $contents    = $package->items->map(fn($i) => $this->normalizeString($i->artPackage?->name))->filter()->implode(', ');
+                $contents    = $package->items
+                    ->map(fn($i) => $this->normalizeString($i->artPackage?->name))
+                    ->filter()
+                    ->implode(', ');
                 $invoiceCode = Str::before((string) ($package->barcode ?? ''), '.');
 
                 $rows[] = [
-                    $invoiceCode,
-                    $this->normalizeString($reception->sender->full_name ?? ''),
-                    $this->normalizeString($reception->sender->address ?? ''),
+                    $invoiceCode,                                         // INVOICE
+                    $this->clip30($reception->sender->full_name ?? ''),  // SHIPPER (<=30)
+                    $this->clip30($reception->sender->address ?? ''),    // ADDRESS SHIPPER (<=30)
                     $this->normalizeString($reception->sender->city ?? ''),
                     $this->normalizeString($reception->sender->phone ?? ''),
-                    $this->normalizeString($reception->recipient->full_name ?? ''),
-                    $this->normalizeString($reception->recipient->address ?? ''),
+                    $this->clip30($reception->recipient->full_name ?? ''), // CONSIGNEE (<=30)
+                    $this->clip30($reception->recipient->address ?? ''),   // ADDRESS CONSIGNEE (<=30)
                     $this->normalizeString($reception->recipient->city ?? ''),
                     $this->normalizeString($reception->recipient->postal_code ?? ''),
                     $this->normalizeString($reception->recipient->phone ?? ''),

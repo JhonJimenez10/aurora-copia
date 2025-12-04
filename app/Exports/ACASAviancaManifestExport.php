@@ -19,6 +19,9 @@ class ACASAviancaManifestExport implements FromCollection, WithMapping, WithHead
     protected string $enterpriseId; // puede ser 'all' o un id
     protected Collection $groupedData;
 
+    /** Longitud máxima para nombre/dirección */
+    private const MAX_LEN = 30;
+
     public function __construct($startDate, $endDate, $enterpriseId)
     {
         $this->startDate    = (string) $startDate;
@@ -32,6 +35,14 @@ class ACASAviancaManifestExport implements FromCollection, WithMapping, WithHead
     {
         if (!$value) return '';
         return str_replace(['ñ', 'Ñ'], ['n', 'N'], $value);
+    }
+
+    /** Normaliza y recorta a 30 caracteres (UTF-8 seguro) */
+    protected function clip30(?string $value): string
+    {
+        $t = trim($this->normalizeString($value ?? ''));
+        if ($t === '') return '';
+        return mb_substr($t, 0, self::MAX_LEN, 'UTF-8');
     }
 
     public function collection(): Collection
@@ -103,19 +114,29 @@ class ACASAviancaManifestExport implements FromCollection, WithMapping, WithHead
             'JFK',                                                  // Destino
             (int) $row['pieces'],                                   // Piezas
             (float) $row['weight'],                                 // Peso
-            $this->normalizeString(optional($row['sender'])->full_name ?? ''),   // SHP nombre
-            $this->normalizeString(optional($row['sender'])->address ?? ''),     // SHP dir
-            $this->normalizeString(optional($row['sender'])->city ?? ''),        // SHP ciudad
-            'EC',                                                   // SHP estado/región
-            'EC',                                                   // SHP país
-            $this->normalizeString(optional($row['sender'])->postal_code ?? ''), // SHP CP
-            $this->normalizeString(optional($row['recipient'])->full_name ?? ''),    // CNE nombre
-            $this->normalizeString(optional($row['recipient'])->address ?? ''),      // CNE dir
-            $this->normalizeString(optional($row['recipient'])->city ?? ''),         // CNE ciudad
-            $this->normalizeString(optional($row['recipient'])->state ?? ''),        // CNE estado/región
-            'US',                                                   // CNE país
-            $this->normalizeString(optional($row['recipient'])->postal_code ?? ''),  // CNE CP
-            $this->normalizeString(implode(', ', $row['contents'] ?? [])),          // Descripción carga
+
+            // Remitente (SHP) con tope 30
+            $this->clip30(optional($row['sender'])->full_name ?? ''),   // NOMBRE DEL SHP
+            $this->clip30(optional($row['sender'])->address ?? ''),     // DIRECCION 1 SHP
+
+            // Otros campos SHP (sin tope)
+            $this->normalizeString(optional($row['sender'])->city ?? ''),        // CIUDAD SHP
+            'EC',                                                   // ESTADO REGION SHP
+            'EC',                                                   // PAIS SHP
+            $this->normalizeString(optional($row['sender'])->postal_code ?? ''), // CODIGO POSTAL SHP
+
+            // Destinatario (CNE) con tope 30
+            $this->clip30(optional($row['recipient'])->full_name ?? ''), // NOMBRE DEL CNE
+            $this->clip30(optional($row['recipient'])->address ?? ''),   // DIRECCION 1 CNE
+
+            // Otros campos CNE (sin tope)
+            $this->normalizeString(optional($row['recipient'])->city ?? ''),     // CIUDAD CNE
+            $this->normalizeString(optional($row['recipient'])->state ?? ''),    // ESTADO REGION CNE
+            'US',                                                   // PAIS CNE
+            $this->normalizeString(optional($row['recipient'])->postal_code ?? ''),  // CODIGO POSTAL CNE
+
+            // Descripción (sin tope por ahora)
+            $this->normalizeString(implode(', ', $row['contents'] ?? [])),      // DESCRIPCION DE LA CARGA
         ];
     }
 

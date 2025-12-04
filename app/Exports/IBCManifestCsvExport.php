@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Reception;
+use App\Models\Enterprise;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithCustomCsvSettings;
@@ -12,6 +13,8 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
     protected string $startDate;
     protected string $endDate;
     protected string $enterpriseId;
+
+    private const MAX_LEN = 30;
 
     public function __construct(string $startDate, string $endDate, string $enterpriseId)
     {
@@ -26,9 +29,16 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
     protected function normalizeString(?string $value): string
     {
         if (!$value) return '';
-        $search  = ['ñ', 'Ñ'];
-        $replace = ['n', 'N'];
-        return str_replace($search, $replace, $value);
+        return str_replace(['ñ', 'Ñ'], ['n', 'N'], $value);
+    }
+
+    /**
+     * Normaliza + recorta a 30 caracteres de forma segura (UTF-8)
+     */
+    protected function clip30(?string $value): string
+    {
+        $t = trim($this->normalizeString($value ?? ''));
+        return $t === '' ? '' : mb_substr($t, 0, self::MAX_LEN, 'UTF-8');
     }
 
     public function collection(): Collection
@@ -97,18 +107,32 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
             'container_id',
         ];
 
-        $receptions = Reception::with(['sender', 'recipient', 'packages.items.artPackage'])
-            ->where('enterprise_id', $this->enterpriseId)
+        // 🔹 Query con soporte 'all' (excluye COAVPRO) y ordenado por empresa + fecha desc
+        $query = Reception::with(['sender', 'recipient', 'packages.items.artPackage'])
             ->whereBetween('date_time', [$this->startDate, $this->endDate])
-            ->where('annulled', false)
+            ->where('annulled', false);
+
+        if ($this->enterpriseId !== 'all') {
+            $query->where('enterprise_id', $this->enterpriseId);
+        } else {
+            $coavproIds = Enterprise::where('commercial_name', 'COAVPRO')->pluck('id')->toArray();
+            if (!empty($coavproIds)) {
+                $query->whereNotIn('enterprise_id', $coavproIds);
+            }
+        }
+
+        $receptions = $query
+            ->orderBy('enterprise_id')
+            ->orderByDesc('date_time')
             ->get();
 
         foreach ($receptions as $reception) {
             foreach ($reception->packages as $package) {
-                $barcodeBase = explode('.', $package->barcode)[0] ?? $package->barcode;
+                $barcodeBase = explode('.', (string)($package->barcode ?? ''))[0] ?? '';
 
                 // Concatenar descripción de los artículos
-                $description = $package->items->map(fn($item) => $this->normalizeString($item->artPackage?->translation ?? ''))
+                $description = $package->items
+                    ->map(fn($item) => $this->normalizeString($item->artPackage?->translation ?? ''))
                     ->filter()
                     ->implode(' ');
 
@@ -118,10 +142,10 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
                 // 🔹 Calcular declared_value sumando items_declrd * decl_val
                 $declaredValue = 0;
                 foreach ($package->items as $item) {
-                    $declaredValue += ($item->items_declrd ?? 0) * ($item->decl_val ?? 0);
+                    $declaredValue += (float) (($item->items_declrd ?? 0) * ($item->decl_val ?? 0));
                 }
 
-                // ✅ Fila HAWB
+                // ✅ Fila HAWB (con recorte de 30 chars en nombres y direcciones)
                 $rows[] = [
                     'hawb',
                     '14',
@@ -153,23 +177,23 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
                     '6264',
                     '',
                     '',
-                    $this->normalizeString(mb_substr($reception->sender->full_name ?? '', 0, 30)),
-                    $this->normalizeString($reception->sender->address ?? ''),
+                    $this->clip30(optional($reception->sender)->full_name),   // <= 30
+                    $this->clip30(optional($reception->sender)->address),     // <= 30
                     '',
-                    $this->normalizeString($reception->sender->city ?? ''),
+                    $this->normalizeString(optional($reception->sender)->city),
                     '',
-                    $reception->sender->postal_code ?? '',
+                    $this->normalizeString(optional($reception->sender)->postal_code),
                     'EC',
-                    $reception->sender->phone ?? '',
-                    $this->normalizeString(mb_substr($reception->recipient->full_name ?? '', 0, 30)),
+                    $this->normalizeString(optional($reception->sender)->phone),
+                    $this->clip30(optional($reception->recipient)->full_name), // <= 30
                     '',
-                    $this->normalizeString($reception->recipient->address ?? ''),
+                    $this->clip30(optional($reception->recipient)->address),   // <= 30
                     '',
-                    $this->normalizeString($reception->recipient->city ?? ''),
-                    $this->normalizeString($reception->recipient->state ?? ''),
-                    $reception->recipient->postal_code ?? '',
+                    $this->normalizeString(optional($reception->recipient)->city),
+                    $this->normalizeString(optional($reception->recipient)->state),
+                    $this->normalizeString(optional($reception->recipient)->postal_code),
                     'US',
-                    $reception->recipient->phone ?? '',
+                    $this->normalizeString(optional($reception->recipient)->phone),
                     '',
                     '',
                     '',
@@ -177,7 +201,7 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
                     '',
                 ];
 
-                // ✅ Filas commodity (solo internal_reference y datos del artículo)
+                // ✅ Filas commodity (solo datos propios, resto vacío)
                 foreach ($package->items as $item) {
                     $rows[] = [
                         'commodity',
@@ -191,6 +215,8 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
                         'USD',
                         $item->kilograms ?? '',
                         'K',
+                        // columnas restantes vacías
+                        '',
                         '',
                         '',
                         '',
@@ -262,15 +288,15 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
     }
 
     /**
-     * Configuración CSV para quitar comillas
+     * Configuración CSV (sin comillas)
      */
     public function getCsvSettings(): array
     {
         return [
-            'delimiter' => ',',
-            'enclosure' => '',
+            'delimiter'   => ',',
+            'enclosure'   => '',
             'line_ending' => PHP_EOL,
-            'use_bom' => true,
+            'use_bom'     => true,
         ];
     }
 }

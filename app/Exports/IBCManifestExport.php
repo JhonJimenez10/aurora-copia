@@ -16,6 +16,8 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
     protected string $endDate;
     protected string $enterpriseId; // 'all' o id
 
+    private const MAX_LEN = 30;
+
     public function __construct(string $startDate, string $endDate, string $enterpriseId)
     {
         $this->startDate    = $startDate;
@@ -23,17 +25,25 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
         $this->enterpriseId = $enterpriseId;
     }
 
+    /** Normaliza ñ/Ñ y asegura string */
     protected function normalizeString(?string $value): string
     {
         if (!$value) return '';
         return str_replace(['ñ', 'Ñ'], ['n', 'N'], $value);
     }
 
+    /** Normaliza + recorta a 30 caracteres (UTF-8 seguro) */
+    protected function clip30(?string $value): string
+    {
+        $t = trim($this->normalizeString($value ?? ''));
+        return $t === '' ? '' : mb_substr($t, 0, self::MAX_LEN, 'UTF-8');
+    }
+
     public function collection(): Collection
     {
         $rows = [];
 
-        // Cabeceras fijas (sin cambios)
+        // Cabeceras fijas
         $rows[] = ['#'];
         $rows[] = ['#'];
         $rows[] = ['email', '1', 'all', 'gerenica@cuencanitoexpress.com'];
@@ -112,6 +122,10 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
         $receptions = $query->orderBy('enterprise_id')->orderByDesc('date_time')->get();
 
         foreach ($receptions as $reception) {
+            $sender    = $reception->sender;
+            $recipient = $reception->recipient;
+
+            // Sin paquetes: fila base
             if ($reception->packages->isEmpty()) {
                 $rows[] = [
                     'hawb',
@@ -144,23 +158,23 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                     '',
                     '',
                     '',
-                    $this->normalizeString(mb_substr($reception->sender->full_name ?? '', 0, 30)),
-                    $this->normalizeString($reception->sender->address ?? ''),
+                    $this->clip30(optional($sender)->full_name),
+                    $this->clip30(optional($sender)->address),
                     '',
-                    $this->normalizeString($reception->sender->city ?? ''),
+                    $this->normalizeString(optional($sender)->city),
                     '',
-                    $reception->sender->postal_code ?? '',
+                    $this->normalizeString(optional($sender)->postal_code),
                     'EC',
-                    $reception->sender->phone ?? '',
-                    $this->normalizeString(mb_substr($reception->recipient->full_name ?? '', 0, 30)),
+                    $this->normalizeString(optional($sender)->phone),
+                    $this->clip30(optional($recipient)->full_name),
                     '',
-                    $this->normalizeString($reception->recipient->address ?? ''),
+                    $this->clip30(optional($recipient)->address),
                     '',
-                    $this->normalizeString($reception->recipient->city ?? ''),
-                    $this->normalizeString($reception->recipient->state ?? ''),
-                    $reception->recipient->postal_code ?? '',
+                    $this->normalizeString(optional($recipient)->city),
+                    $this->normalizeString(optional($recipient)->state),
+                    $this->normalizeString(optional($recipient)->postal_code),
                     'US',
-                    $reception->recipient->phone ?? '',
+                    $this->normalizeString(optional($recipient)->phone),
                     '',
                     '',
                     '',
@@ -170,6 +184,7 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                 continue;
             }
 
+            // Con paquetes: una fila por paquete + commodities
             foreach ($reception->packages as $package) {
                 $barcodeBase   = explode('.', $package->barcode ?? '')[0] ?? '';
                 $firstHsCode   = $package->items?->first()?->artPackage?->codigo_hs ?? '';
@@ -209,23 +224,23 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                     '',
                     '',
                     '',
-                    $this->normalizeString(mb_substr($reception->sender->full_name ?? '', 0, 30)),
-                    $this->normalizeString($reception->sender->address ?? ''),
+                    $this->clip30(optional($sender)->full_name),     // <= 30
+                    $this->clip30(optional($sender)->address),       // <= 30
                     '',
-                    $this->normalizeString($reception->sender->city ?? ''),
+                    $this->normalizeString(optional($sender)->city),
                     '',
-                    $reception->sender->postal_code ?? '',
+                    $this->normalizeString(optional($sender)->postal_code),
                     'EC',
-                    $reception->sender->phone ?? '',
-                    $this->normalizeString(mb_substr($reception->recipient->full_name ?? '', 0, 30)),
+                    $this->normalizeString(optional($sender)->phone),
+                    $this->clip30(optional($recipient)->full_name),   // <= 30
                     '',
-                    $this->normalizeString($reception->recipient->address ?? ''),
+                    $this->clip30(optional($recipient)->address),    // <= 30
                     '',
-                    $this->normalizeString($reception->recipient->city ?? ''),
-                    $this->normalizeString($reception->recipient->state ?? ''),
-                    $reception->recipient->postal_code ?? '',
+                    $this->normalizeString(optional($recipient)->city),
+                    $this->normalizeString(optional($recipient)->state),
+                    $this->normalizeString(optional($recipient)->postal_code),
                     'US',
-                    $reception->recipient->phone ?? '',
+                    $this->normalizeString(optional($recipient)->phone),
                     '',
                     '',
                     '',
