@@ -38,14 +38,13 @@ class TransferController extends Controller
         return Inertia::render('Transfers/Create', [
             'countries' => $countries,
             'agencies'  => $agencies,
-            // Más adelante podemos pasar "nextTransferNumber", etc.
         ]);
     }
 
     /**
-     * GET /api/transfers/available-packages?from_city=CUENCA%20CENTRO
+     * GET /api/transfers/available-packages?from_city=CUENCA%20CENTRO&search=
      * Devuelve paquetes "emitidos" en una agencia (ciudad) que aún no están en un traslado pendiente.
-     * Esto es para llenar el grid de "Buscar paquetes emitidos".
+     * Ahora con búsqueda por código de paquete o contenido.
      */
     public function availablePackages(Request $request)
     {
@@ -54,11 +53,13 @@ class TransferController extends Controller
 
         $data = $request->validate([
             'from_city' => 'required|string|max:100',
+            'search' => 'nullable|string|max:255',
         ]);
 
         $fromCity = $data['from_city'];
+        $search = $data['search'] ?? null;
 
-        $packages = Package::query()
+        $query = Package::query()
             ->select(
                 'packages.id',
                 'packages.barcode',
@@ -70,11 +71,25 @@ class TransferController extends Controller
             ->join('receptions', 'receptions.id', '=', 'packages.reception_id')
             ->where('receptions.enterprise_id', $enterpriseId)
             ->where('receptions.agency_origin', $fromCity)
-            // opcional: que no estén en un traslado PENDING
-            ->whereDoesntHave('transferSackItems.sack.transfer', function ($q) {
-                $q->where('status', 'PENDING');
-            })
+            // ⚠️ CORREGIDO: relación debe coincidir con Package model
+            ->whereDoesntHave('transferSackItems', function ($q) {
+                $q->whereHas('sack.transfer', function ($tq) {
+                    $tq->where('status', 'PENDING');
+                });
+            });
+
+        // Aplicar búsqueda si existe
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('packages.barcode', 'LIKE', "%{$search}%")
+                    ->orWhere('packages.content', 'LIKE', "%{$search}%")
+                    ->orWhere('packages.id', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $packages = $query
             ->orderBy('packages.created_at', 'desc')
+            ->limit(100)
             ->get()
             ->map(function ($p) {
                 return [
@@ -93,20 +108,6 @@ class TransferController extends Controller
     /**
      * GET /api/transfers/search
      * Busca documentos de traslado para el modal "Buscar documentos traslado".
-     *
-     * Parámetros (query string):
-     *  - start_date (YYYY-MM-DD)   opcional
-     *  - end_date   (YYYY-MM-DD)   opcional
-     *  - country                   opcional
-     *  - from_city                 opcional
-     *  - to_city                   opcional
-     *  - only_pending (1/0,true/false) opcional
-     *
-     * Respuesta: JSON[]
-     *  [
-     *    { id, number, country, from_city, to_city },
-     *    ...
-     *  ]
      */
     public function search(Request $request)
     {
@@ -126,7 +127,6 @@ class TransferController extends Controller
             ->select('id', 'number', 'country', 'from_city', 'to_city', 'status', 'created_at')
             ->where('enterprise_id', $enterpriseId);
 
-        // Filtros por fecha (sobre created_at)
         if (!empty($data['start_date'])) {
             $query->whereDate('created_at', '>=', $data['start_date']);
         }
@@ -135,22 +135,18 @@ class TransferController extends Controller
             $query->whereDate('created_at', '<=', $data['end_date']);
         }
 
-        // Filtro por país
         if (!empty($data['country'])) {
             $query->where('country', $data['country']);
         }
 
-        // Filtro por ciudad origen
         if (!empty($data['from_city'])) {
             $query->where('from_city', $data['from_city']);
         }
 
-        // Filtro por ciudad destino
         if (!empty($data['to_city'])) {
             $query->where('to_city', $data['to_city']);
         }
 
-        // Solo pendientes de confirmar
         if (!empty($data['only_pending']) && $data['only_pending']) {
             $query->where('status', 'PENDING');
         }
@@ -166,6 +162,7 @@ class TransferController extends Controller
                     'country'   => $t->country,
                     'from_city' => $t->from_city,
                     'to_city'   => $t->to_city,
+                    'status'    => $t->status, // ✅ Agregado para mostrar en frontend
                 ];
             });
 
@@ -196,14 +193,11 @@ class TransferController extends Controller
             'sacks.*.packages.*.kilograms' => 'required|numeric|min:0',
         ]);
 
-        // Si no viene number, lo generamos secuencialmente
         $number = $data['number'] ?: $this->generateNextNumber($enterpriseId);
 
-        // Transacción para asegurar consistencia
         DB::beginTransaction();
 
         try {
-            // Crear cabecera de traslado
             $transfer = Transfer::create([
                 'enterprise_id' => $enterpriseId,
                 'number'        => $number,
@@ -215,7 +209,6 @@ class TransferController extends Controller
             ]);
 
             foreach ($data['sacks'] as $sackData) {
-                // Totales de la saca
                 $packagesCount = count($sackData['packages']);
                 $poundsTotal = collect($sackData['packages'])->sum('pounds');
                 $kilogramsTotal = collect($sackData['packages'])->sum('kilograms');
@@ -236,6 +229,7 @@ class TransferController extends Controller
                         'package_id'       => $pkg['id'],
                         'pounds'           => $pkg['pounds'],
                         'kilograms'        => $pkg['kilograms'],
+                        'confirmed'        => false, // ✅ Por defecto no confirmado
                     ]);
                 }
             }
@@ -247,7 +241,6 @@ class TransferController extends Controller
                 ->with('success', "Traslado {$transfer->number} creado correctamente.");
         } catch (\Throwable $e) {
             DB::rollBack();
-
             report($e);
 
             return back()->withErrors([
@@ -258,7 +251,6 @@ class TransferController extends Controller
 
     /**
      * Genera el siguiente número de traslado de forma simple por empresa.
-     * Ejemplo: último = 000012 -> siguiente = 000013
      */
     protected function generateNextNumber(string $enterpriseId): string
     {
@@ -270,7 +262,6 @@ class TransferController extends Controller
             return '000001';
         }
 
-        // asumimos que es numérico o al menos termina en número
         $num = (int) preg_replace('/\D/', '', $last);
         $next = $num + 1;
 

@@ -24,7 +24,8 @@ use App\Http\Controllers\{
     BulkImportController,
     AgencyDestController,
     WeightReportController,
-    TransferController
+    TransferController,
+    TransferConfirmController // ✅ NUEVO
 };
 
 use App\Http\Middleware\EnsureSudo;
@@ -41,6 +42,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
     // Información de empresa para autocompletar remitente
     Route::get('/api/enterprise-info', function () {
         $user = auth()->user();
@@ -54,7 +56,6 @@ Route::middleware('auth')->group(function () {
             'state' => 'Azuay',
         ];
 
-        // Si no hay empresa (SUDO u otro caso), devolvemos CUENCA directamente
         if (!$enterprise) {
             return response()->json([
                 'enterprise' => [
@@ -69,20 +70,98 @@ Route::middleware('auth')->group(function () {
         }
 
         $addressMap = [
-            'LOJA' => ['postal_code' => '110150', 'city' => 'Loja', 'canton' => 'Loja', 'state' => 'Loja'],
-            'SIGSIG' => ['postal_code' => '010309', 'city' => 'Sigsig', 'canton' => 'Sigsig', 'state' => 'Azuay'],
-            'CUENCA' => ['postal_code' => '010101', 'city' => 'Cuenca', 'canton' => 'Cuenca', 'state' => 'Azuay'],
-            'BIBLIAN' => ['postal_code' => '030105', 'city' => 'Biblián', 'canton' => 'Biblián', 'state' => 'Cañar'],
-            'SARAGURO' => ['postal_code' => '110205', 'city' => 'Saraguro', 'canton' => 'Saraguro', 'state' => 'Loja'],
-            'CAÑAR' => ['postal_code' => '030101', 'city' => 'Cañar', 'canton' => 'Cañar', 'state' => 'Cañar'],
-            'SAYAUSI' => ['postal_code' => '010164', 'city' => 'Sayausí', 'canton' => 'Cuenca', 'state' => 'Azuay'],
+            'LOJA' => [
+                'postal_code' => '110150',
+                'city' => 'Loja',
+                'canton' => 'Loja',
+                'state' => 'Loja'
+            ],
+            'SIGSIG' => [
+                'postal_code' => '010309',
+                'city' => 'Sígsig',
+                'canton' => 'Sígsig',
+                'state' => 'Azuay'
+            ],
+            'CUENCA' => [
+                'postal_code' => '010101',
+                'city' => 'Cuenca',
+                'canton' => 'Cuenca',
+                'state' => 'Azuay'
+            ],
+            'BIBLIAN' => [
+                'postal_code' => '030105',
+                'city' => 'Biblián',
+                'canton' => 'Biblián',
+                'state' => 'Cañar'
+            ],
+            'SARAGURO' => [
+                'postal_code' => '110205',
+                'city' => 'Saraguro',
+                'canton' => 'Saraguro',
+                'state' => 'Loja'
+            ],
+            'CAÑAR' => [
+                'postal_code' => '030101',
+                'city' => 'Cañar',
+                'canton' => 'Cañar',
+                'state' => 'Cañar'
+            ],
+            'SAYAUSI' => [
+                'postal_code' => '010164',
+                'city' => 'Sayausí',
+                'canton' => 'Cuenca',
+                'state' => 'Azuay'
+            ],
+            'MOLLETURO' => [
+                'postal_code' => '010165',
+                'city' => 'Molleturo',
+                'canton' => 'Cuenca',
+                'state' => 'Azuay'
+            ],
+            'PAUTE' => [
+                'postal_code' => '010601',
+                'city' => 'Paute',
+                'canton' => 'Paute',
+                'state' => 'Azuay'
+            ],
+            'PUCARA' => [
+                'postal_code' => '010801',
+                'city' => 'Pucará',
+                'canton' => 'Pucará',
+                'state' => 'Azuay'
+            ],
+
+            'SG' => [
+                'postal_code' => '010309',
+                'city' => 'Sígsig',
+                'canton' => 'Sígsig',
+                'state' => 'Azuay'
+            ],
+            'SY' => [
+                'postal_code' => '010164',
+                'city' => 'Sayausí',
+                'canton' => 'Cuenca',
+                'state' => 'Azuay'
+            ],
+            'CENTRO SARAGURO' => [
+                'postal_code' => '110205',
+                'city' => 'Saraguro',
+                'canton' => 'Saraguro',
+                'state' => 'Loja'
+            ],
+            'ZHUD' => [
+                'postal_code' => '030101',
+                'city' => 'Cañar',
+                'canton' => 'Cañar',
+                'state' => 'Cañar'
+            ],
         ];
 
         $addressText = strtoupper($enterprise->matrix_address ?? '');
         $matched = collect($addressMap)->first(fn($_, $key) => str_contains($addressText, $key));
 
         if (!$matched) {
-            $matched = $defaultAutofill; // Siempre ponemos CUENCA por defecto si no hay match
+            $matched = $defaultAutofill;
         }
 
         return response()->json([
@@ -98,7 +177,7 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-// Auth (login, registro, etc.)
+// Auth
 require __DIR__ . '/auth.php';
 
 // -----------------------------
@@ -118,12 +197,11 @@ Route::middleware(['auth', EnsureSudo::class])->group(function () {
     Route::resource('users', UserController::class);
     Route::resource('roles', RoleController::class);
 });
+
 // -----------------------------
-// RUTAS COMPARTIDAS ENTRE TODOS LOS ROLES (auth)
-// SUDO + ADMIN + CUSTOMER
+// RUTAS COMPARTIDAS ENTRE TODOS LOS ROLES
 // -----------------------------
 Route::middleware(['auth'])->group(function () {
-
     Route::get('/agencies_dest/list/json', [AgencyDestController::class, 'listByEnterprise']);
 
     // Remitentes
@@ -133,72 +211,89 @@ Route::middleware(['auth'])->group(function () {
     // Destinatarios
     Route::get('/recipients/search', [RecipientController::class, 'search'])->name('recipients.search');
     Route::post('/recipients-json', [RecipientController::class, 'storeJson'])->name('recipients.storeJson');
+
     // Facturación electrónica
     Route::get('/invoices/{invoice}/ticket', [InvoiceController::class, 'generateTicket'])->name('invoices.ticket');
-    Route::get('/invoices/{invoice}/a4',    [InvoiceController::class, 'generateA4'])->name('invoices.a4');
+    Route::get('/invoices/{invoice}/a4', [InvoiceController::class, 'generateA4'])->name('invoices.a4');
     Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
     Route::get('/invoices/{invoice}/xml-download', [InvoiceController::class, 'downloadXml'])->name('invoices.downloadXml');
     Route::resource('invoices', InvoiceController::class);
     Route::resource('inv_details', InvDetailController::class);
+
     // Crear recepción y facturas
     Route::post('/receptions', [ReceptionController::class, 'store'])->name('receptions.store.shared');
     Route::post('/receptions/{id}/invoice', [InvoiceController::class, 'createInvoice'])->name('receptions.invoice');
+
     // Anular recepción
     Route::patch('/receptions/{reception}/annul', [ReceptionController::class, 'annul'])
         ->name('receptions.annul');
+
     // Tickets
     Route::get('/receptions/{id}/ticket.pdf', [ReceptionController::class, 'generateTicketPdf'])->name('receptions.ticket');
     Route::get('/receptions/{id}/all-package-tickets.pdf', [ReceptionController::class, 'generateAllPackageTicketsPdf'])->name('receptions.all_tickets');
     Route::get('/receptions/{reception}/packages/{package}/ticket.pdf', [ReceptionController::class, 'generatePackageTicketPdf'])->name('receptions.package_ticket');
     Route::resource('receptions', ReceptionController::class);
+
     // Artículos para combo
     Route::get('/art_packgs/list/json', [ArtPackgController::class, 'listJson'])->name('art_packgs.list.json');
     Route::get('/art_packages/list/json', [ArtPackageController::class, 'listJson'])->name('art_packages.list.json');
 });
 
-
 // -----------------------------
 // RUTAS PARA ADMIN Y SUDO
 // -----------------------------
 Route::middleware(['auth', 'admin'])->group(function () {
-    // TRASLADOS
+    // ✅ TRASLADOS - CREAR
     Route::get('/transfers/create', [TransferController::class, 'create'])
         ->name('transfers.create');
-
     Route::post('/transfers', [TransferController::class, 'store'])
         ->name('transfers.store');
-
-    // Endpoint JSON para el modal de sacas
+    // ✅ CLASIFICACIÓN - CONFIRMAR TRASLADOS
+    Route::get('/classification/transfers/confirm', [TransferConfirmController::class, 'index'])
+        ->name('classification.transfers.confirm');
+    // ✅ TRASLADOS - PAQUETES DISPONIBLES
     Route::get('/api/transfers/available-packages', [TransferController::class, 'availablePackages'])
         ->name('transfers.available-packages');
-    // Endpoint JSON para buscar documentos de traslado
+
+    // ✅ TRASLADOS - BUSCAR DOCUMENTOS
     Route::get('/api/transfers/search', [TransferController::class, 'search'])
         ->name('transfers.search');
-    //Route::get('/transfers/{transfer}/details', [TransferConfirmController::class, 'show']);
-    //Route::put('/transfers/{transfer}/sacks', [TransferConfirmController::class, 'updateSacks']);
+
+    // ✅ TRASLADOS - CONFIRMACIÓN (NUEVAS RUTAS)
+    Route::get('/api/transfers/{transfer}/details', [TransferConfirmController::class, 'show'])
+        ->name('transfers.details');
+    Route::put('/api/transfers/{transfer}/sacks', [TransferConfirmController::class, 'updateSacks'])
+        ->name('transfers.update-sacks');
+    Route::delete('/api/transfers/{transfer}/cancel', [TransferConfirmController::class, 'cancel'])
+        ->name('transfers.cancel');
+
+    // Otros recursos
     Route::resource('senders', SenderController::class);
     Route::resource('recipients', RecipientController::class);
 
     Route::resource('art_packages', ArtPackageController::class);
     Route::patch('/art_packages/{id}/toggle-active', [ArtPackageController::class, 'toggleActive'])
         ->name('art_packages.toggle-active');
+
     Route::resource('art_packgs', ArtPackgController::class);
     Route::patch('/art_packgs/{id}/toggle-active', [ArtPackgController::class, 'toggleActive'])
         ->name('art_packgs.toggle-active');
+
     Route::post('/package-items', [PackageItemController::class, 'store'])->name('package_items.store');
     Route::resource('packages', PackageController::class);
     Route::resource('additionals', AdditionalController::class);
-    // Carga Masiva (dinámico por módulo)
+
+    // Carga Masiva
     Route::get('/bulk-import/{type}', [BulkImportController::class, 'viewByType'])->name('bulk-import.view');
     Route::get('/bulk-import/{type}/example', [BulkImportController::class, 'downloadExample'])->name('bulk-import.example');
     Route::post('/bulk-import/{type}', [BulkImportController::class, 'importData'])->name('bulk-import.import');
-
 
     // Reportes
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
     Route::get('/reports/invoices', [ReportController::class, 'invoiceIndex'])->name('reports.invoices.index');
     Route::get('/reports/invoices/export', [ReportController::class, 'invoiceExport'])->name('reports.invoices.export');
+
     // Reporte Manifiesto IBC
     Route::get('/reports/ibc-manifest', [ReportController::class, 'ibcManifestIndex'])->name('reports.ibc.index');
     Route::get('/reports/ibc-manifest/export', [ReportController::class, 'ibcManifestExport'])->name('reports.ibc.export');
@@ -207,18 +302,14 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/reports/airline-manifest/export', [ReportController::class, 'airlineManifestExport'])->name('reports.airline.export');
     Route::get('/reports/acas-avianca-manifest', [ReportController::class, 'acasAviancaManifestIndex'])
         ->name('reports.acas.index');
-
     Route::get('/reports/acas-avianca-manifest/export', [ReportController::class, 'acasAviancaManifestExport'])
         ->name('reports.acas.export');
 
-    // ✅ AGENCIAS DE DESTINO - Resource y ruta adicional para toggle
+    // Agencias de destino
     Route::resource('agencies_dest', AgencyDestController::class);
     Route::patch('/agencies_dest/{id}/toggle-active', [AgencyDestController::class, 'toggleActive'])
         ->name('agencies_dest.toggle-active');
+
     Route::get('/reports/weights', [WeightReportController::class, 'index'])->name('reports.weights');
     Route::get('/reports/weights/export', [WeightReportController::class, 'export'])->name('reports.weights.export');
 });
-
-// -----------------------------
-// RUTAS PARA CUSTOMER
-// -----------------------------

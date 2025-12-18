@@ -35,7 +35,8 @@ class TransferSack extends Model
     }
     public function packages()
     {
-        return $this->belongsToMany(Package::class, 'sack_package')
-            ->withPivot('confirmed');
+        return $this->belongsToMany(Package::class, 'transfer_sack_packages')
+            ->withPivot('confirmed', 'pounds', 'kilograms')
+            ->withTimestamps();
     }
 }

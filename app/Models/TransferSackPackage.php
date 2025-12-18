@@ -15,8 +15,11 @@ class TransferSackPackage extends Model
         'package_id',
         'pounds',
         'kilograms',
+        'confirmed',
     ];
-
+    protected $casts = [
+        'confirmed' => 'boolean',
+    ];
     public function sack()
     {
         return $this->belongsTo(TransferSack::class, 'transfer_sack_id');

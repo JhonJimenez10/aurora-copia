@@ -14,7 +14,7 @@ import {
     ChevronUp,
     ChevronDown,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import type { FormEvent } from "react";
 import { cn } from "@/lib/utils";
 
@@ -91,7 +91,7 @@ type TransferSearchFilters = {
     startDate: string;
     endDate: string;
     country: string;
-    fromCity: string; // "[TODOS]" para todos
+    fromCity: string;
     toCity: string;
     onlyPending: boolean;
 };
@@ -105,7 +105,7 @@ type TransferSearchResult = {
 };
 
 /** ---------------------
- * MODAL: CREAR SACA (ya existente)
+ * MODAL: CREAR SACA (con búsqueda)
  * --------------------- */
 type SackModalProps = {
     isOpen: boolean;
@@ -131,45 +131,83 @@ function SackModal({
     const [loading, setLoading] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
 
+    // Estados de búsqueda
+    const [searchLeft, setSearchLeft] = useState("");
+    const [searchRight, setSearchRight] = useState("");
+    const [allEmittedPkgs, setAllEmittedPkgs] = useState<SackPackage[]>([]);
+
+    const loadPackages = useCallback(async () => {
+        if (!fromCity) {
+            setLoadError(
+                "Selecciona primero el 'Trasladar de' en el documento para listar paquetes."
+            );
+            return;
+        }
+
+        setLoading(true);
+        setLoadError(null);
+
+        try {
+            const res = await fetch(
+                `/api/transfers/available-packages?from_city=${encodeURIComponent(
+                    fromCity
+                )}`
+            );
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data: SackPackage[] = await res.json();
+            setAllEmittedPkgs(data);
+            setEmittedPkgs(data);
+        } catch {
+            setLoadError(
+                "No se pudieron cargar los paquetes disponibles. Intenta nuevamente."
+            );
+        } finally {
+            setLoading(false);
+        }
+    }, [fromCity]);
+
     useEffect(() => {
-        const load = async () => {
-            if (!isOpen) return;
+        if (!isOpen) return;
 
-            setEmittedPkgs([]);
-            setSackPkgs([]);
-            setSelectedLeftId(null);
-            setSelectedRightId(null);
-            setSeal("");
-            setRefrigerated(false);
-            setLoadError(null);
+        setEmittedPkgs([]);
+        setSackPkgs([]);
+        setAllEmittedPkgs([]);
+        setSelectedLeftId(null);
+        setSelectedRightId(null);
+        setSeal("");
+        setRefrigerated(false);
+        setLoadError(null);
+        setSearchLeft("");
+        setSearchRight("");
 
-            if (!fromCity) {
-                setLoadError(
-                    "Selecciona primero el 'Trasladar de' en el documento para listar paquetes."
-                );
-                return;
-            }
+        loadPackages();
+    }, [isOpen, loadPackages]);
 
-            setLoading(true);
-            try {
-                const res = await fetch(
-                    `/api/transfers/available-packages?from_city=${encodeURIComponent(
-                        fromCity
-                    )}`
-                );
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data: SackPackage[] = await res.json();
-                setEmittedPkgs(data);
-            } catch {
-                setLoadError(
-                    "No se pudieron cargar los paquetes disponibles. Intenta nuevamente."
-                );
-            } finally {
-                setLoading(false);
-            }
-        };
-        load();
-    }, [isOpen, fromCity]);
+    // Filtrar paquetes emitidos según búsqueda
+    const filteredEmitted = useMemo(() => {
+        if (!searchLeft.trim()) return emittedPkgs;
+
+        const term = searchLeft.toLowerCase();
+        return emittedPkgs.filter(
+            (p) =>
+                p.code.toLowerCase().includes(term) ||
+                p.content.toLowerCase().includes(term) ||
+                p.id.toLowerCase().includes(term)
+        );
+    }, [emittedPkgs, searchLeft]);
+
+    // Filtrar paquetes en saca según búsqueda
+    const filteredSack = useMemo(() => {
+        if (!searchRight.trim()) return sackPkgs;
+
+        const term = searchRight.toLowerCase();
+        return sackPkgs.filter(
+            (p) =>
+                p.code.toLowerCase().includes(term) ||
+                p.content.toLowerCase().includes(term) ||
+                p.id.toLowerCase().includes(term)
+        );
+    }, [sackPkgs, searchRight]);
 
     const moveRight = () => {
         if (!selectedLeftId) return;
@@ -190,10 +228,13 @@ function SackModal({
     };
 
     const totalsLeft = useMemo(
-        () => calculateTotals(emittedPkgs),
-        [emittedPkgs]
+        () => calculateTotals(filteredEmitted),
+        [filteredEmitted]
     );
-    const totalsRight = useMemo(() => calculateTotals(sackPkgs), [sackPkgs]);
+    const totalsRight = useMemo(
+        () => calculateTotals(filteredSack),
+        [filteredSack]
+    );
 
     const handleSaveSack = () => {
         if (!sackPkgs.length) {
@@ -229,6 +270,18 @@ function SackModal({
                     <h3 className="text-sm text-gray-300 mb-2">
                         Buscar paquetes emitidos
                     </h3>
+
+                    {/* Campo de búsqueda */}
+                    <div className="mb-2">
+                        <input
+                            type="text"
+                            value={searchLeft}
+                            onChange={(e) => setSearchLeft(e.target.value)}
+                            placeholder="Buscar por No. paquete o contenido..."
+                            className="w-full bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white placeholder-gray-500"
+                        />
+                    </div>
+
                     <div className="overflow-x-auto rounded-lg border border-red-700">
                         <table className="min-w-full text-sm text-white table-auto">
                             <thead className="bg-red-800 text-white">
@@ -254,8 +307,8 @@ function SackModal({
                                             Cargando paquetes...
                                         </td>
                                     </tr>
-                                ) : emittedPkgs.length ? (
-                                    emittedPkgs.map((pkg) => (
+                                ) : filteredEmitted.length ? (
+                                    filteredEmitted.map((pkg) => (
                                         <tr
                                             key={pkg.id}
                                             onClick={() =>
@@ -284,7 +337,9 @@ function SackModal({
                                             colSpan={3}
                                             className="text-center py-3 text-red-400"
                                         >
-                                            No hay paquetes disponibles.
+                                            {searchLeft.trim()
+                                                ? "No se encontraron paquetes con ese criterio."
+                                                : "No hay paquetes disponibles."}
                                         </td>
                                     </tr>
                                 )}
@@ -340,6 +395,18 @@ function SackModal({
                     <h3 className="text-sm text-gray-300 mb-2">
                         Buscar paquetes saca
                     </h3>
+
+                    {/* Campo de búsqueda */}
+                    <div className="mb-2">
+                        <input
+                            type="text"
+                            value={searchRight}
+                            onChange={(e) => setSearchRight(e.target.value)}
+                            placeholder="Buscar por No. paquete o contenido..."
+                            className="w-full bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white placeholder-gray-500"
+                        />
+                    </div>
+
                     <div className="overflow-x-auto rounded-lg border border-red-700">
                         <table className="min-w-full text-sm text-white table-auto">
                             <thead className="bg-red-800 text-white">
@@ -356,8 +423,8 @@ function SackModal({
                                 </tr>
                             </thead>
                             <tbody>
-                                {sackPkgs.length ? (
-                                    sackPkgs.map((pkg) => (
+                                {filteredSack.length ? (
+                                    filteredSack.map((pkg) => (
                                         <tr
                                             key={pkg.id}
                                             onClick={() =>
@@ -386,7 +453,9 @@ function SackModal({
                                             colSpan={3}
                                             className="text-center py-3 text-red-400"
                                         >
-                                            No hay paquetes en la saca.
+                                            {searchRight.trim()
+                                                ? "No se encontraron paquetes con ese criterio."
+                                                : "No hay paquetes en la saca."}
                                         </td>
                                     </tr>
                                 )}
@@ -422,13 +491,13 @@ function SackModal({
                     <span>
                         LIBRAS:{" "}
                         <span className="text-white font-semibold">
-                            {totalsRight.pounds.toFixed(2)}
+                            {calculateTotals(sackPkgs).pounds.toFixed(2)}
                         </span>
                     </span>
                     <span>
                         KILOS:{" "}
                         <span className="text-white font-semibold">
-                            {totalsRight.kilograms.toFixed(2)}
+                            {calculateTotals(sackPkgs).kilograms.toFixed(2)}
                         </span>
                     </span>
                 </div>
@@ -508,7 +577,6 @@ function ConfirmTransferModal({
     const [details, setDetails] = useState<ConfirmTransferDetails | null>(null);
     const [currentIdx, setCurrentIdx] = useState(0);
 
-    // estados derivados por saca seleccionada
     const current =
         details && details.sacks.length ? details.sacks[currentIdx] : null;
 
@@ -519,6 +587,10 @@ function ConfirmTransferModal({
         string | null
     >(null);
 
+    // Estados de búsqueda
+    const [searchPending, setSearchPending] = useState("");
+    const [searchConfirmed, setSearchConfirmed] = useState("");
+
     useEffect(() => {
         const load = async () => {
             if (!isOpen || transferId == null) return;
@@ -528,6 +600,9 @@ function ConfirmTransferModal({
             setSelectedPendingId(null);
             setSelectedConfirmedId(null);
             setCurrentIdx(0);
+            setSearchPending("");
+            setSearchConfirmed("");
+
             try {
                 const res = await fetch(`/api/transfers/${transferId}/details`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -541,6 +616,32 @@ function ConfirmTransferModal({
         };
         load();
     }, [isOpen, transferId]);
+
+    // Filtros
+    const filteredPending = useMemo(() => {
+        if (!current || !searchPending.trim()) return current?.pending ?? [];
+
+        const term = searchPending.toLowerCase();
+        return current.pending.filter(
+            (p) =>
+                p.code.toLowerCase().includes(term) ||
+                p.content.toLowerCase().includes(term) ||
+                p.id.toLowerCase().includes(term)
+        );
+    }, [current, searchPending]);
+
+    const filteredConfirmed = useMemo(() => {
+        if (!current || !searchConfirmed.trim())
+            return current?.confirmed ?? [];
+
+        const term = searchConfirmed.toLowerCase();
+        return current.confirmed.filter(
+            (p) =>
+                p.code.toLowerCase().includes(term) ||
+                p.content.toLowerCase().includes(term) ||
+                p.id.toLowerCase().includes(term)
+        );
+    }, [current, searchConfirmed]);
 
     const moveToConfirmed = () => {
         if (!current || !selectedPendingId) return;
@@ -582,12 +683,12 @@ function ConfirmTransferModal({
     };
 
     const totalsPending = useMemo(
-        () => calculateTotals(current?.pending ?? []),
-        [current?.pending]
+        () => calculateTotals(filteredPending),
+        [filteredPending]
     );
     const totalsConfirmed = useMemo(
-        () => calculateTotals(current?.confirmed ?? []),
-        [current?.confirmed]
+        () => calculateTotals(filteredConfirmed),
+        [filteredConfirmed]
     );
 
     const saveAll = async () => {
@@ -622,12 +723,17 @@ function ConfirmTransferModal({
         if (!details) return;
         setSelectedPendingId(null);
         setSelectedConfirmedId(null);
+        setSearchPending("");
+        setSearchConfirmed("");
         setCurrentIdx((i) => (i > 0 ? i - 1 : details.sacks.length - 1));
     };
+
     const gotoNext = () => {
         if (!details) return;
         setSelectedPendingId(null);
         setSelectedConfirmedId(null);
+        setSearchPending("");
+        setSearchConfirmed("");
         setCurrentIdx((i) => (i + 1) % details.sacks.length);
     };
 
@@ -635,6 +741,7 @@ function ConfirmTransferModal({
         if (!current) return;
         replaceSack({ ...current, seal: value });
     };
+
     const setRefrigerated = (value: boolean) => {
         if (!current) return;
         replaceSack({ ...current, refrigerated: value });
@@ -689,6 +796,19 @@ function ConfirmTransferModal({
                             <h3 className="text-sm text-gray-300 mb-2">
                                 Buscar paquetes pendientes
                             </h3>
+
+                            <div className="mb-2">
+                                <input
+                                    type="text"
+                                    value={searchPending}
+                                    onChange={(e) =>
+                                        setSearchPending(e.target.value)
+                                    }
+                                    placeholder="Buscar por No. paquete o contenido..."
+                                    className="w-full bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white placeholder-gray-500"
+                                />
+                            </div>
+
                             <div className="overflow-x-auto rounded-lg border border-red-700">
                                 <table className="min-w-full text-sm text-white table-auto">
                                     <thead className="bg-red-800 text-white">
@@ -705,8 +825,8 @@ function ConfirmTransferModal({
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {current && current.pending.length ? (
-                                            current.pending.map((pkg) => (
+                                        {filteredPending.length ? (
+                                            filteredPending.map((pkg) => (
                                                 <tr
                                                     key={pkg.id}
                                                     onClick={() =>
@@ -738,10 +858,9 @@ function ConfirmTransferModal({
                                                     colSpan={3}
                                                     className="text-center py-3 text-gray-300 italic"
                                                 >
-                                                    No existen paquetes
-                                                    pendientes de confirmar
-                                                    correspondientes a la saca
-                                                    seleccionada.
+                                                    {searchPending.trim()
+                                                        ? "No se encontraron paquetes con ese criterio."
+                                                        : "No existen paquetes pendientes de confirmar correspondientes a la saca seleccionada."}
                                                 </td>
                                             </tr>
                                         )}
@@ -799,6 +918,19 @@ function ConfirmTransferModal({
                             <h3 className="text-sm text-gray-300 mb-2">
                                 Buscar paquetes confirmados
                             </h3>
+
+                            <div className="mb-2">
+                                <input
+                                    type="text"
+                                    value={searchConfirmed}
+                                    onChange={(e) =>
+                                        setSearchConfirmed(e.target.value)
+                                    }
+                                    placeholder="Buscar por No. paquete o contenido..."
+                                    className="w-full bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white placeholder-gray-500"
+                                />
+                            </div>
+
                             <div className="overflow-x-auto rounded-lg border border-red-700">
                                 <table className="min-w-full text-sm text-white table-auto">
                                     <thead className="bg-red-800 text-white">
@@ -815,8 +947,8 @@ function ConfirmTransferModal({
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {current && current.confirmed.length ? (
-                                            current.confirmed.map((pkg) => (
+                                        {filteredConfirmed.length ? (
+                                            filteredConfirmed.map((pkg) => (
                                                 <tr
                                                     key={pkg.id}
                                                     onClick={() =>
@@ -848,8 +980,9 @@ function ConfirmTransferModal({
                                                     colSpan={3}
                                                     className="text-center py-3 text-red-400"
                                                 >
-                                                    No hay paquetes confirmados
-                                                    en esta saca.
+                                                    {searchConfirmed.trim()
+                                                        ? "No se encontraron paquetes con ese criterio."
+                                                        : "No hay paquetes confirmados en esta saca."}
                                                 </td>
                                             </tr>
                                         )}
@@ -885,13 +1018,17 @@ function ConfirmTransferModal({
                             <span>
                                 LIBRAS:{" "}
                                 <span className="text-white font-semibold">
-                                    {totalsConfirmed.pounds.toFixed(2)}
+                                    {calculateTotals(
+                                        current?.confirmed ?? []
+                                    ).pounds.toFixed(2)}
                                 </span>
                             </span>
                             <span>
                                 KILOS:{" "}
                                 <span className="text-white font-semibold">
-                                    {totalsConfirmed.kilograms.toFixed(2)}
+                                    {calculateTotals(
+                                        current?.confirmed ?? []
+                                    ).kilograms.toFixed(2)}
                                 </span>
                             </span>
                         </div>
@@ -956,8 +1093,6 @@ export default function TransfersCreate({
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [showSackModal, setShowSackModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-    // NUEVO: modal ver/modificar
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [confirmTransferId, setConfirmTransferId] = useState<
         number | string | null
@@ -1069,9 +1204,6 @@ export default function TransfersCreate({
         });
     };
 
-    /** ---------------------
-     * Búsqueda
-     * --------------------- */
     const handleSearchSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setSearchError(null);
@@ -1135,7 +1267,6 @@ export default function TransfersCreate({
         setShowSearchModal(false);
     };
 
-    // NUEVO: abrir modal Confirmar/Modificar
     const openConfirmForSelected = () => {
         if (!selectedResultId) return;
         setConfirmTransferId(selectedResultId);
@@ -1253,17 +1384,6 @@ export default function TransfersCreate({
                                     className="border-red-600 bg-black hover:bg-red-700"
                                 >
                                     <Search className="h-4 w-4 text-white" />
-                                </Button>
-
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={handleNewTransfer}
-                                    className="border-red-600 bg-black hover:bg-red-700"
-                                    title="Nuevo traslado"
-                                >
-                                    <FilePlus2 className="h-4 w-4 text-white" />
                                 </Button>
 
                                 <Button
@@ -1739,9 +1859,7 @@ export default function TransfersCreate({
                 isOpen={showConfirmModal}
                 onClose={() => setShowConfirmModal(false)}
                 transferId={confirmTransferId}
-                onSaved={() => {
-                    // refrescar la lista si estabas en “solo pendientes”, etc. (opcional)
-                }}
+                onSaved={() => {}}
             />
         </AuthenticatedLayout>
     );
