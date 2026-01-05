@@ -58,6 +58,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
     DialogFooter,
 } from "@/Components/ui/dialog";
 import { v4 as uuidv4 } from "uuid";
@@ -379,8 +380,14 @@ export default function ShippingInterface({
             if (initialData.recipient) setRecipient(initialData.recipient);
             if (initialData.receptionNumber)
                 setReceptionNumber(initialData.receptionNumber);
-            if (initialData.receptionDate)
-                setReceptionDate(initialData.receptionDate);
+
+            // ✅ CORREGIR EL FORMATO DE FECHA
+            if (initialData.receptionDate) {
+                // Extraer solo la parte de la fecha (yyyy-MM-dd)
+                const dateOnly = initialData.receptionDate.split(" ")[0];
+                setReceptionDate(dateOnly);
+            }
+
             if (initialData.route) setRoute(initialData.route);
             if (initialData.agencyDest) setAgencyDest(initialData.agencyDest);
             if (initialData.payMethod) setPayMethod(initialData.payMethod);
@@ -483,7 +490,44 @@ export default function ShippingInterface({
 
     const printAllTickets = () => {
         if (!receptionId) return;
+
+        // ← Validar si está anulada
+        if (annulled) {
+            alert("⚠️ No se pueden imprimir tickets de una recepción anulada.");
+            return;
+        }
+
         openAndPrint(`/receptions/${receptionId}/all-package-tickets.pdf`);
+    };
+
+    // Función para imprimir factura tipo ticket
+    const printInvoiceTicket = () => {
+        if (annulled) {
+            alert("⚠️ No se pueden imprimir facturas de recepciones anuladas.");
+            return;
+        }
+
+        if (!initialData?.invoice_id) {
+            alert("No se encontró la factura asociada a esta recepción.");
+            return;
+        }
+
+        openAndPrint(`/invoices/${initialData.invoice_id}/ticket`);
+    };
+
+    // Función para imprimir factura A4
+    const printInvoiceA4 = () => {
+        if (annulled) {
+            alert("⚠️ No se pueden imprimir facturas de recepciones anuladas.");
+            return;
+        }
+
+        if (!initialData?.invoice_id) {
+            alert("No se encontró la factura asociada a esta recepción.");
+            return;
+        }
+
+        openAndPrint(`/invoices/${initialData.invoice_id}/a4`);
     };
 
     const readOnlyProps = readOnly ? { readOnly: true } : {};
@@ -611,15 +655,15 @@ export default function ShippingInterface({
     };
 
     const openEditPackageModal = (idx: number) => {
-        if (readOnly) return;
+        // ✅ PERMITIR ABRIR EL MODAL INCLUSO EN readOnly (solo para visualizar)
         const pkg = packages[idx];
-        // Si guardas filas por paquete, reconstruimos para editar:
+
         const rows: PackageRow[] = pkg.items.map((item) => ({
             cantidad: String(item.quantity),
             unidad: item.unit,
             articulo_id: item.art_package_id,
             articulo:
-                artPackgOptions.find((a) => a.id === item.art_package_id)
+                artPackageOptions.find((a) => a.id === item.art_package_id)
                     ?.name ||
                 item.name ||
                 "",
@@ -632,10 +676,11 @@ export default function ShippingInterface({
             subtotal: (item.quantity * item.unit_price).toFixed(2),
             descuento: "0",
             total: item.total.toFixed(2),
-            items_decl: item.items_decl.toFixed(2),
-            declarado: item.decl_val.toFixed(2),
-            arancel: item.arancel.toFixed(2),
+            items_decl: String(item.items_decl),
+            declarado: String(item.decl_val),
+            arancel: String(item.arancel),
         }));
+
         setEditingPackageIndex(idx);
         setPackageRowsForEdit(rows);
         setShowPackageModal(true);
@@ -917,7 +962,8 @@ export default function ShippingInterface({
                                         variant="ghost"
                                         size="icon"
                                         className="text-white hover:text-gray-300"
-                                        title="Imprimir tickets"
+                                        title="Opciones de impresión"
+                                        disabled={annulled} // ← Deshabilitar si está anulada
                                     >
                                         <Printer className="h-4 w-4" />
                                     </Button>
@@ -926,21 +972,59 @@ export default function ShippingInterface({
                                     align="end"
                                     className="bg-[#1e1e2f] text-white border border-purple-700 min-w-[240px]"
                                 >
-                                    <DropdownMenuLabel className="text-xs text-purple-200">
-                                        Imprimir Tickets
-                                    </DropdownMenuLabel>
-                                    <DropdownMenuItem
-                                        onClick={printAllTickets}
-                                        className="text-sm"
-                                    >
-                                        Imprimir TODOS los tickets
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator className="bg-purple-700/40" />
-                                    {/* Listado de paquetes para imprimir individualmente */}
+                                    {annulled ? (
+                                        // ← Mostrar mensaje si está anulada
+                                        <div className="px-4 py-3 text-center">
+                                            <AlertTriangle className="h-6 w-6 text-red-400 mx-auto mb-2" />
+                                            <p className="text-sm text-red-300 font-semibold">
+                                                Recepción Anulada
+                                            </p>
+                                            <p className="text-xs text-gray-400 mt-1">
+                                                No se pueden reimprimir
+                                                documentos de recepciones
+                                                anuladas
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <DropdownMenuLabel className="text-xs text-purple-200">
+                                                Opciones de Impresión
+                                            </DropdownMenuLabel>
+
+                                            {/* SECCIÓN DE TICKETS */}
+                                            <DropdownMenuItem
+                                                onClick={printAllTickets}
+                                                className="text-sm cursor-pointer hover:bg-purple-700/20"
+                                            >
+                                                <Paperclip className="mr-2 h-4 w-4" />
+                                                Imprimir TODOS los tickets
+                                            </DropdownMenuItem>
+
+                                            <DropdownMenuSeparator className="bg-purple-700/40" />
+
+                                            {/* SECCIÓN DE FACTURAS */}
+                                            <DropdownMenuLabel className="text-xs text-purple-200">
+                                                Facturas
+                                            </DropdownMenuLabel>
+                                            <DropdownMenuItem
+                                                onClick={printInvoiceTicket}
+                                                className="text-sm cursor-pointer hover:bg-purple-700/20"
+                                            >
+                                                <FileText className="mr-2 h-4 w-4" />
+                                                Factura Original (Ticket)
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={printInvoiceA4}
+                                                className="text-sm cursor-pointer hover:bg-purple-700/20"
+                                            >
+                                                <FileText className="mr-2 h-4 w-4" />
+                                                Factura Alterna (A4)
+                                            </DropdownMenuItem>
+                                        </>
+                                    )}
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                        ) : // En creación, el botón de impresora NO se muestra
-                        null}
+                        ) : null}
                         {receptionId && ( // 👈 solo mostrar en edición
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -2464,7 +2548,6 @@ export default function ShippingInterface({
             />
 
             {/* MODAL DE ÉXITO */}
-            {/* ✅ MODAL DE ÉXITO */}
             <Dialog
                 open={showSuccessModal}
                 onOpenChange={(open) => {
@@ -2475,6 +2558,7 @@ export default function ShippingInterface({
             >
                 <DialogContent
                     className="bg-[#1e1e2f] text-white border border-purple-700"
+                    aria-describedby={undefined}
                     onPointerDownOutside={(e) => {
                         // Prevenir cierre al hacer clic fuera del modal
                         e.preventDefault();
@@ -2488,10 +2572,13 @@ export default function ShippingInterface({
                         <DialogTitle className={modalTitleClass}>
                             {modalTitle}
                         </DialogTitle>
+                        <DialogDescription className="text-gray-300">
+                            {modalMessage.split("\n")[0]}
+                        </DialogDescription>
                     </DialogHeader>
 
                     {/* Mensaje con saltos de línea */}
-                    <pre className="p-2 text-sm whitespace-pre-wrap">
+                    <pre className="p-2 text-sm whitespace-pre-wrap text-gray-200">
                         {modalMessage}
                     </pre>
 

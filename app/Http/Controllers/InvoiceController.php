@@ -326,6 +326,9 @@ class InvoiceController extends Controller
             'invDetails'
         ])->findOrFail($invoiceId);
 
+        if ($invoice->reception && $invoice->reception->annulled) {
+            abort(403, 'No se pueden generar facturas de recepciones anuladas.');
+        }
         $reception = $invoice->reception;
 
         // Resumen de paquetes
@@ -393,6 +396,9 @@ class InvoiceController extends Controller
             'invDetails'
         ])->findOrFail($invoiceId);
 
+        if ($invoice->reception && $invoice->reception->annulled) {
+            abort(403, 'No se pueden generar facturas de recepciones anuladas.');
+        }
         $data = $this->buildInvoicePdfData($invoice);
 
         // Ahora por defecto va ARRIBA. Si quieres abajo en algún momento: ?pos=bottom

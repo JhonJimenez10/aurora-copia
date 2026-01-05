@@ -272,12 +272,100 @@ class ReceptionController extends Controller
 
     public function edit($id)
     {
-        $reception = Reception::with(['sender', 'recipient', 'packages.packageItems', 'additionals', 'additionals.artPackg'])->findOrFail($id);
+        $reception = Reception::with([
+            'sender',
+            'recipient',
+            'packages.packageItems.artPackage',
+            'additionals.artPackg',
+            'invoice'
+        ])->findOrFail($id);
 
         return Inertia::render('Reception/Edit', [
-            'reception'  => $reception,
-            'senders'    => Sender::all(['id', 'full_name']),
-            'recipients' => Recipient::all(['id', 'full_name']),
+            'initialData' => [
+                'id' => $reception->id,
+                'receptionNumber' => $reception->number,
+                'receptionDate' => \Carbon\Carbon::parse($reception->date_time)->format('Y-m-d'), // ✅ FORMATO CORRECTO
+                'route' => $reception->route,
+                'agencyDest' => $reception->agency_dest,
+
+                'sender' => [
+                    'id' => $reception->sender->id,
+                    'identification' => $reception->sender->identification ?? '',
+                    'full_name' => $reception->sender->full_name ?? '',
+                    'address' => $reception->sender->address ?? '',
+                    'phone' => $reception->sender->phone ?? '',
+                    'email' => $reception->sender->email ?? '',
+                    'postal_code' => $reception->sender->postal_code ?? '',
+                    'city' => $reception->sender->city ?? '',
+                    'canton' => $reception->sender->canton ?? '',
+                    'state' => $reception->sender->state ?? '',
+                ],
+
+                'recipient' => [
+                    'id' => $reception->recipient->id,
+                    'identification' => $reception->recipient->identification ?? '',
+                    'full_name' => $reception->recipient->full_name ?? '',
+                    'address' => $reception->recipient->address ?? '',
+                    'phone' => $reception->recipient->phone ?? '',
+                    'email' => $reception->recipient->email ?? '',
+                    'postal_code' => $reception->recipient->postal_code ?? '',
+                    'city' => $reception->recipient->city ?? '',
+                    'canton' => $reception->recipient->canton ?? '',
+                    'state' => $reception->recipient->state ?? '',
+                ],
+
+                'packages' => $reception->packages->map(function ($pkg) {
+                    return [
+                        'id' => $pkg->id,
+                        'art_package_id' => $pkg->art_package_id,
+                        'service_type' => $pkg->service_type,
+                        'content' => $pkg->content,
+                        'pounds' => (float) $pkg->pounds,
+                        'kilograms' => (float) $pkg->kilograms,
+                        'total' => (float) $pkg->total,
+                        'decl_val' => (float) $pkg->decl_val,
+                        'ins_val' => (float) $pkg->ins_val,
+                        'perfumeDesc' => $pkg->perfumeDesc,
+                        'items' => $pkg->packageItems->map(function ($item) {
+                            return [
+                                'art_package_id' => $item->art_package_id,
+                                'name' => $item->artPackage->name ?? '',
+                                'quantity' => (float) ($item->quantity ?? 0),
+                                'unit' => $item->unit ?? 'UND',
+                                'volume' => (bool) ($item->volume ?? false),
+                                'length' => (float) ($item->length ?? 0),
+                                'width' => (float) ($item->width ?? 0),
+                                'height' => (float) ($item->height ?? 0),
+                                'weight' => (float) ($item->weight ?? 0),
+                                'pounds' => (float) ($item->pounds ?? 0),
+                                'kilograms' => (float) ($item->kilograms ?? 0),
+                                'unit_price' => (float) ($item->unit_price ?? 0),
+                                'total' => (float) ($item->total ?? 0),
+                                'items_decl' => (float) ($item->items_declrd ?? 0),
+                                'decl_val' => (float) ($item->decl_val ?? 0),
+                                'arancel' => (float) ($item->artPackage->arancel ?? 0),
+                                'ins_val' => (float) ($item->ins_val ?? 0),
+                            ];
+                        })->toArray(),
+                    ];
+                })->toArray(),
+
+                'additionals' => $reception->additionals->map(function ($add) {
+                    return [
+                        'quantity' => (float) ($add->quantity ?? 0),
+                        'unit' => $add->artPackg->unit_type ?? '',
+                        'article' => $add->art_packg_id,
+                        'unit_price' => (float) ($add->unit_price ?? 0),
+                    ];
+                })->toArray(),
+
+                'payMethod' => $reception->pay_method ?? 'EFECTIVO',
+                'efectivoRecibido' => (float) ($reception->cash_recv ?? 0),
+                'invoice_id' => $reception->invoice?->id,
+                'annulled' => (bool) ($reception->annulled ?? false),
+                'arancel' => (float) ($reception->arancel ?? 0),
+            ],
+            'readOnly' => true,
         ]);
     }
 
@@ -331,6 +419,8 @@ class ReceptionController extends Controller
     {
         $reception = Reception::with(['sender', 'recipient', 'packages.packageItems.artPackage'])
             ->findOrFail($id);
+
+        // ← Validar si está anulada
         if ($reception->annulled) {
             abort(403, 'No se pueden generar tickets de una recepción anulada.');
         }
@@ -350,10 +440,7 @@ class ReceptionController extends Controller
 
         return response($pdf->output(), 200)
             ->header('Content-Type', 'application/pdf')
-            ->header(
-                'Content-Disposition',
-                'inline; filename="tickets-' . $reception->number . '.pdf"'
-            );
+            ->header('Content-Disposition', 'inline; filename="tickets-' . $reception->number . '.pdf"');
     }
     public function annul(Request $request, $id)
     {

@@ -2,69 +2,62 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head } from "@inertiajs/react";
 import ShippingInterface from "./ShippingInterface";
 
-export default function EditReception({ reception }: { reception: any }) {
-    const initialData = {
-        ...reception,
-        sender: reception.sender,
-        recipient: reception.recipient,
+interface EditReceptionProps {
+    initialData: any;
+    readOnly: boolean;
+}
 
-        // 🧱 Paquetes
-        packages: (reception.packages || []).map((pkg: any) => ({
-            ...pkg,
-            pounds: Number(pkg.pounds) || 0,
-            kilograms: Number(pkg.kilograms) || 0,
-            total: Number(pkg.total) || 0,
-            decl_val: Number(pkg.decl_val) || 0,
-            ins_val: Number(pkg.ins_val) || 0,
-
-            // 🔹 Items dentro del paquete
-            items: (pkg.package_items || []).map((item: any) => ({
-                ...item,
-                art_package_id: item.art_package_id ?? item.article_id ?? null,
-                name: item.name ?? "",
-                quantity: Number(item.quantity) || 0,
-                unit: item.unit ?? "",
-                length: Number(item.length) || 0,
-                width: Number(item.width) || 0,
-                height: Number(item.height) || 0,
-                weight: Number(item.weight) || 0,
-                pounds: Number(item.pounds) || 0,
-                kilograms: Number(item.kilograms) || 0,
-                unit_price: Number(item.unit_price) || 0,
-                total: Number(item.total) || 0,
-
-                // ✅ Campos declarados corregidos
-                items_decl: Number(item.items_declrd) || 0, // ← campo correcto de la BD
-                decl_val: Number(item.decl_val) || 0, // ← valor declarado
-
-                // 🔹 Otros valores opcionales
-                arancel: Number(item.arancel) || 0,
-            })),
-        })),
-
-        // 🔹 Adicionales
-        additionals: (reception.additionals || []).map((add: any) => ({
-            article: add.art_packg_id,
-            unit: add.art_packg?.unit_type ?? "",
-            quantity: Number(add.quantity) || 0,
-            unit_price: Number(add.unit_price) || 0,
-        })),
-
-        // 🔹 Otros campos generales
-        payMethod: reception.pay_method || "EFECTIVO",
-        efectivoRecibido: Number(reception.cash_recv) || 0,
-        receptionDate: reception.date_time?.substring(0, 10),
-        route: reception.route || "ecu-us",
-        receptionNumber: reception.number,
-        agencyDest: reception.agency_dest,
-    };
+export default function EditReception({
+    initialData,
+    readOnly,
+}: EditReceptionProps) {
+    // Validación de seguridad
+    if (!initialData) {
+        return (
+            <AuthenticatedLayout>
+                <Head title="Error - Recepción" />
+                <div className="container mx-auto px-4 py-8">
+                    <div className="bg-red-900 border border-red-700 rounded-lg p-6 text-white">
+                        <h1 className="text-xl font-bold mb-2">
+                            Error al cargar la recepción
+                        </h1>
+                        <p>No se pudieron cargar los datos de la recepción.</p>
+                        <button
+                            onClick={() => window.history.back()}
+                            className="mt-4 bg-red-700 hover:bg-red-600 px-4 py-2 rounded"
+                        >
+                            Volver
+                        </button>
+                    </div>
+                </div>
+            </AuthenticatedLayout>
+        );
+    }
 
     return (
         <AuthenticatedLayout>
-            <Head title={`Editar Recepción ${reception.number}`} />
-            <div className="py-6 px-4">
-                {/* 👇 si solo quieres visualizar, deja readOnly={true} */}
-                <ShippingInterface initialData={initialData} readOnly={true} />
+            <Head title={`Recepción ${initialData.receptionNumber || ""}`} />
+
+            <div className="container mx-auto px-4 py-6">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-red-700 via-red-600 to-yellow-400 text-white px-6 py-4 rounded-t-lg mb-0">
+                    <h1 className="text-2xl font-bold">
+                        Recepción: {initialData.receptionNumber}
+                    </h1>
+                    {initialData.annulled && (
+                        <p className="text-sm mt-2">
+                            <span className="bg-red-900/50 px-3 py-1 rounded-full inline-block">
+                                ⚠️ RECEPCIÓN ANULADA
+                            </span>
+                        </p>
+                    )}
+                </div>
+
+                {/* Componente principal */}
+                <ShippingInterface
+                    initialData={initialData}
+                    readOnly={readOnly}
+                />
             </div>
         </AuthenticatedLayout>
     );

@@ -3,7 +3,12 @@
 
 import { useEffect, useState } from "react";
 import { X, Plus, Minus, Check, AlertTriangle } from "lucide-react";
-import { Dialog, DialogContent, DialogTitle } from "@/Components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    DialogDescription,
+} from "@/Components/ui/dialog";
 import { Button } from "@/Components/ui/button";
 import {
     Select,
@@ -509,7 +514,10 @@ export default function PackageModal({
             </Dialog>
             {/* ⚠️ MODAL DE ALERTA */}
             <Dialog open={showAlert} onOpenChange={() => setShowAlert(false)}>
-                <DialogContent className="max-w-sm bg-[#1e1e2f] text-white border border-red-500">
+                <DialogContent
+                    className="max-w-sm bg-[#1e1e2f] text-white border border-red-500"
+                    aria-describedby={undefined}
+                >
                     <div className="flex flex-col items-center text-center">
                         <AlertTriangle className="text-red-400 w-10 h-10 mb-2" />
                         <DialogTitle className="text-lg font-bold text-red-400">
@@ -532,7 +540,10 @@ export default function PackageModal({
                 open={showItemsAlert}
                 onOpenChange={() => setShowItemsAlert(false)}
             >
-                <DialogContent className="max-w-sm bg-[#1e1e2f] text-white border border-red-500">
+                <DialogContent
+                    className="max-w-sm bg-[#1e1e2f] text-white border border-red-500"
+                    aria-describedby={undefined}
+                >
                     <div className="flex flex-col items-center text-center">
                         <AlertTriangle className="text-red-400 w-10 h-10 mb-2" />
                         <DialogTitle className="text-lg font-bold text-red-400">
