@@ -107,9 +107,7 @@ export default function WeightReport({
                                 }
                                 className="w-full px-3 py-2 bg-slate-800 text-white border border-red-700 rounded-md"
                             >
-                                <option value="all">
-                                    Todos (excepto COAVPRO)
-                                </option>
+                                <option value="all">Todas las empresas</option>
                                 {enterprises.map((e: Enterprise) => (
                                     <option key={e.id} value={String(e.id)}>
                                         {e.name}
