@@ -9,6 +9,16 @@ import { es } from "date-fns/locale";
 
 type Enterprise = { id: string | number; name: string };
 
+type WeightRow = {
+    enterprise_id: string;
+    enterprise_name: string;
+    enterprise_commercial_name: string;
+    agencia_origen: string;
+    total_libras: string | number;
+    total_kilos: string | number;
+    rutas: string | null;
+};
+
 export default function WeightReport({
     rows = [],
     startDate: initialStart,
@@ -55,11 +65,13 @@ export default function WeightReport({
         }).format(Number(n ?? 0));
 
     const totalLbs = rows.reduce(
-        (sum: number, r: any) => sum + parseFloat(r.total_libras || 0),
+        (sum: number, r: WeightRow) =>
+            sum + parseFloat(String(r.total_libras || 0)),
         0
     );
     const totalKg = rows.reduce(
-        (sum: number, r: any) => sum + parseFloat(r.total_kilos || 0),
+        (sum: number, r: WeightRow) =>
+            sum + parseFloat(String(r.total_kilos || 0)),
         0
     );
 
@@ -73,8 +85,8 @@ export default function WeightReport({
                     <div>
                         <h1 className="text-2xl font-bold">Reporte de Pesos</h1>
                         <p className="text-white text-sm">
-                            Peso total (en libras y kilos) por agencia de
-                            origen.
+                            Peso total (en libras y kilos) por empresa y agencia
+                            de origen.
                         </p>
                     </div>
                 </div>
@@ -95,8 +107,9 @@ export default function WeightReport({
                                 }
                                 className="w-full px-3 py-2 bg-slate-800 text-white border border-red-700 rounded-md"
                             >
-                                {/* 👇 Mostrar igual que los demás: "Todos" */}
-                                <option value="all">Todos</option>
+                                <option value="all">
+                                    Todos (excepto COAVPRO)
+                                </option>
                                 {enterprises.map((e: Enterprise) => (
                                     <option key={e.id} value={String(e.id)}>
                                         {e.name}
@@ -194,14 +207,18 @@ export default function WeightReport({
                     <div className="overflow-auto rounded-lg border border-red-700 bg-slate-900">
                         <table className="w-full table-fixed text-sm text-white">
                             <colgroup>
-                                <col className="w-[35%]" />
-                                <col className="w-[35%]" />
-                                <col className="w-[15%]" />
-                                <col className="w-[15%]" />
+                                <col className="w-[25%]" />
+                                <col className="w-[25%]" />
+                                <col className="w-[25%]" />
+                                <col className="w-[10%]" />
+                                <col className="w-[10%]" />
                             </colgroup>
 
                             <thead className="bg-red-800 text-white">
                                 <tr className="text-center">
+                                    <th className="px-4 py-3 font-semibold tracking-wide uppercase">
+                                        Empresa
+                                    </th>
                                     <th className="px-4 py-3 font-semibold tracking-wide uppercase">
                                         Agencia Origen
                                     </th>
@@ -220,33 +237,40 @@ export default function WeightReport({
                             <tbody>
                                 {rows.length ? (
                                     <>
-                                        {rows.map((r: any, idx: number) => (
-                                            <tr
-                                                key={idx}
-                                                className="text-center"
-                                            >
-                                                <td className="px-4 py-2">
-                                                    {r.agencia_origen}
-                                                </td>
-                                                <td className="px-4 py-2">
-                                                    {r.rutas || "-"}
-                                                </td>
-                                                <td className="px-4 py-2">
-                                                    {fmt(r.total_libras)}
-                                                </td>
-                                                <td className="px-4 py-2">
-                                                    {fmt(r.total_kilos)}
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {rows.map(
+                                            (r: WeightRow, idx: number) => (
+                                                <tr
+                                                    key={idx}
+                                                    className="text-center border-b border-slate-700 hover:bg-slate-800"
+                                                >
+                                                    <td className="px-4 py-2 text-left">
+                                                        {r.enterprise_name}
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        {r.agencia_origen}
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        {r.rutas || "-"}
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        {fmt(r.total_libras)}
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        {fmt(r.total_kilos)}
+                                                    </td>
+                                                </tr>
+                                            )
+                                        )}
 
                                         {/* Totales */}
                                         <tr className="font-bold text-white text-center bg-gradient-to-r from-red-700 via-yellow-500 to-red-700 border-t-2 border-red-600">
-                                            <td className="px-4 py-2 text-left">
+                                            <td
+                                                className="px-4 py-2 text-left"
+                                                colSpan={3}
+                                            >
                                                 TOTAL GENERAL: {rows.length}{" "}
                                                 registros
                                             </td>
-                                            <td className="px-4 py-2">-</td>
                                             <td className="px-4 py-2">
                                                 {fmt(totalLbs)}
                                             </td>
@@ -258,7 +282,7 @@ export default function WeightReport({
                                 ) : (
                                     <tr>
                                         <td
-                                            colSpan={4}
+                                            colSpan={5}
                                             className="text-center text-red-400 px-4 py-6"
                                         >
                                             {actionsEnabled

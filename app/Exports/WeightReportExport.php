@@ -31,6 +31,8 @@ class WeightReportExport implements FromCollection, WithHeadings, WithStyles, Sh
             ->join('packages', 'receptions.id', '=', 'packages.reception_id')
             ->join('enterprises', 'receptions.enterprise_id', '=', 'enterprises.id')
             ->select(
+                'enterprises.id as enterprise_id',
+                'enterprises.name as enterprise_name',
                 'receptions.agency_origin as agencia_origen',
                 DB::raw('SUM(packages.pounds)    AS total_libras'),
                 DB::raw('SUM(packages.kilograms) AS total_kilos'),
@@ -48,7 +50,13 @@ class WeightReportExport implements FromCollection, WithHeadings, WithStyles, Sh
             $q->where('receptions.enterprise_id', $this->enterpriseId);
         }
 
-        $weights = $q->groupBy('receptions.agency_origin')
+        // ✅ CLAVE: Agrupar por empresa Y agencia de origen
+        $weights = $q->groupBy(
+            'enterprises.id',
+            'enterprises.name',
+            'receptions.agency_origin'
+        )
+            ->orderBy('enterprises.name')
             ->orderBy('receptions.agency_origin')
             ->get();
 
@@ -61,6 +69,7 @@ class WeightReportExport implements FromCollection, WithHeadings, WithStyles, Sh
             $kg = (float) ($r->total_kilos  ?? 0);
 
             $rows[] = [
+                $r->enterprise_name,      // ✅ Columna Empresa
                 $r->agencia_origen,
                 $r->rutas,
                 $lb,
@@ -75,6 +84,7 @@ class WeightReportExport implements FromCollection, WithHeadings, WithStyles, Sh
         $rows[] = [
             'TOTAL GENERAL: ' . count($weights) . ' registros',
             '-',
+            '-',
             $totalLibras,
             $totalKilos,
         ];
@@ -85,6 +95,7 @@ class WeightReportExport implements FromCollection, WithHeadings, WithStyles, Sh
     public function headings(): array
     {
         return [
+            'Empresa',           // ✅ Nueva columna
             'Agencia Origen',
             'Ruta',
             'Peso (Lbs)',
@@ -106,7 +117,8 @@ class WeightReportExport implements FromCollection, WithHeadings, WithStyles, Sh
                 $sheet = $event->sheet->getDelegate();
                 $last  = $sheet->getHighestRow();
 
-                $sheet->getStyle("A{$last}:D{$last}")->applyFromArray([
+                // ✅ Actualizado el rango para incluir la columna E
+                $sheet->getStyle("A{$last}:E{$last}")->applyFromArray([
                     'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                     'fill' => [
                         'fillType'   => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_GRADIENT_LINEAR,

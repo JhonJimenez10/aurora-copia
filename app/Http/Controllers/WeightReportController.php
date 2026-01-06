@@ -12,7 +12,7 @@ use Carbon\Carbon;
 
 class WeightReportController extends Controller
 {
-    /* ===== Helpers de rol (igual estilo a tus otros controladores) ===== */
+    /* ===== Helpers de rol ===== */
     protected function roleUpper(): string
     {
         $u = auth()->user();
@@ -30,8 +30,6 @@ class WeightReportController extends Controller
 
     protected function getVisibleEnterprises()
     {
-        // Para ADMIN/SUDO mostramos todas menos COAVPRO (como en facturación)
-        // Para otros, solo su empresa
         return Enterprise::select('id', 'name', 'commercial_name')
             ->when(!$this->canChooseAnyEnterprise(), fn($q) => $q->where('id', auth()->user()->enterprise_id))
             ->when($this->canChooseAnyEnterprise(), fn($q) => $q->where('commercial_name', '!=', 'COAVPRO'))
@@ -44,14 +42,14 @@ class WeightReportController extends Controller
     {
         $startDate    = (string) $request->query('start_date', '');
         $endDate      = (string) $request->query('end_date', '');
-        $enterpriseId = $request->query('enterprise_id'); // 'all' o id
+        $enterpriseId = $request->query('enterprise_id');
 
         $enterprises = $this->getVisibleEnterprises();
 
-        // Valor por defecto del combo:
+        // Valor por defecto del combo
         if (!$enterpriseId) {
             $enterpriseId = $this->canChooseAnyEnterprise()
-                ? 'all' // Admin/Sudo: por defecto "Todos (excepto COAVPRO)"
+                ? 'all'
                 : (string) auth()->user()->enterprise_id;
         }
 
@@ -62,6 +60,9 @@ class WeightReportController extends Controller
                 ->join('packages', 'receptions.id', '=', 'packages.reception_id')
                 ->join('enterprises', 'receptions.enterprise_id', '=', 'enterprises.id')
                 ->select(
+                    'enterprises.id as enterprise_id',
+                    'enterprises.name as enterprise_name',
+                    'enterprises.commercial_name as enterprise_commercial_name',
                     'receptions.agency_origin as agencia_origen',
                     DB::raw('SUM(packages.pounds)    AS total_libras'),
                     DB::raw('SUM(packages.kilograms) AS total_kilos'),
@@ -73,7 +74,6 @@ class WeightReportController extends Controller
 
             // Filtro por empresa
             if (!$this->canChooseAnyEnterprise()) {
-                // fuerza su empresa
                 $enterpriseId = (string) auth()->user()->enterprise_id;
                 $q->where('receptions.enterprise_id', $enterpriseId);
             } else {
@@ -84,7 +84,14 @@ class WeightReportController extends Controller
                 }
             }
 
-            $rows = $q->groupBy('receptions.agency_origin')
+            // ✅ CLAVE: Agrupar por empresa Y agencia de origen
+            $rows = $q->groupBy(
+                'enterprises.id',
+                'enterprises.name',
+                'enterprises.commercial_name',
+                'receptions.agency_origin'
+            )
+                ->orderBy('enterprises.name')
                 ->orderBy('receptions.agency_origin')
                 ->get();
         }
@@ -105,7 +112,6 @@ class WeightReportController extends Controller
         $endDate      = (string) ($request->query('end_date')   ?? '');
         $enterpriseId = (string) ($request->query('enterprise_id') ?? '');
 
-        // Validación simple
         validator(['start_date' => $startDate, 'end_date' => $endDate], [
             'start_date' => ['required', 'date'],
             'end_date'   => ['required', 'date', 'after_or_equal:start_date'],
