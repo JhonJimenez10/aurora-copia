@@ -20,7 +20,7 @@ export default function Dashboard() {
             id: 2,
             title: "📢 AVISO IMPORTANTE!!!",
             message:
-                "Se informa a todos los clientes que únicamente se pueden enviar medicinas con receta médica. Además, solo está permitido el envío de productos secos.",
+                "Se informa a todos los clientes que únicamente se pueden enviar medicinas con receta médica. Además, está permitido receptar todo tipo de productos, a excepción de pollo, carne, chancho y granos tiernos o crudos. Cualquier duda, comuníquese con nosotros.",
             type: "warning",
         },
     ];
