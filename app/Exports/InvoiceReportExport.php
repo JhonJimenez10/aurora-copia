@@ -39,8 +39,8 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
 
     public function collection(): Collection
     {
-        // Construir query base
-        $query = Reception::with(['recipient', 'agencyDest', 'packages', 'packages.items.artPackage', 'enterprise'])
+        // Construir query base - ✅ Agregamos 'sender' al with
+        $query = Reception::with(['sender', 'recipient', 'agencyDest', 'packages', 'packages.items.artPackage', 'enterprise'])
             ->where('annulled', false)
             ->whereDate('date_time', '>=', $this->startDate)
             ->whereDate('date_time', '<=', $this->endDate);
@@ -62,7 +62,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
         $receptions = $query->orderBy('enterprise_id')->orderByDesc('date_time')->get();
 
         $rows = [];
-        $currentRow = 2; // Empieza en 2 porque la fila 1 son los encabezados
+        $currentRow = 2;
 
         // Acumuladores globales
         $globalSumPaquetes = 0.0;
@@ -77,7 +77,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
             $enterprise = $enterpriseReceptions->first()->enterprise;
             $enterpriseName = $enterprise->name ?? "Empresa #{$enterpriseId}";
 
-            // Fila de encabezado de empresa (resaltada)
+            // Fila de encabezado de empresa
             $rows[] = [
                 "EMPRESA: {$enterpriseName}",
                 '',
@@ -99,7 +99,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
                 '',
                 '',
                 '',
-                '' // ✅ 21 columnas ahora
+                ''
             ];
 
             $this->enterpriseHeaderRows[] = $currentRow;
@@ -115,7 +115,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
                 $destino              = $this->normalizeString(optional($r->agencyDest)->name ?? '');
                 $destinatario         = $this->normalizeString(optional($r->recipient)->full_name ?? '');
                 $telefonoDestinatario = $this->normalizeString(optional($r->recipient)->phone ?? '');
-                $direccionDestinatario = $this->normalizeString(optional($r->recipient)->address ?? ''); // ✅ NUEVA
+                $direccionRemitente   = $this->normalizeString(optional($r->sender)->address ?? ''); // ✅ CAMBIADO a sender
                 $formaPago            = $this->normalizeString($r->pay_method ?? '');
 
                 if ($r->packages->isEmpty()) {
@@ -125,7 +125,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
                         $destino,
                         $destinatario,
                         $telefonoDestinatario,
-                        $direccionDestinatario, // ✅ NUEVA COLUMNA
+                        $direccionRemitente, // ✅ Dirección del remitente
                         '',
                         $formaPago,
                         0,
@@ -163,7 +163,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
                         $destino,
                         $destinatario,
                         $telefonoDestinatario,
-                        $direccionDestinatario, // ✅ NUEVA COLUMNA
+                        $direccionRemitente, // ✅ Dirección del remitente
                         $contenido,
                         $formaPago,
                         (float) ($p->pounds ?? 0),
@@ -190,20 +190,20 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
             }
 
             // Subtotales por empresa
-            $rows[] = array_fill(0, 21, ''); // ✅ 21 columnas
+            $rows[] = array_fill(0, 21, '');
             $currentRow++;
 
-            $subtotalRow = array_fill(0, 21, ''); // ✅ 21 columnas
+            $subtotalRow = array_fill(0, 21, '');
             $subtotalRow[0] = "SUBTOTAL {$enterpriseName}";
-            $subtotalRow[8] = $sumLibras;   // ✅ Ajustado índice
-            $subtotalRow[9] = $sumKilos;    // ✅ Ajustado índice
-            $subtotalRow[10] = $sumPaquetes; // ✅ Ajustado índice
-            $subtotalRow[20] = $sumTotal;    // ✅ Ajustado índice
+            $subtotalRow[8] = $sumLibras;
+            $subtotalRow[9] = $sumKilos;
+            $subtotalRow[10] = $sumPaquetes;
+            $subtotalRow[20] = $sumTotal;
             $rows[] = $subtotalRow;
             $currentRow++;
 
             // Fila separadora entre empresas
-            $rows[] = array_fill(0, 21, ''); // ✅ 21 columnas
+            $rows[] = array_fill(0, 21, '');
             $currentRow++;
 
             // Acumular a los totales globales
@@ -215,26 +215,26 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
 
         // TOTALES GENERALES (si es "all")
         if ($this->enterpriseId === 'all') {
-            $rows[] = array_fill(0, 21, ''); // ✅ 21 columnas
+            $rows[] = array_fill(0, 21, '');
 
             $totalPaquetesRow = array_fill(0, 21, '');
             $totalPaquetesRow[0] = 'TOTAL GENERAL - Paquetes';
-            $totalPaquetesRow[10] = $globalSumPaquetes; // ✅ Ajustado índice
+            $totalPaquetesRow[10] = $globalSumPaquetes;
             $rows[] = $totalPaquetesRow;
 
             $totalLibrasRow = array_fill(0, 21, '');
             $totalLibrasRow[0] = 'TOTAL GENERAL - Libras';
-            $totalLibrasRow[8] = $globalSumLibras; // ✅ Ajustado índice
+            $totalLibrasRow[8] = $globalSumLibras;
             $rows[] = $totalLibrasRow;
 
             $totalKilosRow = array_fill(0, 21, '');
             $totalKilosRow[0] = 'TOTAL GENERAL - Kilos';
-            $totalKilosRow[9] = $globalSumKilos; // ✅ Ajustado índice
+            $totalKilosRow[9] = $globalSumKilos;
             $rows[] = $totalKilosRow;
 
             $totalTotalRow = array_fill(0, 21, '');
             $totalTotalRow[0] = 'TOTAL GENERAL';
-            $totalTotalRow[20] = $globalSumTotal; // ✅ Ajustado índice
+            $totalTotalRow[20] = $globalSumTotal;
             $rows[] = $totalTotalRow;
         }
 
@@ -249,7 +249,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
             'Destino',
             'Destinatario',
             'Telefono Destinatario',
-            'Direccion', // ✅ NUEVA COLUMNA
+            'Direccion Remitente', // ✅ CAMBIADO el nombre
             'Contenido',
             'Forma de Pago',
             'Libras',
@@ -271,7 +271,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
     public function styles(Worksheet $sheet)
     {
         return [
-            1 => ['font' => ['bold' => true]], // encabezados en negrita
+            1 => ['font' => ['bold' => true]],
         ];
     }
 
@@ -284,7 +284,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
 
                 // Estilo para encabezados de empresa
                 foreach ($this->enterpriseHeaderRows as $rowNum) {
-                    $sheet->getStyle("A{$rowNum}:U{$rowNum}") // ✅ A hasta U (21 columnas)
+                    $sheet->getStyle("A{$rowNum}:U{$rowNum}")
                         ->applyFromArray([
                             'font' => [
                                 'bold' => true,
@@ -293,7 +293,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
                             ],
                             'fill' => [
                                 'fillType' => Fill::FILL_SOLID,
-                                'startColor' => ['rgb' => '2563EB'] // Azul
+                                'startColor' => ['rgb' => '2563EB']
                             ],
                             'borders' => [
                                 'allBorders' => [
@@ -302,8 +302,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
                             ]
                         ]);
 
-                    // Combinar celdas del encabezado de empresa
-                    $sheet->mergeCells("A{$rowNum}:U{$rowNum}"); // ✅ A hasta U
+                    $sheet->mergeCells("A{$rowNum}:U{$rowNum}");
                 }
 
                 // Negrita para filas de SUBTOTAL y TOTAL GENERAL
@@ -318,7 +317,7 @@ class InvoiceReportExport implements FromCollection, WithHeadings, WithStyles, S
 
                         $isGeneralTotal = str_starts_with($cellValue, 'TOTAL GENERAL');
 
-                        $sheet->getStyle("A{$r}:U{$r}") // ✅ A hasta U
+                        $sheet->getStyle("A{$r}:U{$r}")
                             ->applyFromArray([
                                 'font' => [
                                     'bold' => true,
