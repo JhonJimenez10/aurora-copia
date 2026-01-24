@@ -1,6 +1,6 @@
 import { Head, usePage } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Users,
     Truck,
@@ -12,11 +12,14 @@ import {
     Pill,
     Sparkles,
     TrendingUp,
+    X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/Components/ui/card";
 import { Tabs, TabsContent } from "@/Components/ui/tabs";
 
 export default function Dashboard() {
+    const [showEmergencyAlert, setShowEmergencyAlert] = useState(true);
+
     const fixedNotices = [
         {
             id: 1,
@@ -44,6 +47,18 @@ export default function Dashboard() {
     );
     const [selectedDay, setSelectedDay] = useState<string>("lunes");
     const [hoveredStat, setHoveredStat] = useState<number | null>(null);
+
+    // Prevenir scroll cuando el modal está abierto
+    useEffect(() => {
+        if (showEmergencyAlert) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "unset";
+        }
+        return () => {
+            document.body.style.overflow = "unset";
+        };
+    }, [showEmergencyAlert]);
 
     // Cronograma de envíos - Enero
     const scheduleEnero = {
@@ -289,12 +304,29 @@ export default function Dashboard() {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-3px); }
           }
+          @keyframes modalFadeIn {
+            from { 
+              opacity: 0;
+              transform: scale(0.9);
+            }
+            to { 
+              opacity: 1;
+              transform: scale(1);
+            }
+          }
+          @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+          }
           .animate-fadeInUp { animation: fadeInUp 0.5s ease-out forwards; }
           .animate-slideIn { animation: slideIn 0.3s ease-out forwards; }
           .animate-pulse-alert { animation: pulse-alert 2.5s ease-in-out infinite; }
           .animate-pulse-warning { animation: pulse-warning 2.5s ease-in-out infinite; }
           .animate-float { animation: float 3s ease-in-out infinite; }
           .animate-bounce-subtle { animation: bounce-subtle 2s ease-in-out infinite; }
+          .animate-modal { animation: modalFadeIn 0.3s ease-out forwards; }
+          .animate-shake { animation: shake 0.5s ease-in-out; }
           .shimmer-effect {
             position: relative;
             overflow: hidden;
@@ -373,6 +405,122 @@ export default function Dashboard() {
           }
         `}
             </style>
+
+            {/* MODAL DE ALERTA EMERGENTE */}
+            {showEmergencyAlert && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeInUp">
+                    <div className="relative max-w-2xl w-full animate-modal">
+                        {/* Efectos de fondo */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-red-600 via-red-700 to-red-900 rounded-2xl blur-xl opacity-50 animate-pulse-alert"></div>
+
+                        {/* Contenido del modal */}
+                        <div className="relative bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-2xl shadow-2xl border-4 border-red-400/50 overflow-hidden">
+                            {/* Efecto shimmer */}
+                            <div className="shimmer-effect absolute inset-0"></div>
+
+                            {/* Header del modal */}
+                            <div className="relative bg-gradient-to-r from-red-900/80 to-red-800/80 p-6 border-b-4 border-red-400/50">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-yellow-400 rounded-full animate-shake">
+                                        <AlertCircle className="w-10 h-10 text-red-900" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h2 className="text-3xl font-black text-white uppercase tracking-wide flex items-center gap-2">
+                                            <span className="animate-bounce-subtle">
+                                                ⚠️
+                                            </span>
+                                            AVISO IMPORTANTE
+                                            <span className="animate-bounce-subtle">
+                                                ⚠️
+                                            </span>
+                                        </h2>
+                                        <p className="text-red-100 text-sm font-semibold mt-1">
+                                            Información crítica sobre embarques
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Cuerpo del modal */}
+                            <div className="relative p-8">
+                                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border-2 border-white/20">
+                                    <div className="space-y-4">
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-yellow-400 rounded-lg flex-shrink-0 animate-float">
+                                                <Package className="w-6 h-6 text-red-900" />
+                                            </div>
+                                            <p className="text-white text-lg leading-relaxed font-medium">
+                                                <span className="font-bold text-yellow-300 block mb-2 text-xl">
+                                                    Estimados usuarios:
+                                                </span>
+                                                Para el día{" "}
+                                                <span className="font-black text-yellow-300 text-xl">
+                                                    sábado 24 de enero
+                                                </span>{" "}
+                                                no va a haber embarque hasta el
+                                                día{" "}
+                                                <span className="font-black text-yellow-300 text-xl">
+                                                    martes 26 de enero
+                                                </span>{" "}
+                                                por inconvenientes en el sistema
+                                                de transmisión de la aduana de
+                                                Estados Unidos y problemas
+                                                climatológicos en Estados
+                                                Unidos.
+                                            </p>
+                                        </div>
+
+                                        <div className="bg-gradient-to-r from-orange-600/40 to-yellow-600/40 rounded-lg p-4 border-2 border-yellow-400/50">
+                                            <div className="flex items-center gap-3">
+                                                <Truck className="w-6 h-6 text-yellow-300 animate-bounce-subtle" />
+                                                <p className="text-white font-bold text-base">
+                                                    Solo se receptarán{" "}
+                                                    <span className="text-yellow-300 underline">
+                                                        productos secos
+                                                    </span>{" "}
+                                                    hasta el día martes
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 text-red-100 text-sm pt-2">
+                                            <div className="w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
+                                            <div className="w-2 h-2 bg-yellow-400 rounded-full absolute"></div>
+                                            <span className="ml-2">
+                                                Por favor, tome nota de estas
+                                                restricciones temporales
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Footer del modal con botón */}
+                            <div className="relative p-6 bg-gradient-to-r from-red-900/60 to-red-800/60 border-t-2 border-red-400/30">
+                                <button
+                                    onClick={() => setShowEmergencyAlert(false)}
+                                    className="w-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 hover:from-yellow-500 hover:via-yellow-600 hover:to-orange-600 text-red-900 font-black text-lg py-4 px-8 rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 uppercase tracking-wider flex items-center justify-center gap-3 group"
+                                >
+                                    <span>He leído y entendido el mensaje</span>
+                                    <span className="text-2xl group-hover:animate-bounce-subtle">
+                                        ✓
+                                    </span>
+                                </button>
+                            </div>
+
+                            {/* Indicadores pulsantes en las esquinas */}
+                            <div className="absolute top-4 right-4">
+                                <div className="w-4 h-4 bg-yellow-400 rounded-full animate-ping"></div>
+                                <div className="absolute top-0 right-0 w-4 h-4 bg-yellow-400 rounded-full"></div>
+                            </div>
+                            <div className="absolute bottom-4 left-4">
+                                <div className="w-4 h-4 bg-yellow-400 rounded-full animate-ping"></div>
+                                <div className="absolute top-0 left-0 w-4 h-4 bg-yellow-400 rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="p-4 md:p-6 space-y-4 max-h-screen overflow-hidden bg-black">
                 {/* Alertas ULTRA Llamativas */}
