@@ -14,7 +14,6 @@ import {
     TrendingUp,
     X,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/Components/ui/card";
 import { Tabs, TabsContent } from "@/Components/ui/tabs";
 
 export default function Dashboard() {
@@ -41,6 +40,7 @@ export default function Dashboard() {
 
     const { props } = usePage();
     const { stats, enterprise } = props as any;
+
     const [activeTab, setActiveTab] = useState("overview");
     const [currentMonth, setCurrentMonth] = useState<"enero" | "febrero">(
         "enero",
@@ -424,6 +424,7 @@ export default function Dashboard() {
                                     <div className="p-3 bg-yellow-400 rounded-full animate-shake">
                                         <AlertCircle className="w-10 h-10 text-red-900" />
                                     </div>
+
                                     <div className="flex-1">
                                         <h2 className="text-3xl font-black text-white uppercase tracking-wide flex items-center gap-2">
                                             <span className="animate-bounce-subtle">
@@ -449,6 +450,7 @@ export default function Dashboard() {
                                             <div className="p-2 bg-yellow-400 rounded-lg flex-shrink-0 animate-float">
                                                 <Package className="w-6 h-6 text-red-900" />
                                             </div>
+
                                             <p className="text-white text-lg leading-relaxed font-medium">
                                                 <span className="font-bold text-yellow-300 block mb-2 text-xl">
                                                     Estimados usuarios:
@@ -480,6 +482,41 @@ export default function Dashboard() {
                                                     </span>{" "}
                                                     hasta el día martes
                                                 </p>
+                                            </div>
+                                        </div>
+
+                                        {/* ✅ MENSAJE NUEVO PARA MINNEAPOLIS */}
+                                        <div className="bg-gradient-to-r from-red-900/40 to-purple-900/40 rounded-lg p-4 border-2 border-white/20">
+                                            <div className="flex items-start gap-3">
+                                                <div className="p-2 bg-yellow-400 rounded-lg flex-shrink-0 animate-float">
+                                                    <MapPin className="w-6 h-6 text-red-900" />
+                                                </div>
+                                                <div className="text-white">
+                                                    <p className="font-black text-lg uppercase tracking-wide">
+                                                        Restricción para
+                                                        MINNEAPOLIS
+                                                    </p>
+                                                    <p className="text-sm text-red-50 mt-1 leading-relaxed">
+                                                        Para{" "}
+                                                        <span className="font-extrabold text-yellow-300">
+                                                            MINNEAPOLIS
+                                                        </span>{" "}
+                                                        no se recepta{" "}
+                                                        <span className="font-extrabold underline">
+                                                            comida
+                                                        </span>{" "}
+                                                        ni{" "}
+                                                        <span className="font-extrabold underline">
+                                                            paquetes por cobrar
+                                                        </span>
+                                                        . Envíe únicamente
+                                                        productos permitidos y{" "}
+                                                        <span className="font-extrabold text-yellow-300">
+                                                            pagados
+                                                        </span>
+                                                        .
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -538,10 +575,8 @@ export default function Dashboard() {
                                     }`}
                                     style={{ animationDelay: `${idx * 0.1}s` }}
                                 >
-                                    {/* Efecto shimmer */}
                                     <div className="shimmer-effect absolute inset-0"></div>
 
-                                    {/* Borde brillante */}
                                     <div
                                         className={`absolute inset-0 rounded-xl ${
                                             n.type === "danger"
@@ -589,7 +624,6 @@ export default function Dashboard() {
                                                 {n.message}
                                             </p>
                                         </div>
-                                        {/* Indicador pulsante */}
                                         <div className="absolute top-3 right-3">
                                             <div
                                                 className={`w-3 h-3 rounded-full ${
