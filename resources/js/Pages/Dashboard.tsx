@@ -43,7 +43,7 @@ export default function Dashboard() {
 
     const [activeTab, setActiveTab] = useState("overview");
     const [currentMonth, setCurrentMonth] = useState<"enero" | "febrero">(
-        "enero",
+        "febrero",
     );
     const [selectedDay, setSelectedDay] = useState<string>("lunes");
     const [hoveredStat, setHoveredStat] = useState<number | null>(null);
@@ -138,12 +138,13 @@ export default function Dashboard() {
         ],
     };
 
-    // Cronograma de envíos - Febrero
+    // Cronograma de envíos - Febrero (ACTUALIZADO)
     const scheduleFebrero = {
         lunes: {
             "NEW YORK": ["QUEENS", "BROOKLYN"],
             MARYLAND: ["BALTIMORE"],
             CONNECTICUT: ["DAMBURY"],
+            "NEW JERSEY": ["NEWARK", "ORANGE"],
         },
         martes: {
             "NEW YORK": [
@@ -152,20 +153,20 @@ export default function Dashboard() {
                 "SPRING VALLEY",
                 "ALBANY",
                 "MIDDLETOWN",
+                "OSSINING",
+                "SLEEPY HOLLOW",
             ],
             MASSACHUSETTS: [
                 "BROCKTON",
                 "LOWELL",
-                "FRAMINGHAM",
+                "FRAMINHAM",
                 "MILFORD",
                 "FALL RIVER",
                 "HYANNIS",
                 "LAWRENCE",
                 "WOONSCKET",
             ],
-            "NEW JERSEY": ["NEWARK", "ORANGE"],
             CONNECTICUT: ["NEW HAVEN"],
-            PENSILVANIA: ["PHILADELPHIA"],
         },
         miercoles: {
             "NEW YORK": [
@@ -176,22 +177,22 @@ export default function Dashboard() {
                 "OSSINING",
                 "PEEKSKILL",
                 "YONKERS",
-            ],
-            CONNECTICUT: ["DAMBURY", "WATER BURY", "BRIDGEPORT"],
-            ILLINOIS: ["CHICAGO"],
-            MINNESOTA: ["MINNEAPOLIS"],
-        },
-        jueves: {
-            "NEW YORK": [
-                "QUEENS",
-                "BROOKLYN",
                 "BRONX JEROME",
                 "PORTCHESTER",
                 "SPRING VALLEY",
                 "PATCHOGUE",
                 "HAMPTON BAYS",
+                "BAY SHORE",
             ],
+            CONNECTICUT: ["DAMBURY", "WATER BURY", "BRIDGEPORT"],
+            ILLINOIS: ["CHICAGO"],
+            MINNESOTA: ["MINNEAPOLIS"],
             "NEW JERSEY": ["NEWARK", "ORANGE"],
+            PENSILVANIA: ["PHILADELPHIA"],
+        },
+        jueves: {
+            "NEW YORK": [],
+            "NEW JERSEY": [],
         },
         sabados: {
             "NEW YORK": [
@@ -211,8 +212,9 @@ export default function Dashboard() {
             CONNECTICUT: ["DAMBURY"],
         },
         especiales: [
-            { ciudad: "BALTIMORE", fechas: "09 Y 23 FEBRERO" },
-            { ciudad: "ROCHESTER", fechas: "Por confirmar" },
+            { ciudad: "BALTIMORE", fechas: "10 Y 24 DE FEBRERO" },
+            { ciudad: "PHILADELPHIA", fechas: "11 Y 25 FEBRERO" },
+            { ciudad: "ROCHESTER", fechas: "PENDIENTE" },
         ],
     };
 
@@ -409,7 +411,7 @@ export default function Dashboard() {
             {/* MODAL DE ALERTA EMERGENTE */}
             {showEmergencyAlert && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeInUp">
-                    <div className="relative max-w-2xl w-full animate-modal">
+                    <div className="relative max-w-4xl w-full animate-modal max-h-[90vh] overflow-y-auto">
                         {/* Efectos de fondo */}
                         <div className="absolute inset-0 bg-gradient-to-br from-red-600 via-red-700 to-red-900 rounded-2xl blur-xl opacity-50 animate-pulse-alert"></div>
 
@@ -430,20 +432,22 @@ export default function Dashboard() {
                                             <span className="animate-bounce-subtle">
                                                 ⚠️
                                             </span>
-                                            AVISO IMPORTANTE
+                                            AVISOS IMPORTANTES
                                             <span className="animate-bounce-subtle">
                                                 ⚠️
                                             </span>
                                         </h2>
                                         <p className="text-red-100 text-sm font-semibold mt-1">
                                             Información crítica sobre embarques
+                                            - Leer detenidamente
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Cuerpo del modal */}
-                            <div className="relative p-8">
+                            <div className="relative p-8 space-y-4">
+                                {/* MENSAJE PRINCIPAL - SUSPENSIÓN TEMPORAL */}
                                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border-2 border-white/20">
                                     <div className="space-y-4">
                                         <div className="flex items-start gap-3">
@@ -484,51 +488,176 @@ export default function Dashboard() {
                                                 </p>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
 
-                                        {/* ✅ MENSAJE NUEVO PARA MINNEAPOLIS */}
-                                        <div className="bg-gradient-to-r from-red-900/40 to-purple-900/40 rounded-lg p-4 border-2 border-white/20">
-                                            <div className="flex items-start gap-3">
-                                                <div className="p-2 bg-yellow-400 rounded-lg flex-shrink-0 animate-float">
-                                                    <MapPin className="w-6 h-6 text-red-900" />
-                                                </div>
-                                                <div className="text-white">
-                                                    <p className="font-black text-lg uppercase tracking-wide">
-                                                        Restricción para
-                                                        MINNEAPOLIS
-                                                    </p>
-                                                    <p className="text-sm text-red-50 mt-1 leading-relaxed">
-                                                        Para{" "}
-                                                        <span className="font-extrabold text-yellow-300">
-                                                            MINNEAPOLIS
-                                                        </span>{" "}
-                                                        no se recepta{" "}
-                                                        <span className="font-extrabold underline">
-                                                            comida
-                                                        </span>{" "}
-                                                        ni{" "}
-                                                        <span className="font-extrabold underline">
-                                                            paquetes por cobrar
-                                                        </span>
-                                                        . Envíe únicamente
-                                                        productos permitidos y{" "}
-                                                        <span className="font-extrabold text-yellow-300">
-                                                            pagados
-                                                        </span>
-                                                        .
-                                                    </p>
-                                                </div>
-                                            </div>
+                                {/* MINNEAPOLIS */}
+                                <div className="bg-gradient-to-r from-red-900/40 to-purple-900/40 rounded-lg p-4 border-2 border-white/20">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-yellow-400 rounded-lg flex-shrink-0 animate-float">
+                                            <MapPin className="w-6 h-6 text-red-900" />
                                         </div>
-
-                                        <div className="flex items-center gap-2 text-red-100 text-sm pt-2">
-                                            <div className="w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
-                                            <div className="w-2 h-2 bg-yellow-400 rounded-full absolute"></div>
-                                            <span className="ml-2">
-                                                Por favor, tome nota de estas
-                                                restricciones temporales
-                                            </span>
+                                        <div className="text-white">
+                                            <p className="font-black text-lg uppercase tracking-wide">
+                                                Restricción para MINNEAPOLIS
+                                            </p>
+                                            <p className="text-sm text-red-50 mt-1 leading-relaxed">
+                                                Para{" "}
+                                                <span className="font-extrabold text-yellow-300">
+                                                    MINNEAPOLIS
+                                                </span>{" "}
+                                                no se recepta{" "}
+                                                <span className="font-extrabold underline">
+                                                    comida
+                                                </span>{" "}
+                                                ni{" "}
+                                                <span className="font-extrabold underline">
+                                                    paquetes por cobrar
+                                                </span>
+                                                . Envíe únicamente productos
+                                                permitidos y{" "}
+                                                <span className="font-extrabold text-yellow-300">
+                                                    pagados
+                                                </span>
+                                                .
+                                            </p>
                                         </div>
                                     </div>
+                                </div>
+
+                                {/* CORRECCIÓN CRONOGRAMA */}
+                                <div className="bg-gradient-to-r from-blue-900/40 to-cyan-900/40 rounded-lg p-4 border-2 border-cyan-400/30">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-cyan-400 rounded-lg flex-shrink-0 animate-float">
+                                            <CalendarIcon className="w-6 h-6 text-blue-900" />
+                                        </div>
+                                        <div className="text-white">
+                                            <p className="font-black text-lg uppercase tracking-wide">
+                                                Corrección de Cronograma
+                                            </p>
+                                            <p className="text-sm text-cyan-50 mt-1 leading-relaxed">
+                                                Se ha corregido el cronograma de
+                                                embarques:{" "}
+                                                <span className="font-extrabold text-cyan-300">
+                                                    ORANGE y NEWARK
+                                                </span>{" "}
+                                                ahora constan en los envíos de{" "}
+                                                <span className="font-extrabold underline">
+                                                    MIÉRCOLES
+                                                </span>
+                                                . Por favor, verifique el
+                                                cronograma actualizado.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* PHILADELPHIA - CADA 15 DÍAS */}
+                                <div className="bg-gradient-to-r from-orange-900/40 to-amber-900/40 rounded-lg p-4 border-2 border-orange-400/30">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-orange-400 rounded-lg flex-shrink-0 animate-float">
+                                            <Truck className="w-6 h-6 text-orange-900" />
+                                        </div>
+                                        <div className="text-white">
+                                            <p className="font-black text-lg uppercase tracking-wide">
+                                                Cambio en Philadelphia
+                                            </p>
+                                            <p className="text-sm text-orange-50 mt-1 leading-relaxed">
+                                                Desde{" "}
+                                                <span className="font-extrabold text-orange-300">
+                                                    FEBRERO
+                                                </span>
+                                                , los envíos a{" "}
+                                                <span className="font-extrabold text-orange-300">
+                                                    PHILADELPHIA
+                                                </span>{" "}
+                                                serán{" "}
+                                                <span className="font-extrabold underline">
+                                                    cada 15 días
+                                                </span>
+                                                . La semana que no corresponda
+                                                Philadelphia, se pueden enviar{" "}
+                                                <span className="font-extrabold">
+                                                    PRODUCTOS SECOS el martes
+                                                </span>
+                                                .
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ADVERTENCIA - CUMPLIMIENTO */}
+                                <div className="bg-gradient-to-r from-red-900/50 to-pink-900/50 rounded-lg p-4 border-2 border-red-400/40">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-red-400 rounded-lg flex-shrink-0 animate-shake">
+                                            <AlertCircle className="w-6 h-6 text-red-900" />
+                                        </div>
+                                        <div className="text-white">
+                                            <p className="font-black text-lg uppercase tracking-wide text-yellow-300">
+                                                ⚠️ IMPORTANTE - CUMPLIMIENTO
+                                                OBLIGATORIO
+                                            </p>
+                                            <p className="text-sm text-red-50 mt-1 leading-relaxed">
+                                                Es{" "}
+                                                <span className="font-extrabold text-yellow-300 underline">
+                                                    OBLIGATORIO
+                                                </span>{" "}
+                                                cumplir a cabalidad con el
+                                                cronograma.{" "}
+                                                <span className="font-extrabold">
+                                                    NO envíen en días que no
+                                                    corresponden
+                                                </span>{" "}
+                                                para evitar problemas con las
+                                                agencias y aduanas.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* PENDIENTES */}
+                                <div className="bg-gradient-to-r from-gray-800/40 to-slate-900/40 rounded-lg p-4 border-2 border-gray-500/30">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-gray-400 rounded-lg flex-shrink-0 animate-float">
+                                            <CalendarIcon className="w-6 h-6 text-gray-900" />
+                                        </div>
+                                        <div className="text-white">
+                                            <p className="font-black text-lg uppercase tracking-wide text-gray-300">
+                                                Información Pendiente
+                                            </p>
+                                            <div className="text-sm text-gray-200 mt-2 space-y-1 leading-relaxed">
+                                                <p>
+                                                    •{" "}
+                                                    <span className="font-extrabold text-yellow-300">
+                                                        ROCHESTER
+                                                    </span>
+                                                    : Fecha de envío{" "}
+                                                    <span className="font-extrabold">
+                                                        aún pendiente
+                                                    </span>
+                                                </p>
+                                                <p>
+                                                    •{" "}
+                                                    <span className="font-extrabold text-yellow-300">
+                                                        MINNEAPOLIS
+                                                    </span>
+                                                    : El envío de comida sigue{" "}
+                                                    <span className="font-extrabold text-red-400">
+                                                        RESTRINGIDO
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 text-red-100 text-sm pt-2">
+                                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
+                                    <div className="w-2 h-2 bg-yellow-400 rounded-full absolute"></div>
+                                    <span className="ml-2">
+                                        Por favor, tome nota de todas estas
+                                        restricciones y cambios
+                                    </span>
                                 </div>
                             </div>
 
@@ -538,7 +667,9 @@ export default function Dashboard() {
                                     onClick={() => setShowEmergencyAlert(false)}
                                     className="w-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 hover:from-yellow-500 hover:via-yellow-600 hover:to-orange-600 text-red-900 font-black text-lg py-4 px-8 rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 uppercase tracking-wider flex items-center justify-center gap-3 group"
                                 >
-                                    <span>He leído y entendido el mensaje</span>
+                                    <span>
+                                        He leído y entendido todos los mensajes
+                                    </span>
                                     <span className="text-2xl group-hover:animate-bounce-subtle">
                                         ✓
                                     </span>
@@ -873,28 +1004,75 @@ export default function Dashboard() {
                                                             selectedDay,
                                                     )?.label || ""}
                                                 </h3>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                    {Object.entries(
-                                                        getCurrentDayData() as Record<
-                                                            string,
-                                                            string[]
-                                                        >,
-                                                    ).map(([state, cities]) => (
-                                                        <div
-                                                            key={state}
-                                                            className="location-card bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-3 rounded-lg border border-gray-700/50"
-                                                        >
-                                                            <span className="text-yellow-400 font-bold text-xs block mb-2">
-                                                                {state}
-                                                            </span>
-                                                            <span className="text-gray-300 text-[11px] leading-relaxed">
-                                                                {cities.join(
-                                                                    ", ",
-                                                                )}
-                                                            </span>
+                                                {Object.keys(
+                                                    getCurrentDayData() as Record<
+                                                        string,
+                                                        string[]
+                                                    >,
+                                                ).length === 0 ||
+                                                Object.values(
+                                                    getCurrentDayData() as Record<
+                                                        string,
+                                                        string[]
+                                                    >,
+                                                ).every(
+                                                    (cities) =>
+                                                        cities.length === 0,
+                                                ) ? (
+                                                    <div className="flex flex-col items-center justify-center py-8 space-y-3">
+                                                        <div className="p-4 bg-gray-800/60 rounded-full">
+                                                            <AlertCircle className="w-12 h-12 text-gray-400" />
                                                         </div>
-                                                    ))}
-                                                </div>
+                                                        <p className="text-gray-400 text-base font-semibold">
+                                                            No hay envíos
+                                                            programados para
+                                                            este día
+                                                        </p>
+                                                        <p className="text-gray-500 text-sm">
+                                                            Consulte los otros
+                                                            días disponibles
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        {Object.entries(
+                                                            getCurrentDayData() as Record<
+                                                                string,
+                                                                string[]
+                                                            >,
+                                                        ).map(
+                                                            ([
+                                                                state,
+                                                                cities,
+                                                            ]) => {
+                                                                if (
+                                                                    cities.length ===
+                                                                    0
+                                                                )
+                                                                    return null;
+                                                                return (
+                                                                    <div
+                                                                        key={
+                                                                            state
+                                                                        }
+                                                                        className="location-card bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-3 rounded-lg border border-gray-700/50"
+                                                                    >
+                                                                        <span className="text-yellow-400 font-bold text-xs block mb-2">
+                                                                            {
+                                                                                state
+                                                                            }
+                                                                        </span>
+                                                                        <span className="text-gray-300 text-[11px] leading-relaxed">
+                                                                            {cities.join(
+                                                                                ", ",
+                                                                            )}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            },
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
