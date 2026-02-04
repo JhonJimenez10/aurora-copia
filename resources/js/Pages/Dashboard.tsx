@@ -1024,13 +1024,11 @@ export default function Dashboard() {
                                                             <AlertCircle className="w-12 h-12 text-gray-400" />
                                                         </div>
                                                         <p className="text-gray-400 text-base font-semibold">
-                                                            No hay envíos
-                                                            programados para
-                                                            este día
-                                                        </p>
-                                                        <p className="text-gray-500 text-sm">
-                                                            Consulte los otros
-                                                            días disponibles
+                                                            Para este día se
+                                                            puede receptar todo
+                                                            lo que es CARGA SECA
+                                                            para el embarque del
+                                                            día sábado.
                                                         </p>
                                                     </div>
                                                 ) : (
