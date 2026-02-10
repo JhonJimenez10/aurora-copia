@@ -447,46 +447,56 @@ export default function Dashboard() {
 
                             {/* Cuerpo del modal */}
                             <div className="relative p-8 space-y-4">
-                                {/* MENSAJE PRINCIPAL - SUSPENSIÓN TEMPORAL */}
+                                {/* ROCHESTER - Envío del miércoles 11 de febrero */}
                                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border-2 border-white/20">
                                     <div className="space-y-4">
                                         <div className="flex items-start gap-3">
-                                            <div className="p-2 bg-yellow-400 rounded-lg flex-shrink-0 animate-float">
-                                                <Package className="w-6 h-6 text-red-900" />
+                                            <div className="p-2 bg-blue-400 rounded-lg flex-shrink-0 animate-float">
+                                                <Truck className="w-6 h-6 text-blue-900" />
                                             </div>
 
                                             <p className="text-white text-lg leading-relaxed font-medium">
-                                                <span className="font-bold text-yellow-300 block mb-2 text-xl">
-                                                    Estimados usuarios:
+                                                <span className="font-bold text-blue-300 block mb-2 text-xl">
+                                                    Envío ROCHESTER:
                                                 </span>
-                                                Para el día{" "}
-                                                <span className="font-black text-yellow-300 text-xl">
-                                                    sábado 24 de enero
+                                                De{" "}
+                                                <span className="font-black text-blue-300 text-xl">
+                                                    ROCHESTER
                                                 </span>{" "}
-                                                no va a haber embarque hasta el
-                                                día{" "}
+                                                saldría este{" "}
                                                 <span className="font-black text-yellow-300 text-xl">
-                                                    martes 26 de enero
-                                                </span>{" "}
-                                                por inconvenientes en el sistema
-                                                de transmisión de la aduana de
-                                                Estados Unidos y problemas
-                                                climatológicos en Estados
-                                                Unidos.
+                                                    miércoles 11 de febrero
+                                                </span>
                                             </p>
                                         </div>
+                                    </div>
+                                </div>
 
-                                        <div className="bg-gradient-to-r from-orange-600/40 to-yellow-600/40 rounded-lg p-4 border-2 border-yellow-400/50">
-                                            <div className="flex items-center gap-3">
-                                                <Truck className="w-6 h-6 text-yellow-300 animate-bounce-subtle" />
-                                                <p className="text-white font-bold text-base">
-                                                    Solo se receptarán{" "}
-                                                    <span className="text-yellow-300 underline">
-                                                        productos secos
-                                                    </span>{" "}
-                                                    hasta el día martes
-                                                </p>
+                                {/* BALTIMORE - Fechas de envío */}
+                                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border-2 border-white/20">
+                                    <div className="space-y-4">
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-purple-400 rounded-lg flex-shrink-0 animate-float">
+                                                <CalendarIcon className="w-6 h-6 text-purple-900" />
                                             </div>
+
+                                            <p className="text-white text-lg leading-relaxed font-medium">
+                                                <span className="font-bold text-purple-300 block mb-2 text-xl">
+                                                    Envíos BALTIMORE:
+                                                </span>
+                                                Los envíos de{" "}
+                                                <span className="font-black text-purple-300 text-xl">
+                                                    BALTIMORE
+                                                </span>{" "}
+                                                son hoy{" "}
+                                                <span className="font-black text-yellow-300 text-xl">
+                                                    lunes 9 de febrero
+                                                </span>{" "}
+                                                y de aquí el{" "}
+                                                <span className="font-black text-yellow-300 text-xl">
+                                                    lunes 23 de febrero
+                                                </span>
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -623,19 +633,9 @@ export default function Dashboard() {
                                         </div>
                                         <div className="text-white">
                                             <p className="font-black text-lg uppercase tracking-wide text-gray-300">
-                                                Información Pendiente
+                                                Información Adicional
                                             </p>
                                             <div className="text-sm text-gray-200 mt-2 space-y-1 leading-relaxed">
-                                                <p>
-                                                    •{" "}
-                                                    <span className="font-extrabold text-yellow-300">
-                                                        ROCHESTER
-                                                    </span>
-                                                    : Fecha de envío{" "}
-                                                    <span className="font-extrabold">
-                                                        aún pendiente
-                                                    </span>
-                                                </p>
                                                 <p>
                                                     •{" "}
                                                     <span className="font-extrabold text-yellow-300">
