@@ -16,17 +16,13 @@ class TransferConfirmController extends Controller
 {
     /**
      * GET /classification/transfers/confirm
-     * Muestra la pantalla principal de confirmación de traslados
      */
     public function index()
     {
         $user = Auth::user();
-        $enterpriseId = $user->enterprise_id ?? null;
 
-        // Países: por ahora fijo ECUADOR
         $countries = ['ECUADOR'];
 
-        // Agencias = ciudades de la tabla enterprises (sin repetir)
         $agencies = Enterprise::query()
             ->whereNotNull('city')
             ->orderBy('city')
@@ -43,23 +39,22 @@ class TransferConfirmController extends Controller
 
     /**
      * GET /api/transfers/{transfer}/details
-     * 
-     * Carga los detalles de un traslado para el modal de confirmación.
      */
     public function show(Transfer $transfer)
     {
         $user = Auth::user();
+
         if ($transfer->enterprise_id !== $user->enterprise_id) {
             return response()->json([
                 'error' => 'No tienes permiso para ver este traslado.'
-            ], 403);
+            ], 403, ['Content-Type' => 'application/json']);
         }
 
         if ($transfer->status !== 'PENDING') {
             return response()->json([
                 'error' => 'Este traslado ya fue confirmado o cancelado.',
                 'status' => $transfer->status
-            ], 422);
+            ], 422, ['Content-Type' => 'application/json']);
         }
 
         $transfer->load(['sacks.packages']);
@@ -95,7 +90,7 @@ class TransferConfirmController extends Controller
             'from_city' => $transfer->from_city,
             'to_city'   => $transfer->to_city,
             'sacks'     => $sacks,
-        ]);
+        ], 200, ['Content-Type' => 'application/json']);
     }
 
     /**
@@ -104,10 +99,11 @@ class TransferConfirmController extends Controller
     public function updateSacks(Request $request, Transfer $transfer)
     {
         $user = Auth::user();
+
         if ($transfer->enterprise_id !== $user->enterprise_id) {
             return response()->json([
                 'error' => 'No tienes permiso para modificar este traslado.'
-            ], 403);
+            ], 403, ['Content-Type' => 'application/json']);
         }
 
         if ($transfer->status !== 'PENDING') {
@@ -172,20 +168,19 @@ class TransferConfirmController extends Controller
                 'message' => $allSacksFullyConfirmed
                     ? 'Traslado confirmado completamente.'
                     : 'Progreso de confirmación guardado.',
-            ]);
+            ], 200, ['Content-Type' => 'application/json']);
         } catch (\Throwable $e) {
             DB::rollBack();
             report($e);
 
             return response()->json([
                 'error' => 'Error al guardar la confirmación: ' . $e->getMessage()
-            ], 500);
+            ], 500, ['Content-Type' => 'application/json']);
         }
     }
+
     /**
      * DELETE /api/transfers/{transfer}/cancel
-     * 
-     * Cancela un traslado (opcional, para casos donde el traslado no llegó).
      */
     public function cancel(Transfer $transfer)
     {
@@ -194,7 +189,7 @@ class TransferConfirmController extends Controller
         if ($transfer->enterprise_id !== $user->enterprise_id) {
             return response()->json([
                 'error' => 'No tienes permiso para cancelar este traslado.'
-            ], 403);
+            ], 403, ['Content-Type' => 'application/json']);
         }
 
         if ($transfer->status !== 'PENDING') {
@@ -217,14 +212,14 @@ class TransferConfirmController extends Controller
             return response()->json([
                 'ok'      => true,
                 'message' => 'Traslado cancelado correctamente.'
-            ]);
+            ], 200, ['Content-Type' => 'application/json']);
         } catch (\Throwable $e) {
             DB::rollBack();
             report($e);
 
             return response()->json([
                 'error' => 'Error al cancelar el traslado: ' . $e->getMessage()
-            ], 500);
+            ], 500, ['Content-Type' => 'application/json']);
         }
     }
 }

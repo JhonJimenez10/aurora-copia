@@ -16,17 +16,14 @@ class TransferController extends Controller
 {
     /**
      * GET /transfers/create
-     * Muestra la pantalla "Elaborar traslado"
      */
     public function create()
     {
         $user = Auth::user();
         $enterpriseId = $user->enterprise_id ?? null;
 
-        // Países: por ahora fijo ECUADOR
         $countries = ['ECUADOR'];
 
-        // Agencias = ciudades de la tabla enterprises (sin repetir)
         $agencies = Enterprise::query()
             ->whereNotNull('city')
             ->orderBy('city')
@@ -42,9 +39,7 @@ class TransferController extends Controller
     }
 
     /**
-     * GET /api/transfers/available-packages?from_city=CUENCA%20CENTRO&search=
-     * Devuelve paquetes "emitidos" en una agencia (ciudad) que aún no están en un traslado pendiente.
-     * Ahora con búsqueda por código de paquete o contenido.
+     * GET /api/transfers/available-packages
      */
     public function availablePackages(Request $request)
     {
@@ -71,14 +66,12 @@ class TransferController extends Controller
             ->join('receptions', 'receptions.id', '=', 'packages.reception_id')
             ->where('receptions.enterprise_id', $enterpriseId)
             ->where('receptions.agency_origin', $fromCity)
-            // ⚠️ CORREGIDO: relación debe coincidir con Package model
             ->whereDoesntHave('transferSackItems', function ($q) {
                 $q->whereHas('sack.transfer', function ($tq) {
                     $tq->where('status', 'PENDING');
                 });
             });
 
-        // Aplicar búsqueda si existe
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('packages.barcode', 'LIKE', "%{$search}%")
@@ -102,12 +95,13 @@ class TransferController extends Controller
                 ];
             });
 
-        return response()->json($packages);
+        return response()->json($packages, 200, [
+            'Content-Type' => 'application/json'
+        ]);
     }
 
     /**
      * GET /api/transfers/search
-     * Busca documentos de traslado para el modal "Buscar documentos traslado".
      */
     public function search(Request $request)
     {
@@ -162,16 +156,17 @@ class TransferController extends Controller
                     'country'   => $t->country,
                     'from_city' => $t->from_city,
                     'to_city'   => $t->to_city,
-                    'status'    => $t->status, // ✅ Agregado para mostrar en frontend
+                    'status'    => $t->status,
                 ];
             });
 
-        return response()->json($results);
+        return response()->json($results, 200, [
+            'Content-Type' => 'application/json'
+        ]);
     }
 
     /**
      * POST /transfers
-     * Guarda el documento de traslado con sus sacas y paquetes.
      */
     public function store(Request $request)
     {
@@ -229,7 +224,7 @@ class TransferController extends Controller
                         'package_id'       => $pkg['id'],
                         'pounds'           => $pkg['pounds'],
                         'kilograms'        => $pkg['kilograms'],
-                        'confirmed'        => false, // ✅ Por defecto no confirmado
+                        'confirmed'        => false,
                     ]);
                 }
             }
@@ -249,9 +244,6 @@ class TransferController extends Controller
         }
     }
 
-    /**
-     * Genera el siguiente número de traslado de forma simple por empresa.
-     */
     protected function generateNextNumber(string $enterpriseId): string
     {
         $last = Transfer::where('enterprise_id', $enterpriseId)
