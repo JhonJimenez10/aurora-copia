@@ -5,28 +5,14 @@
     <meta charset="UTF-8">
     <style>
         @page {
-            margin: 0mm;
-            size: letter;
+            margin-top: 0mm;
         }
 
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 14px;
+            font-size: 9px;
             color: #111;
-            margin: 0;
-            padding: 0;
-        }
-
-        .ticket-container {
-            height: 50vh;
-            page-break-after: always;
-            padding: 15px 20px;
-            box-sizing: border-box;
-            position: relative;
-        }
-
-        .ticket-container:last-child {
-            page-break-after: auto;
+            margin: 2 8px 4px 8px;
         }
 
         .center {
@@ -34,21 +20,15 @@
         }
 
         .barcode-container {
-            margin-top: 5px;
-            margin-bottom: 10px;
+            margin-top: 0;
+            margin-bottom: 3px;
         }
 
         .barcode {
             display: inline-block;
-            margin-bottom: 5px;
-            transform: scale(1.2);
+            margin-bottom: 0;
+            transform: scale(0.7);
             transform-origin: top center;
-        }
-
-        .barcode-number {
-            font-weight: bold;
-            font-size: 16px;
-            margin-top: 5px;
         }
 
         .bold {
@@ -64,88 +44,71 @@
         }
 
         .section {
-            margin-top: 12px;
-            padding-top: 10px;
-            border-top: 2px solid #aaa;
+            margin-top: 6px;
+            padding-top: 4px;
+            border-top: 1px solid #aaa;
         }
 
         .section-title {
             background-color: #f2f2f2;
             font-weight: bold;
-            font-size: 16px;
-            padding: 6px 8px;
-            border-left: 5px solid #333;
-            margin-bottom: 8px;
+            font-size: 10px;
+            padding: 2px 3px;
+            border-left: 3px solid #333;
+            margin-bottom: 2px;
         }
 
         .info-line {
-            margin: 6px 0;
-            line-height: 1.6;
-            font-size: 14px;
+            margin: 0.5px 0;
+            line-height: 1.3;
         }
 
         .icon {
             display: inline-block;
-            width: 18px;
+            width: 10px;
             font-weight: bold;
-            margin-right: 5px;
+            margin-right: 2px;
             text-align: center;
-            font-size: 14px;
         }
 
         .bridgeport-title {
             text-align: center;
-            font-size: 28px;
+            font-size: 16px;
             font-weight: bold;
-            margin-top: 12px;
-            margin-bottom: 12px;
-            padding: 8px;
-            background-color: #f8f8f8;
-            border: 2px solid #333;
-        }
-
-        .payment-indicator {
-            text-align: center;
-            margin-bottom: 10px;
-            padding: 8px;
-        }
-
-        .payment-indicator-text {
-            font-weight: bold;
-            font-size: 20px;
+            margin-top: 5px;
+            margin-bottom: 3px;
         }
 
         .details-table {
             width: 100%;
-            margin: 10px 0;
+            margin: 4px 0;
             border-collapse: collapse;
-            font-size: 14px;
         }
 
         .details-table td {
             vertical-align: top;
-            padding: 6px 8px;
+            padding: 1px 3px;
             width: 50%;
-            line-height: 1.6;
+            line-height: 1.4;
         }
 
         .dual-section {
             display: table;
             width: 100%;
-            margin-top: 12px;
-            padding-top: 10px;
-            border-top: 2px solid #aaa;
+            margin-top: 6px;
+            padding-top: 4px;
+            border-top: 1px solid #aaa;
         }
 
         .dual-section .column {
             display: table-cell;
             width: 50%;
             vertical-align: top;
-            padding: 0 10px;
+            padding: 0 4px;
         }
 
-        .dual-section .column:first-child {
-            border-right: 1px dashed #999;
+        .page-break {
+            page-break-after: always;
         }
     </style>
 </head>
@@ -164,82 +127,86 @@
             $agencyDestName = $reception->agencyDest->name ?? 'AGENCIA DESTINO';
         @endphp
 
-        <div class="ticket-container">
-            {{-- Código de barras --}}
-            <div class="barcode-container center">
-                <div class="barcode">{!! $barcode !!}</div>
-                <div class="barcode-number">{{ $package->barcode ?? '---' }}</div>
+        {{-- Código de barras --}}
+        <div class="barcode-container center" style="padding-top: 0;">
+            <div class="barcode">{!! $barcode !!}</div>
+            <div class="bold" style="font-size: 10px;">{{ $package->barcode ?? '---' }}</div>
+        </div>
+
+        {{-- Indicador de Pago --}}
+        @if ($isPorCobrar)
+            <div class="center" style="margin-bottom: 4px;">
+                <div class="bold red" style="font-size: 13px;">POR COBRAR</div>
+            </div>
+        @elseif ($isPagado)
+            <div class="center" style="margin-bottom: 4px;">
+                <div class="bold green" style="font-size: 13px;">PAGADO</div>
+            </div>
+        @endif
+
+
+        {{-- Datos generales --}}
+        <table class="details-table">
+            <tr>
+                <td><span class="bold">No. Comprobante:</span> {{ $reception->number }}</td>
+                <td><span class="bold">FECHA:</span>
+                    {{ \Carbon\Carbon::parse($reception->date_time)->format('Y-m-d') }}</td>
+            </tr>
+            <tr>
+                @php
+                    $contentNames = $package->packageItems
+                        ->map(function ($item) {
+                            return $item->artPackage->name ?? 'Artículo';
+                        })
+                        ->toArray();
+                @endphp
+                <td><span class="bold">CONTENIDO:</span> {{ implode(', ', $contentNames) }}</td>
+                <td><span class="bold">PESO LBS:</span> {{ number_format($weightLbs, 2) }}</td>
+            </tr>
+            <tr>
+                @if ($isPorCobrar)
+                    <td>
+                        <span class="bold">AL COBRO:</span>
+                        <span class="red">
+                            ${{ number_format($reception->total, 2) }}
+                        </span>
+                    </td>
+                @else
+                    <td>
+                        <span class="bold green">PAGADO</span>
+                    </td>
+                @endif
+
+                <td><span class="bold">PESO KGS:</span> {{ number_format($weightKgs, 2) }}</td>
+            </tr>
+
+        </table>
+
+        {{-- Agencia de destino --}}
+        <div class="bridgeport-title">{{ $agencyDestName }}</div>
+
+        {{-- Información del remitente y destinatario --}}
+        <div class="dual-section">
+            <div class="column">
+                <div class="section-title">DESTINATARIO:</div>
+                <p class="info-line"><span class="icon">*</span> {{ $reception->recipient->full_name }}</p>
+                <p class="info-line"><span class="icon">#</span> {{ $reception->recipient->identification }}</p>
+                <p class="info-line"><span class="icon">@</span> {{ $reception->recipient->address }}</p>
+                <p class="info-line"><span class="icon">☎</span> {{ $reception->recipient->phone }}</p>
             </div>
 
-            {{-- Indicador de Pago --}}
-            @if ($isPorCobrar)
-                <div class="payment-indicator">
-                    <div class="payment-indicator-text red">POR COBRAR</div>
-                </div>
-            @elseif ($isPagado)
-                <div class="payment-indicator">
-                    <div class="payment-indicator-text green">PAGADO</div>
-                </div>
-            @endif
-
-            {{-- Datos generales --}}
-            <table class="details-table">
-                <tr>
-                    <td><span class="bold">No. Comprobante:</span> {{ $reception->number }}</td>
-                    <td><span class="bold">FECHA:</span>
-                        {{ \Carbon\Carbon::parse($reception->date_time)->format('Y-m-d') }}</td>
-                </tr>
-                <tr>
-                    @php
-                        $contentNames = $package->packageItems
-                            ->map(function ($item) {
-                                return $item->artPackage->name ?? 'Artículo';
-                            })
-                            ->toArray();
-                    @endphp
-                    <td><span class="bold">CONTENIDO:</span> {{ implode(', ', $contentNames) }}</td>
-                    <td><span class="bold">PESO LBS:</span> {{ number_format($weightLbs, 2) }}</td>
-                </tr>
-                <tr>
-                    @if ($isPorCobrar)
-                        <td>
-                            <span class="bold">AL COBRO:</span>
-                            <span class="red bold" style="font-size: 16px;">
-                                ${{ number_format($reception->total, 2) }}
-                            </span>
-                        </td>
-                    @else
-                        <td>
-                            <span class="bold green" style="font-size: 16px;">PAGADO</span>
-                        </td>
-                    @endif
-
-                    <td><span class="bold">PESO KGS:</span> {{ number_format($weightKgs, 2) }}</td>
-                </tr>
-            </table>
-
-            {{-- Agencia de destino --}}
-            <div class="bridgeport-title">{{ $agencyDestName }}</div>
-
-            {{-- Información del remitente y destinatario --}}
-            <div class="dual-section">
-                <div class="column">
-                    <div class="section-title">DESTINATARIO:</div>
-                    <p class="info-line"><span class="icon">*</span> {{ $reception->recipient->full_name }}</p>
-                    <p class="info-line"><span class="icon">#</span> {{ $reception->recipient->identification }}</p>
-                    <p class="info-line"><span class="icon">@</span> {{ $reception->recipient->address }}</p>
-                    <p class="info-line"><span class="icon">☎</span> {{ $reception->recipient->phone }}</p>
-                </div>
-
-                <div class="column">
-                    <div class="section-title">REMITENTE:</div>
-                    <p class="info-line"><span class="icon">*</span> {{ $reception->sender->full_name }}</p>
-                    <p class="info-line"><span class="icon">#</span> {{ $reception->sender->identification }}</p>
-                    <p class="info-line"><span class="icon">@</span> {{ $reception->sender->address }}</p>
-                    <p class="info-line"><span class="icon">☎</span> {{ $reception->sender->phone }}</p>
-                </div>
+            <div class="column">
+                <div class="section-title">REMITENTE:</div>
+                <p class="info-line"><span class="icon">*</span> {{ $reception->sender->full_name }}</p>
+                <p class="info-line"><span class="icon">#</span> {{ $reception->sender->identification }}</p>
+                <p class="info-line"><span class="icon">@</span> {{ $reception->sender->address }}</p>
+                <p class="info-line"><span class="icon">☎</span> {{ $reception->sender->phone }}</p>
             </div>
         </div>
+
+        @if (!$loop->last)
+            <div class="page-break"></div>
+        @endif
     @endforeach
 
 </body>
