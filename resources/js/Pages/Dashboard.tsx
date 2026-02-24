@@ -502,34 +502,34 @@ export default function Dashboard() {
                                 </div>
 
                                 {/* MINNEAPOLIS */}
-                                <div className="bg-gradient-to-r from-red-900/40 to-purple-900/40 rounded-lg p-4 border-2 border-white/20">
+                                <div className="bg-gradient-to-r from-green-900/40 to-emerald-900/40 rounded-lg p-4 border-2 border-green-400/30">
                                     <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-yellow-400 rounded-lg flex-shrink-0 animate-float">
-                                            <MapPin className="w-6 h-6 text-red-900" />
+                                        <div className="p-2 bg-green-400 rounded-lg flex-shrink-0 animate-float">
+                                            <MapPin className="w-6 h-6 text-green-900" />
                                         </div>
                                         <div className="text-white">
-                                            <p className="font-black text-lg uppercase tracking-wide">
-                                                Restricción para MINNEAPOLIS
+                                            <p className="font-black text-lg uppercase tracking-wide text-green-300">
+                                                ✅ Actualización MINNEAPOLIS
                                             </p>
-                                            <p className="text-sm text-red-50 mt-1 leading-relaxed">
-                                                Para{" "}
+                                            <p className="text-sm text-green-50 mt-1 leading-relaxed">
+                                                A partir del{" "}
+                                                <span className="font-extrabold text-yellow-300">
+                                                    próximo embarque
+                                                </span>{" "}
+                                                ya se puede receptar{" "}
+                                                <span className="font-extrabold text-green-300 underline">
+                                                    alimentos
+                                                </span>{" "}
+                                                para{" "}
                                                 <span className="font-extrabold text-yellow-300">
                                                     MINNEAPOLIS
-                                                </span>{" "}
-                                                no se recepta{" "}
-                                                <span className="font-extrabold underline">
-                                                    comida
-                                                </span>{" "}
-                                                ni{" "}
-                                                <span className="font-extrabold underline">
-                                                    paquetes por cobrar
                                                 </span>
-                                                . Envíe únicamente productos
-                                                permitidos y{" "}
-                                                <span className="font-extrabold text-yellow-300">
-                                                    pagados
-                                                </span>
-                                                .
+                                                . Se recomienda que todos los
+                                                paquetes vayan{" "}
+                                                <span className="font-extrabold text-yellow-300 underline">
+                                                    CANCELADOS
+                                                </span>{" "}
+                                                para el próximo embarque.
                                             </p>
                                         </div>
                                     </div>
