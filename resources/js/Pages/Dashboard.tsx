@@ -42,9 +42,7 @@ export default function Dashboard() {
     const { stats, enterprise } = props as any;
 
     const [activeTab, setActiveTab] = useState("overview");
-    const [currentMonth, setCurrentMonth] = useState<"enero" | "febrero">(
-        "febrero",
-    );
+    const [currentMonth, setCurrentMonth] = useState<"marzo">("marzo");
     const [selectedDay, setSelectedDay] = useState<string>("lunes");
     const [hoveredStat, setHoveredStat] = useState<number | null>(null);
 
@@ -61,87 +59,9 @@ export default function Dashboard() {
     }, [showEmergencyAlert]);
 
     // Cronograma de envíos - Enero
-    const scheduleEnero = {
+    const scheduleMarz = {
         lunes: {
-            "NEW YORK": ["QUEENS", "BROOKLYN"],
-            MARYLAND: ["BALTIMORE"],
-            CONNECTICUT: ["DAMBURY"],
-        },
-        martes: {
-            "NEW YORK": [
-                "QUEENS",
-                "BROOKLYN",
-                "SPRING VALLEY",
-                "ALBANY",
-                "MIDDLETOWN",
-            ],
-            MASSACHUSETTS: [
-                "BROCKTON",
-                "LOWELL",
-                "FRAMINGHAM",
-                "MILFORD",
-                "FALL RIVER",
-                "HYANNIS",
-                "LAWRENCE",
-                "WOONSCKET",
-            ],
-            CONNECTICUT: ["NEW HAVEN"],
-            PENSILVANIA: ["PHILADELPHIA"],
-        },
-        miercoles: {
-            "NEW YORK": [
-                "QUEENS",
-                "BROOKLYN",
-                "WHITE PLAINS",
-                "SLEEPY HOLLOW",
-                "OSSINING",
-                "PEEKSKILL",
-                "YONKERS",
-            ],
-            "NEW JERSEY": ["ORANGE"],
-            CONNECTICUT: ["DAMBURY", "WATER BURY", "BRIDGEPORT"],
-            ILLINOIS: ["CHICAGO"],
-            MINNESOTA: ["MINNEAPOLIS"],
-        },
-        jueves: {
-            "NEW YORK": [
-                "QUEENS",
-                "BROOKLYN",
-                "BRONX JEROME",
-                "PORTCHESTER",
-                "SPRING VALLEY",
-                "PATCHOGUE",
-                "HAMPTON BAYS",
-            ],
-            "NEW JERSEY": ["ORANGE"],
-        },
-        sabados: {
-            "NEW YORK": [
-                "QUEENS",
-                "BROOKLYN",
-                "SPRING VALLEY",
-                "WHITE PLAINS",
-                "SLEEPY HOLLOW",
-                "OSSINING",
-                "PEEKSKILL",
-                "YONKERS",
-                "BRONX JEROME",
-                "PATCHOGUE",
-                "PORTCHESTER",
-            ],
-            "NEW JERSEY": ["ORANGE"],
-            CONNECTICUT: ["DAMBURY"],
-        },
-        especiales: [
-            { ciudad: "BALTIMORE", fechas: "12 Y 26 ENERO" },
-            { ciudad: "ROCHESTER", fechas: "21 DE ENERO" },
-        ],
-    };
-
-    // Cronograma de envíos - Febrero (ACTUALIZADO)
-    const scheduleFebrero = {
-        lunes: {
-            "NEW YORK": ["QUEENS", "BROOKLYN"],
+            "NEW YORK": ["QUEENS", "BROOKLYN", "BRONX", "BRONX GUN HILL"],
             MARYLAND: ["BALTIMORE"],
             CONNECTICUT: ["DAMBURY"],
             "NEW JERSEY": ["NEWARK", "ORANGE"],
@@ -156,7 +76,7 @@ export default function Dashboard() {
                 "OSSINING",
                 "SLEEPY HOLLOW",
             ],
-            MASSACHUSETTS: [
+            MASSACHUSETS: [
                 "BROCKTON",
                 "LOWELL",
                 "FRAMINHAM",
@@ -166,7 +86,7 @@ export default function Dashboard() {
                 "LAWRENCE",
                 "WOONSCKET",
             ],
-            CONNECTICUT: ["NEW HAVEN"],
+            CONNECTICUT: ["NEW HAVEN", "EAST HAVEN"],
         },
         miercoles: {
             "NEW YORK": [
@@ -178,6 +98,7 @@ export default function Dashboard() {
                 "PEEKSKILL",
                 "YONKERS",
                 "BRONX JEROME",
+                "BRONX GUN HILL",
                 "PORTCHESTER",
                 "SPRING VALLEY",
                 "PATCHOGUE",
@@ -207,19 +128,19 @@ export default function Dashboard() {
                 "BRONX JEROME",
                 "PATCHOGUE",
                 "PORTCHESTER",
+                "BRONX GUN HILL",
             ],
             "NEW JERSEY": ["NEWARK", "ORANGE"],
             CONNECTICUT: ["DAMBURY"],
         },
         especiales: [
-            { ciudad: "BALTIMORE", fechas: "10 Y 24 DE FEBRERO" },
-            { ciudad: "PHILADELPHIA", fechas: "11 Y 25 FEBRERO" },
-            { ciudad: "ROCHESTER", fechas: "PENDIENTE" },
+            { ciudad: "BALTIMORE", fechas: "9 Y 23 DE MARZO" },
+            { ciudad: "PHILADELPHIA", fechas: "11 Y 25 MARZO" },
+            { ciudad: "ROCHESTER", fechas: "11 DE MARZO" },
         ],
     };
 
-    const currentSchedule =
-        currentMonth === "enero" ? scheduleEnero : scheduleFebrero;
+    const currentSchedule = scheduleMarz;
 
     const daysOfWeek = [
         {
@@ -447,31 +368,6 @@ export default function Dashboard() {
 
                             {/* Cuerpo del modal */}
                             <div className="relative p-8 space-y-4">
-                                {/* ROCHESTER - Envío del miércoles 11 de febrero */}
-                                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border-2 border-white/20">
-                                    <div className="space-y-4">
-                                        <div className="flex items-start gap-3">
-                                            <div className="p-2 bg-blue-400 rounded-lg flex-shrink-0 animate-float">
-                                                <Truck className="w-6 h-6 text-blue-900" />
-                                            </div>
-
-                                            <p className="text-white text-lg leading-relaxed font-medium">
-                                                <span className="font-bold text-blue-300 block mb-2 text-xl">
-                                                    Envío ROCHESTER:
-                                                </span>
-                                                De{" "}
-                                                <span className="font-black text-blue-300 text-xl">
-                                                    ROCHESTER
-                                                </span>{" "}
-                                                saldría este{" "}
-                                                <span className="font-black text-yellow-300 text-xl">
-                                                    miércoles 11 de febrero
-                                                </span>
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 {/* BALTIMORE - Fechas de envío */}
                                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border-2 border-white/20">
                                     <div className="space-y-4">
@@ -479,7 +375,6 @@ export default function Dashboard() {
                                             <div className="p-2 bg-purple-400 rounded-lg flex-shrink-0 animate-float">
                                                 <CalendarIcon className="w-6 h-6 text-purple-900" />
                                             </div>
-
                                             <p className="text-white text-lg leading-relaxed font-medium">
                                                 <span className="font-bold text-purple-300 block mb-2 text-xl">
                                                     Envíos BALTIMORE:
@@ -488,13 +383,13 @@ export default function Dashboard() {
                                                 <span className="font-black text-purple-300 text-xl">
                                                     BALTIMORE
                                                 </span>{" "}
-                                                son hoy{" "}
+                                                son el{" "}
                                                 <span className="font-black text-yellow-300 text-xl">
-                                                    lunes 9 de febrero
+                                                    9 de marzo
                                                 </span>{" "}
-                                                y de aquí el{" "}
+                                                y el{" "}
                                                 <span className="font-black text-yellow-300 text-xl">
-                                                    lunes 23 de febrero
+                                                    23 de marzo
                                                 </span>
                                             </p>
                                         </div>
@@ -573,17 +468,13 @@ export default function Dashboard() {
                                                 Cambio en Philadelphia
                                             </p>
                                             <p className="text-sm text-orange-50 mt-1 leading-relaxed">
-                                                Desde{" "}
-                                                <span className="font-extrabold text-orange-300">
-                                                    FEBRERO
-                                                </span>
-                                                , los envíos a{" "}
+                                                Los envíos a{" "}
                                                 <span className="font-extrabold text-orange-300">
                                                     PHILADELPHIA
                                                 </span>{" "}
-                                                serán{" "}
+                                                en marzo salen el{" "}
                                                 <span className="font-extrabold underline">
-                                                    cada 15 días
+                                                    11 y 25 de marzo
                                                 </span>
                                                 . La semana que no corresponda
                                                 Philadelphia, se pueden enviar{" "}
@@ -915,27 +806,15 @@ export default function Dashboard() {
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() =>
-                                                    setCurrentMonth("enero")
+                                                    setCurrentMonth("marzo")
                                                 }
                                                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-110 ${
-                                                    currentMonth === "enero"
+                                                    currentMonth === "marzo"
                                                         ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-900/50"
                                                         : "bg-gray-800 text-gray-400 hover:bg-gray-700"
                                                 }`}
                                             >
-                                                Enero
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    setCurrentMonth("febrero")
-                                                }
-                                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-110 ${
-                                                    currentMonth === "febrero"
-                                                        ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-900/50"
-                                                        : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-                                                }`}
-                                            >
-                                                Febrero 🎭
+                                                Marzo ✝️
                                             </button>
                                         </div>
                                     </div>
