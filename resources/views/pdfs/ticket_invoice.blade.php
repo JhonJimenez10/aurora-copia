@@ -93,11 +93,10 @@
         <div class="container">
 
             {{-- ENCABEZADO --}}
-            <div class="bold">{{ strtoupper($invoice->enterprise->name ?? 'NOMBRE EMPRESA') }}</div>
+            {{-- <div class="bold">{{ strtoupper($invoice->enterprise->name ?? 'NOMBRE EMPRESA') }}</div>
             <div>{{ strtoupper($invoice->enterprise->commercial_name ?? 'COMERCIAL') }}</div>
             <div>RUC: {{ $invoice->enterprise->ruc ?? '-' }}</div>
-            <div style="font-size: 9px;">{{ strtoupper($invoice->enterprise->matrix_address ?? 'DIRECCIÓN EMPRESA') }}
-            </div>
+            <div style="font-size: 9px;">{{ strtoupper($invoice->enterprise->matrix_address ?? 'DIRECCIÓN EMPRESA') }}</div> --}}
 
             {{-- FACTURA Y FECHA --}}
             <div class="section left-align" style="font-size: 10px; margin-top: 4px;">
