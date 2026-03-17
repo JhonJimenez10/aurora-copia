@@ -86,7 +86,7 @@ export default function RecipientCreateModal({
     useEffect(() => {
         if (open) {
             Object.entries(defaultValues).forEach(([k, v]) =>
-                setData(k as keyof RecipientFormData, v as any)
+                setData(k as keyof RecipientFormData, v as any),
             );
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -101,7 +101,7 @@ export default function RecipientCreateModal({
                 "canton",
                 (agencyData.canton as string) ??
                     (agencyData.city as string) ??
-                    ""
+                    "",
             );
             setData("state", (agencyData.state as string) ?? "");
         }
@@ -116,10 +116,21 @@ export default function RecipientCreateModal({
             if (!cedulaRegex.test(data.identification)) {
                 setError(
                     "identification",
-                    "La cédula debe tener exactamente 10 dígitos numéricos."
+                    "La cédula debe tener exactamente 10 dígitos numéricos.",
                 );
                 return;
             }
+        }
+        // Validar caracteres prohibidos en full_name
+        if (/[ñÑ.;\/]/.test(data.full_name)) {
+            setError("full_name", "El nombre no puede contener: ñ . ; /");
+            return;
+        }
+
+        // Validar longitud de dirección
+        if (data.address.length > 25) {
+            setError("address", "La dirección no puede superar 25 caracteres.");
+            return;
         }
 
         try {
@@ -145,7 +156,7 @@ export default function RecipientCreateModal({
             } else {
                 setError(
                     "identification",
-                    "Error inesperado al guardar el destinatario ❌"
+                    "Error inesperado al guardar el destinatario ❌",
                 );
             }
         }
@@ -153,10 +164,10 @@ export default function RecipientCreateModal({
     // si agencyData existe y tiene algún campo relevante, bloqueamos los inputs
     const addressDisabled = Boolean(
         agencyData &&
-            (agencyData.postal_code ||
-                agencyData.city ||
-                agencyData.canton ||
-                agencyData.state)
+        (agencyData.postal_code ||
+            agencyData.city ||
+            agencyData.canton ||
+            agencyData.state),
     );
 
     return (
@@ -273,6 +284,7 @@ export default function RecipientCreateModal({
                             <Label className="text-sm">Dirección</Label>
                             <Input
                                 required
+                                maxLength={25}
                                 className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                 value={data.address}
                                 onChange={(e) =>
@@ -347,7 +359,7 @@ export default function RecipientCreateModal({
                                             if (e.target.checked) {
                                                 setData(
                                                     "email",
-                                                    "cliente@auroraexpresss.com"
+                                                    "cliente@auroraexpresss.com",
                                                 );
                                             } else {
                                                 setData("email", "");

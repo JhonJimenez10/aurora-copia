@@ -47,7 +47,7 @@ interface PackageModalProps {
     onSave: (
         rows: PackageRow[],
         serviceType: string,
-        perfumeDesc: string
+        perfumeDesc: string,
     ) => void;
     artPackgOptions: {
         id: string;
@@ -78,37 +78,39 @@ export default function PackageModal({
         fetch("/art_packages/list/json")
             .then((r) => r.json())
             .then((data) => setArticles(data));
-        setRows(
-            initialRows && initialRows.length > 0
-                ? initialRows
-                : [
-                      {
-                          cantidad: "1",
-                          unidad: "",
-                          articulo_id: "",
-                          articulo: "",
-                          volumen: false,
-                          largo: "0",
-                          ancho: "0",
-                          altura: "0",
-                          peso: "0",
-                          unitario: "0",
-                          subtotal: "0",
-                          descuento: "0",
-                          total: "0",
-                          items_decl: "0",
-                          declarado: "0",
-                          arancel: "0",
-                          // asegurado: "0",// ❌ NO SE USA
-                      },
-                  ]
-        );
+
+        if (initialRows && initialRows.length > 0) {
+            setRows(initialRows);
+        } else {
+            setServiceType("PAQUETE");
+            setPerfumeDesc("");
+            setRows([
+                {
+                    cantidad: "1",
+                    unidad: "",
+                    articulo_id: "",
+                    articulo: "",
+                    volumen: false,
+                    largo: "0",
+                    ancho: "0",
+                    altura: "0",
+                    peso: "0",
+                    unitario: "0",
+                    subtotal: "0",
+                    descuento: "0",
+                    total: "0",
+                    items_decl: "0",
+                    declarado: "0",
+                    arancel: "0",
+                },
+            ]);
+        }
     }, [open, initialRows]);
 
     const updateRow = (
         index: number,
         field: keyof PackageRow,
-        value: string | boolean
+        value: string | boolean,
     ) => {
         if (readOnly) return;
         setRows((prev) =>
@@ -126,10 +128,10 @@ export default function PackageModal({
                     updated.unidad.toUpperCase() === "LIBRAS"
                         ? qty.toFixed(2)
                         : updated.unidad.toUpperCase() === "UNIDAD"
-                        ? "0.22"
-                        : "0";
+                          ? "0.22"
+                          : "0";
                 return updated;
-            })
+            }),
         );
     };
 
@@ -183,7 +185,7 @@ export default function PackageModal({
 
         // ✅ VALIDACIÓN DE V. DECLARADO
         const hasInvalidDeclarado = rows.some(
-            (r) => !r.declarado || parseFloat(r.declarado) <= 0
+            (r) => !r.declarado || parseFloat(r.declarado) <= 0,
         );
 
         if (hasInvalidDeclarado) {
@@ -193,7 +195,7 @@ export default function PackageModal({
 
         // ✅ VALIDACIÓN DE ITEMS DECLARADO
         const hasInvalidItems = rows.some(
-            (r) => !r.items_decl || parseFloat(r.items_decl) <= 0
+            (r) => !r.items_decl || parseFloat(r.items_decl) <= 0,
         );
 
         if (hasInvalidItems) {
@@ -327,7 +329,7 @@ export default function PackageModal({
                                                     updateRow(
                                                         i,
                                                         "cantidad",
-                                                        e.target.value
+                                                        e.target.value,
                                                     )
                                                 }
                                                 readOnly={readOnly}
@@ -393,7 +395,7 @@ export default function PackageModal({
                                                         updateRow(
                                                             i,
                                                             f as keyof PackageRow,
-                                                            e.target.value
+                                                            e.target.value,
                                                         )
                                                     }
                                                 />
@@ -417,7 +419,7 @@ export default function PackageModal({
                                                     updateRow(
                                                         i,
                                                         "items_decl",
-                                                        e.target.value
+                                                        e.target.value,
                                                     )
                                                 }
                                                 readOnly={readOnly}
@@ -431,7 +433,7 @@ export default function PackageModal({
                                                     updateRow(
                                                         i,
                                                         "declarado",
-                                                        e.target.value
+                                                        e.target.value,
                                                     )
                                                 }
                                                 readOnly={readOnly}
@@ -475,7 +477,7 @@ export default function PackageModal({
                                                 (a, r) =>
                                                     a +
                                                     parseFloat(r.peso || "0"),
-                                                0
+                                                0,
                                             )
                                             .toFixed(2)}
                                     </td>
@@ -488,7 +490,7 @@ export default function PackageModal({
                                                 (a, r) =>
                                                     a +
                                                     parseFloat(r.peso || "0"),
-                                                0
+                                                0,
                                             ) / 2.20462
                                         ).toFixed(2)}
                                     </td>
@@ -501,7 +503,7 @@ export default function PackageModal({
                                                 (a, r) =>
                                                     a +
                                                     parseFloat(r.total || "0"),
-                                                0
+                                                0,
                                             )
                                             .toFixed(2)}
                                     </td>

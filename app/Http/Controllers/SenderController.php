@@ -58,7 +58,7 @@ class SenderController extends Controller
             'id_type'        => 'required|string|max:50',
             'identification' => 'required|string|max:50',
             'full_name'      => 'required|string|max:100',
-            'address'        => 'nullable|string|max:255',
+            'address'        => 'nullable|string|max:25',
             'phone'          => 'nullable|string|max:50',
             'whatsapp'       => 'required|boolean',
             'email'          => 'nullable|email|max:100',
@@ -76,6 +76,15 @@ class SenderController extends Controller
                 'status' => 'error',
                 'message' => 'La cédula ingresada no es válida.',
             ], 422);
+        }
+        if (!empty($validated['full_name']) && preg_match('/[ñÑ.;\/]/', $validated['full_name'])) {
+            // Para storeJson:
+            return response()->json([
+                'status' => 'error',
+                'message' => 'El nombre no puede contener los caracteres: ñ . ; /',
+            ], 422);
+            // Para store (Inertia):
+            // return redirect()->back()->withErrors(['full_name' => 'El nombre no puede contener los caracteres: ñ . ; /'])->withInput();
         }
 
         $validated['enterprise_id'] = Auth::user()->enterprise_id;
@@ -95,7 +104,7 @@ class SenderController extends Controller
             'id_type'        => 'required|string|max:50',
             'identification' => 'required|string|max:50',
             'full_name'      => 'required|string|max:100',
-            'address'        => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:25',
             'phone'          => 'nullable|string|max:50',
             'whatsapp'       => 'required|boolean',
             'email'          => 'nullable|email|max:100',
@@ -139,7 +148,7 @@ class SenderController extends Controller
             'id_type'        => 'sometimes|required|string|max:50',
             'identification' => 'sometimes|required|string|max:50',
             'full_name'      => 'sometimes|required|string|max:100',
-            'address'        => 'nullable|string|max:255',
+            'address'        => 'nullable|string|max:25',
             'phone'          => 'nullable|string|max:50',
             'whatsapp'       => 'sometimes|required|boolean',
             'email'          => 'nullable|email|max:100',

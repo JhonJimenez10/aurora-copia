@@ -105,10 +105,14 @@ export default function SenderCreateModal({
             if (!cedulaRegex.test(data.identification)) {
                 setError(
                     "identification",
-                    "La cédula debe tener exactamente 10 dígitos numéricos."
+                    "La cédula debe tener exactamente 10 dígitos numéricos.",
                 );
                 return;
             }
+        }
+        if (data.address.length > 25) {
+            setError("address", "La dirección no puede superar 25 caracteres.");
+            return;
         }
 
         try {
@@ -134,7 +138,7 @@ export default function SenderCreateModal({
             } else {
                 setError(
                     "identification",
-                    "Error inesperado al guardar el remitente ❌"
+                    "Error inesperado al guardar el remitente ❌",
                 );
             }
         }
@@ -253,6 +257,7 @@ export default function SenderCreateModal({
                             <Label className="text-sm">Dirección</Label>
                             <Input
                                 required
+                                maxLength={25}
                                 className="text-sm bg-[#2a2a3d] text-white border border-gray-600"
                                 value={data.address}
                                 onChange={(e) =>
@@ -327,7 +332,7 @@ export default function SenderCreateModal({
                                             if (e.target.checked) {
                                                 setData(
                                                     "email",
-                                                    "cliente@auroraexpresss.com"
+                                                    "cliente@auroraexpresss.com",
                                                 );
                                             } else {
                                                 setData("email", "");

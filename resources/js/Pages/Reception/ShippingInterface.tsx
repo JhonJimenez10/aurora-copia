@@ -190,7 +190,7 @@ export default function ShippingInterface({
         if (!receptionId) return;
         if (
             !window.confirm(
-                "¿Seguro que deseas ANULAR esta recepción? Esta acción no elimina datos, pero la marcará como ANULADA."
+                "¿Seguro que deseas ANULAR esta recepción? Esta acción no elimina datos, pero la marcará como ANULADA.",
             )
         ) {
             return;
@@ -227,7 +227,7 @@ export default function ShippingInterface({
 
     // Defaults destinatario por agencia
     const [recipientDefaults, setRecipientDefaults] = useState<Partial<Person>>(
-        {}
+        {},
     );
     useEffect(() => {
         if (enterpriseId) {
@@ -268,7 +268,7 @@ export default function ShippingInterface({
 
     // Paquetes
     const [packages, setPackages] = useState<PackageItem[]>(
-        initialData?.packages || []
+        initialData?.packages || [],
     );
     const [showPackageModal, setShowPackageModal] = useState(false);
     const [editingPackageIndex, setEditingPackageIndex] = useState<
@@ -362,7 +362,7 @@ export default function ShippingInterface({
         } catch (error) {
             console.error(
                 "Error al obtener datos de la agencia destino:",
-                error
+                error,
             );
         }
     };
@@ -449,7 +449,7 @@ export default function ShippingInterface({
                         event.preventDefault();
                         if (!agencyDest) return;
                         setRecipientDefaults(
-                            agencyAddressDefaults[agencyDest] ?? {}
+                            agencyAddressDefaults[agencyDest] ?? {},
                         );
                         setShowRecipientModal(true);
                     }
@@ -549,7 +549,7 @@ export default function ShippingInterface({
     const updateAdditional = (
         index: number,
         field: keyof AdditionalItem,
-        value: string
+        value: string,
     ) => {
         if (readOnly) return;
         const updated = [...additionals];
@@ -690,7 +690,7 @@ export default function ShippingInterface({
     const handleSavePackage = (
         rows: PackageRow[],
         serviceType: string,
-        perfumeDesc: string
+        perfumeDesc: string,
     ) => {
         // Guard adicional: si estoy creando y ya hay 1, bloquear
         if (editingPackageIndex === null && packages.length >= 1) {
@@ -777,7 +777,7 @@ export default function ShippingInterface({
 
         const totalAdditionals = additionals.reduce(
             (acc, item) => acc + item.quantity * item.unit_price,
-            0
+            0,
         );
 
         const totalSeguroPaquete = packages.reduce((accPkg, pkg) => {
@@ -800,7 +800,7 @@ export default function ShippingInterface({
 
         let totalDesaduanizacion = 0;
         const algunPaqueteSobre = packages.some(
-            (pkg) => pkg.service_type === "SOBRE"
+            (pkg) => pkg.service_type === "SOBRE",
         );
 
         if (algunPaqueteSobre) {
@@ -831,7 +831,7 @@ export default function ShippingInterface({
                 totalSeguroEnvio +
                 totalDesaduanizacion +
                 totalTransporteDestino +
-                totalAranceles
+                totalAranceles,
         );
 
         const transmision = round(subtotalBase * 0.01);
@@ -847,8 +847,8 @@ export default function ShippingInterface({
         if (payMethod === "EFECTIVO" && efectivoRecibido < total) {
             alert(
                 `El efectivo recibido ($${efectivoRecibido.toFixed(
-                    2
-                )}) no puede ser menor al total a pagar ($${total.toFixed(2)}).`
+                    2,
+                )}) no puede ser menor al total a pagar ($${total.toFixed(2)}).`,
             );
             return;
         }
@@ -909,7 +909,7 @@ export default function ShippingInterface({
             try {
                 const xmlRes = await axios.get(
                     `/invoices/${invoice_id}/xml-download`,
-                    { responseType: "blob" }
+                    { responseType: "blob" },
                 );
                 const blob = new Blob([xmlRes.data], {
                     type: "application/xml",
@@ -933,7 +933,7 @@ export default function ShippingInterface({
             setModalTitleClass("text-green-400");
             setModalTitle("Factura generada correctamente");
             setModalMessage(
-                `Factura generada con número ${invoice_number}.\nSe guardó el XML en:\n${xml_path}`
+                `Factura generada con número ${invoice_number}.\nSe guardó el XML en:\n${xml_path}`,
             );
             setModalLink(xml_path);
             setShowSuccessModal(true);
@@ -1153,7 +1153,7 @@ export default function ShippingInterface({
                                     <TooltipContent className="bg-black text-white border border-red-700 text-xs max-w-[250px]">
                                         {(() => {
                                             const agency = agencyOptions.find(
-                                                (a) => a.id === agencyDest
+                                                (a) => a.id === agencyDest,
                                             );
                                             if (!agency)
                                                 return "Selecciona una agencia para ver detalles.";
@@ -1484,7 +1484,7 @@ export default function ShippingInterface({
                                                     onClick={() => {
                                                         if (!readOnly)
                                                             setShowRecipientSearch(
-                                                                true
+                                                                true,
                                                             );
                                                     }} // 👈 no-op en lectura
                                                     disabled={readOnly} // 👈
@@ -1518,10 +1518,10 @@ export default function ShippingInterface({
                                                         setRecipientDefaults(
                                                             agencyAddressDefaults[
                                                                 agencyDest
-                                                            ] ?? {}
+                                                            ] ?? {},
                                                         );
                                                         setShowRecipientModal(
-                                                            true
+                                                            true,
                                                         );
                                                     }}
                                                     className={`${
@@ -1785,24 +1785,24 @@ export default function ShippingInterface({
                                                         </td>
                                                         <td className="px-2 py-2 text-right">
                                                             {pkg.pounds.toFixed(
-                                                                2
+                                                                2,
                                                             )}
                                                         </td>
                                                         <td className="px-2 py-2 text-right">
                                                             {pkg.kilograms.toFixed(
-                                                                2
+                                                                2,
                                                             )}
                                                         </td>
                                                         <td className="px-2 py-2 text-right">
                                                             $
                                                             {pkg.total.toFixed(
-                                                                2
+                                                                2,
                                                             )}
                                                         </td>
                                                         <td className="px-2 py-2 text-right">
                                                             $
                                                             {pkg.decl_val.toFixed(
-                                                                2
+                                                                2,
                                                             )}
                                                         </td>
                                                         <td className="px-2 py-2 text-center space-x-1">
@@ -1811,7 +1811,7 @@ export default function ShippingInterface({
                                                                 size="icon"
                                                                 onClick={() =>
                                                                     openEditPackageModal(
-                                                                        idx
+                                                                        idx,
                                                                     )
                                                                 }
                                                                 className="text-blue-400 hover:text-blue-500"
@@ -1830,11 +1830,11 @@ export default function ShippingInterface({
                                                                         packages.filter(
                                                                             (
                                                                                 _,
-                                                                                i
+                                                                                i,
                                                                             ) =>
                                                                                 i !==
-                                                                                idx
-                                                                        )
+                                                                                idx,
+                                                                        ),
                                                                     );
                                                                 }}
                                                                 disabled={
@@ -1868,7 +1868,7 @@ export default function ShippingInterface({
                                                     .reduce(
                                                         (acc, p) =>
                                                             acc + p.total,
-                                                        0
+                                                        0,
                                                     )
                                                     .toFixed(2)}
                                             </span>
@@ -1885,8 +1885,8 @@ export default function ShippingInterface({
                                                 onChange={(e) =>
                                                     setPackageDiscount(
                                                         parseFloat(
-                                                            e.target.value
-                                                        ) || 0
+                                                            e.target.value,
+                                                        ) || 0,
                                                     )
                                                 }
                                                 disabled={readOnly}
@@ -1905,8 +1905,8 @@ export default function ShippingInterface({
                                                     packages.reduce(
                                                         (acc, p) =>
                                                             acc + p.total,
-                                                        0
-                                                    ) - packageDiscount
+                                                        0,
+                                                    ) - packageDiscount,
                                                 ).toFixed(2)}
                                             </span>
                                         </div>
@@ -1967,7 +1967,7 @@ export default function ShippingInterface({
                                                                     index,
                                                                     "quantity",
                                                                     e.target
-                                                                        .value
+                                                                        .value,
                                                                 )
                                                             }
                                                             readOnly={readOnly}
@@ -1989,7 +1989,7 @@ export default function ShippingInterface({
                                                             value={item.article}
                                                             disabled={readOnly} // 👈 desactiva selección
                                                             onValueChange={(
-                                                                value
+                                                                value,
                                                             ) => {
                                                                 if (readOnly)
                                                                     return; // 👈 doble seguro
@@ -1997,7 +1997,7 @@ export default function ShippingInterface({
                                                                     artPackgOptions.find(
                                                                         (opt) =>
                                                                             opt.id ===
-                                                                            value
+                                                                            value,
                                                                     );
                                                                 if (selected) {
                                                                     const updated =
@@ -2014,7 +2014,7 @@ export default function ShippingInterface({
                                                                             selected.id,
                                                                         unit_price:
                                                                             Number(
-                                                                                selected.unit_price
+                                                                                selected.unit_price,
                                                                             ),
                                                                         unit:
                                                                             selected.unit_type ??
@@ -2029,7 +2029,7 @@ export default function ShippingInterface({
                                                                                 updated[
                                                                                     index
                                                                                 ]
-                                                                                    .quantity
+                                                                                    .quantity,
                                                                             ) <=
                                                                                 0
                                                                                 ? 1
@@ -2039,7 +2039,7 @@ export default function ShippingInterface({
                                                                                       .quantity,
                                                                     };
                                                                     setAdditionals(
-                                                                        updated
+                                                                        updated,
                                                                     );
                                                                 }
                                                             }}
@@ -2062,7 +2062,7 @@ export default function ShippingInterface({
                                                                                 art.name
                                                                             }
                                                                         </SelectItem>
-                                                                    )
+                                                                    ),
                                                                 )}
                                                             </SelectContent>
                                                         </Select>
@@ -2074,7 +2074,7 @@ export default function ShippingInterface({
                                                             type="number"
                                                             readOnly
                                                             value={item.unit_price.toFixed(
-                                                                2
+                                                                2,
                                                             )}
                                                             className="text-right bg-black text-white border border-red-700"
                                                         />
@@ -2097,7 +2097,7 @@ export default function ShippingInterface({
                                                                 size="icon"
                                                                 onClick={() =>
                                                                     removeAdditional(
-                                                                        index
+                                                                        index,
                                                                     )
                                                                 }
                                                                 className="text-red-500 hover:text-red-600"
@@ -2124,7 +2124,7 @@ export default function ShippingInterface({
                                                                 acc +
                                                                 item.quantity *
                                                                     item.unit_price,
-                                                            0
+                                                            0,
                                                         )
                                                         .toFixed(2)}
                                                 </td>
@@ -2164,7 +2164,7 @@ export default function ShippingInterface({
                                         (acc, item) =>
                                             acc +
                                             item.quantity * item.unit_price,
-                                        0
+                                        0,
                                     );
 
                                     const totalSeguroPaquete = packages.reduce(
@@ -2177,10 +2177,10 @@ export default function ShippingInterface({
                                                             "";
                                                         const isOroPlata =
                                                             name.includes(
-                                                                "oro"
+                                                                "oro",
                                                             ) ||
                                                             name.includes(
-                                                                "plata"
+                                                                "plata",
                                                             );
                                                         const tasa = isOroPlata
                                                             ? 0.15
@@ -2190,23 +2190,23 @@ export default function ShippingInterface({
                                                             item.ins_val * tasa
                                                         );
                                                     },
-                                                    0
+                                                    0,
                                                 );
                                             return accPkg + seguroPorItems;
                                         },
-                                        0
+                                        0,
                                     );
 
                                     const totalPesoLbs = packages.reduce(
                                         (acc, pkg) => acc + pkg.pounds,
-                                        0
+                                        0,
                                     );
                                     const agencia = agencyOptions.find(
-                                        (a) => a.id === agencyDest
+                                        (a) => a.id === agencyDest,
                                     );
                                     const valorTransporte = agencia?.value || 0;
                                     const totalTransporteDestino = round(
-                                        valorTransporte * totalPesoLbs
+                                        valorTransporte * totalPesoLbs,
                                     );
 
                                     const totalSeguroEnvio = totalPesoLbs * 0.1;
@@ -2214,7 +2214,7 @@ export default function ShippingInterface({
                                     // ✅ POR ESTE:
                                     let totalDesaduanizacion = 0;
                                     const algunPaqueteSobre = packages.some(
-                                        (pkg) => pkg.service_type === "SOBRE"
+                                        (pkg) => pkg.service_type === "SOBRE",
                                     );
 
                                     if (algunPaqueteSobre) {
@@ -2251,15 +2251,15 @@ export default function ShippingInterface({
                                                         (accItem, item) => {
                                                             const itemsDecl =
                                                                 Number(
-                                                                    item.items_decl
+                                                                    item.items_decl,
                                                                 ) || 0;
                                                             const declarado =
                                                                 Number(
-                                                                    item.decl_val
+                                                                    item.decl_val,
                                                                 ) || 0;
                                                             const arancel =
                                                                 Number(
-                                                                    item.arancel
+                                                                    item.arancel,
                                                                 ) || 0; // porcentaje
 
                                                             return (
@@ -2270,11 +2270,11 @@ export default function ShippingInterface({
                                                                         100)
                                                             );
                                                         },
-                                                        0
+                                                        0,
                                                     );
                                                 return accPkg + arancelesPkg;
                                             },
-                                            0
+                                            0,
                                         );
                                     }
 
@@ -2286,17 +2286,17 @@ export default function ShippingInterface({
                                             totalSeguroEnvio +
                                             totalDesaduanizacion +
                                             totalTransporteDestino +
-                                            totalAranceles
+                                            totalAranceles,
                                     );
 
                                     // ✅ Transmisión es el 1% del subtotal base
                                     const transmision = round(
-                                        subtotalBase * 0.01
+                                        subtotalBase * 0.01,
                                     );
 
                                     // 🔵 Subtotal final que sí incluye transmisión
                                     const subtotal = round(
-                                        subtotalBase + transmision
+                                        subtotalBase + transmision,
                                     );
 
                                     const iva = round(subtotal * 0.15);
@@ -2304,7 +2304,7 @@ export default function ShippingInterface({
 
                                     const cambio = Math.max(
                                         0,
-                                        round(efectivoRecibido - totalFinal)
+                                        round(efectivoRecibido - totalFinal),
                                     );
                                     return (
                                         <div className="space-y-1 text-sm">
@@ -2319,7 +2319,7 @@ export default function ShippingInterface({
                                                 <span>
                                                     $
                                                     {totalSeguroPaquete.toFixed(
-                                                        2
+                                                        2,
                                                     )}
                                                 </span>
                                             </div>
@@ -2335,7 +2335,7 @@ export default function ShippingInterface({
                                                 <span>
                                                     $
                                                     {totalAdditionals.toFixed(
-                                                        2
+                                                        2,
                                                     )}
                                                 </span>
                                             </div>
@@ -2344,7 +2344,7 @@ export default function ShippingInterface({
                                                 <span>
                                                     $
                                                     {totalSeguroEnvio.toFixed(
-                                                        2
+                                                        2,
                                                     )}
                                                 </span>
                                             </div>
@@ -2353,7 +2353,7 @@ export default function ShippingInterface({
                                                 <span>
                                                     $
                                                     {totalDesaduanizacion.toFixed(
-                                                        2
+                                                        2,
                                                     )}
                                                 </span>
                                             </div>
@@ -2362,7 +2362,7 @@ export default function ShippingInterface({
                                                 <span>
                                                     $
                                                     {totalTransporteDestino.toFixed(
-                                                        2
+                                                        2,
                                                     )}
                                                 </span>
                                             </div>
@@ -2400,7 +2400,7 @@ export default function ShippingInterface({
                                                     <Select
                                                         value={payMethod}
                                                         onValueChange={(
-                                                            value
+                                                            value,
                                                         ) => {
                                                             setPayMethod(value);
                                                             if (
@@ -2408,7 +2408,7 @@ export default function ShippingInterface({
                                                                 "EFECTIVO"
                                                             ) {
                                                                 setEfectivoRecibido(
-                                                                    0
+                                                                    0,
                                                                 ); // Opcional: limpia el efectivo recibido
                                                             }
                                                         }}
@@ -2449,18 +2449,18 @@ export default function ShippingInterface({
                                                             const value =
                                                                 parseFloat(
                                                                     e.target
-                                                                        .value
+                                                                        .value,
                                                                 );
                                                             if (
                                                                 !isNaN(value) &&
                                                                 value >= 0
                                                             ) {
                                                                 setEfectivoRecibido(
-                                                                    value
+                                                                    value,
                                                                 );
                                                             } else {
                                                                 setEfectivoRecibido(
-                                                                    0
+                                                                    0,
                                                                 );
                                                             }
                                                         }}
@@ -2622,6 +2622,7 @@ export default function ShippingInterface({
                                         unit_price: 0,
                                     },
                                 ]);
+                                setPayMethod("EFECTIVO");
                                 setPackageDiscount(0);
                                 setEfectivoRecibido(0);
                                 setReceptionDate(today);
@@ -2632,7 +2633,7 @@ export default function ShippingInterface({
                                 axios
                                     .get("/receptions/next-number")
                                     .then((res) =>
-                                        setReceptionNumber(res.data.number)
+                                        setReceptionNumber(res.data.number),
                                     );
                             }}
                         >
@@ -2655,7 +2656,7 @@ export default function ShippingInterface({
                             onClick={async () => {
                                 if (!pdfUrl) {
                                     alert(
-                                        "No hay PDF disponible para imprimir."
+                                        "No hay PDF disponible para imprimir.",
                                     );
                                     return;
                                 }
@@ -2667,7 +2668,7 @@ export default function ShippingInterface({
                                     };
                                 else
                                     alert(
-                                        "Pop-ups bloqueados. Habilítalos para imprimir."
+                                        "Pop-ups bloqueados. Habilítalos para imprimir.",
                                     );
                             }}
                         >
@@ -2682,7 +2683,7 @@ export default function ShippingInterface({
                                 if (invoiceId) {
                                     window.open(
                                         `/invoices/${invoiceId}/ticket`,
-                                        "_blank"
+                                        "_blank",
                                     );
                                 }
                             }}
@@ -2698,7 +2699,7 @@ export default function ShippingInterface({
                                 invoiceId &&
                                 window.open(
                                     `/invoices/${invoiceId}/a4`,
-                                    "_blank"
+                                    "_blank",
                                 )
                             }
                         >
