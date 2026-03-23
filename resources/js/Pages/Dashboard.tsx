@@ -376,16 +376,19 @@ export default function Dashboard() {
                                                 🚫 NO SE RECEPTA COMIDA
                                             </p>
                                             <p className="text-lg leading-relaxed font-semibold">
-                                                Este fin de semana{" "}
+                                                Hay inconvenientes en la aduana,
+                                                por lo que{" "}
                                                 <span className="font-black text-yellow-300 underline text-xl">
-                                                    NO se acepta comida.
-                                                </span>
+                                                    NO se receptará comida
+                                                </span>{" "}
+                                                hasta nuevo aviso.
                                             </p>
                                             <p className="text-lg leading-relaxed font-semibold">
-                                                La recepción de comida se
-                                                retomará a partir del{" "}
+                                                Se informará oportunamente
+                                                cuando se retome la recepción de
+                                                comida.{" "}
                                                 <span className="font-black text-yellow-300 text-xl underline">
-                                                    próximo lunes.
+                                                    Pendiente de nuevo aviso.
                                                 </span>
                                             </p>
                                         </div>
