@@ -373,22 +373,21 @@ export default function Dashboard() {
                                         </div>
                                         <div className="text-white space-y-3">
                                             <p className="font-black text-2xl uppercase tracking-wide text-yellow-300">
-                                                🚫 NO SE RECEPTA COMIDA
+                                                📦 SOLO CARGA SECA
                                             </p>
                                             <p className="text-lg leading-relaxed font-semibold">
-                                                Hay inconvenientes en la aduana,
-                                                por lo que{" "}
+                                                Se recepta{" "}
                                                 <span className="font-black text-yellow-300 underline text-xl">
-                                                    NO se receptará comida
+                                                    solo cosas secas
                                                 </span>{" "}
-                                                hasta nuevo aviso.
+                                                que hagan el envío temprano de
+                                                la carga por transporte.
                                             </p>
                                             <p className="text-lg leading-relaxed font-semibold">
-                                                Se informará oportunamente
-                                                cuando se retome la recepción de
-                                                comida.{" "}
+                                                Mande la guía al siguiente
+                                                número:{" "}
                                                 <span className="font-black text-yellow-300 text-xl underline">
-                                                    Pendiente de nuevo aviso.
+                                                    0983363729
                                                 </span>
                                             </p>
                                         </div>
