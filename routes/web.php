@@ -46,133 +46,79 @@ Route::middleware('auth')->group(function () {
     // Información de empresa para autocompletar remitente
     Route::get('/api/enterprise-info', function () {
         $user = auth()->user();
-        $enterpriseId = $user->enterprise_id ?? null;
-        $enterprise = $enterpriseId ? \App\Models\Enterprise::find($enterpriseId) : null;
+        $enterprise = $user->enterprise_id
+            ? \App\Models\Enterprise::find($user->enterprise_id)
+            : null;
 
         $defaultAutofill = [
             'postal_code' => '010101',
-            'city' => 'CUENCA',
-            'canton' => 'Cuenca',
-            'state' => 'Azuay',
+            'city'        => 'CUENCA',
+            'canton'      => 'Cuenca',
+            'state'       => 'Azuay',
         ];
 
         if (!$enterprise) {
             return response()->json([
-                'enterprise' => [
-                    'id' => null,
-                    'name' => $user->role === 'sudo' ? 'SUDO' : '',
-                    'ruc' => '',
-                    'matrix_address' => '',
-                    'branch_address' => '',
-                ],
-                'autofill' => $defaultAutofill,
+                'enterprise' => ['id' => null, 'name' => '', 'ruc' => ''],
+                'autofill'   => $defaultAutofill,
             ]);
         }
 
-        $addressMap = [
-            'LOJA' => [
-                'postal_code' => '110150',
-                'city' => 'Loja',
-                'canton' => 'Loja',
-                'state' => 'Loja'
-            ],
-            'SIGSIG' => [
-                'postal_code' => '010309',
-                'city' => 'Sígsig',
-                'canton' => 'Sígsig',
-                'state' => 'Azuay'
-            ],
-            'CUENCA' => [
-                'postal_code' => '010101',
-                'city' => 'Cuenca',
-                'canton' => 'Cuenca',
-                'state' => 'Azuay'
-            ],
-            'BIBLIAN' => [
-                'postal_code' => '030105',
-                'city' => 'Biblián',
-                'canton' => 'Biblián',
-                'state' => 'Cañar'
-            ],
-            'SARAGURO' => [
-                'postal_code' => '110205',
-                'city' => 'Saraguro',
-                'canton' => 'Saraguro',
-                'state' => 'Loja'
-            ],
-            'CAÑAR' => [
-                'postal_code' => '030101',
-                'city' => 'Cañar',
-                'canton' => 'Cañar',
-                'state' => 'Cañar'
-            ],
-            'SAYAUSI' => [
-                'postal_code' => '010164',
-                'city' => 'Sayausí',
-                'canton' => 'Cuenca',
-                'state' => 'Azuay'
-            ],
-            'MOLLETURO' => [
-                'postal_code' => '010165',
-                'city' => 'Molleturo',
-                'canton' => 'Cuenca',
-                'state' => 'Azuay'
-            ],
-            'PAUTE' => [
-                'postal_code' => '010601',
-                'city' => 'Paute',
-                'canton' => 'Paute',
-                'state' => 'Azuay'
-            ],
-            'PUCARA' => [
-                'postal_code' => '010801',
-                'city' => 'Pucará',
-                'canton' => 'Pucará',
-                'state' => 'Azuay'
-            ],
+        $cityRaw     = strtoupper(trim($enterprise->city ?? ''));
+        $provinceRaw = strtoupper(trim($enterprise->province ?? ''));
 
-            'SG' => [
-                'postal_code' => '010309',
-                'city' => 'Sígsig',
-                'canton' => 'Sígsig',
-                'state' => 'Azuay'
-            ],
-            'SY' => [
-                'postal_code' => '010164',
-                'city' => 'Sayausí',
-                'canton' => 'Cuenca',
-                'state' => 'Azuay'
-            ],
-            'CENTRO SARAGURO' => [
-                'postal_code' => '110205',
-                'city' => 'Saraguro',
-                'canton' => 'Saraguro',
-                'state' => 'Loja'
-            ],
-            'ZHUD' => [
-                'postal_code' => '030101',
-                'city' => 'Cañar',
-                'canton' => 'Cañar',
-                'state' => 'Cañar'
-            ],
+        $addressMap = [
+            'LOJA'           => ['postal_code' => '110150', 'city' => 'Loja',     'canton' => 'Loja',     'state' => 'Loja'],
+            'SIGSIG'         => ['postal_code' => '010309', 'city' => 'Sígsig',   'canton' => 'Sígsig',   'state' => 'Azuay'],
+            'CUENCA'         => ['postal_code' => '010101', 'city' => 'Cuenca',   'canton' => 'Cuenca',   'state' => 'Azuay'],
+            'BIBLIAN'        => ['postal_code' => '030105', 'city' => 'Biblián',  'canton' => 'Biblián',  'state' => 'Cañar'],
+            'SARAGURO'       => ['postal_code' => '110205', 'city' => 'Saraguro', 'canton' => 'Saraguro', 'state' => 'Loja'],
+            'CAÑAR'          => ['postal_code' => '030101', 'city' => 'Cañar',    'canton' => 'Cañar',    'state' => 'Cañar'],
+            'SAYAUSI'        => ['postal_code' => '010164', 'city' => 'Sayausí',  'canton' => 'Cuenca',   'state' => 'Azuay'],
+            'MOLLETURO'      => ['postal_code' => '010165', 'city' => 'Molleturo','canton' => 'Cuenca',   'state' => 'Azuay'],
+            'PAUTE'          => ['postal_code' => '010601', 'city' => 'Paute',    'canton' => 'Paute',    'state' => 'Azuay'],
+            'PUCARA'         => ['postal_code' => '010801', 'city' => 'Pucará',   'canton' => 'Pucará',   'state' => 'Azuay'],
+            'SG'             => ['postal_code' => '010309', 'city' => 'Sígsig',   'canton' => 'Sígsig',   'state' => 'Azuay'],
+            'SY'             => ['postal_code' => '010164', 'city' => 'Sayausí',  'canton' => 'Cuenca',   'state' => 'Azuay'],
+            'CENTRO SARAGURO'=> ['postal_code' => '110205', 'city' => 'Saraguro', 'canton' => 'Saraguro', 'state' => 'Loja'],
+            'ZHUD'           => ['postal_code' => '030101', 'city' => 'Cañar',    'canton' => 'Cañar',    'state' => 'Cañar'],
+            'PASAJE'         => ['postal_code' => '070201', 'city' => 'Pasaje',   'canton' => 'Pasaje',   'state' => 'El Oro'],
+            'NARANJAL'   => ['postal_code' => '090601', 'city' => 'Naranjal',   'canton' => 'Naranjal',  'state' => 'Guayas'],
+            'TAMBO'      => ['postal_code' => '030201', 'city' => 'El Tambo',   'canton' => 'El Tambo',  'state' => 'Cañar'],
+            'EL TAMBO'   => ['postal_code' => '030201', 'city' => 'El Tambo',   'canton' => 'El Tambo',  'state' => 'Cañar'],
         ];
 
-        $addressText = strtoupper($enterprise->matrix_address ?? '');
-        $matched = collect($addressMap)->first(fn($_, $key) => str_contains($addressText, $key));
+        $autofill = null;
 
-        if (!$matched) {
-            $matched = $defaultAutofill;
+        if ($cityRaw && isset($addressMap[$cityRaw])) {
+            $autofill = $addressMap[$cityRaw];
+        }
+
+        if (!$autofill) {
+            $addressText = strtoupper($enterprise->matrix_address ?? '');
+            foreach ($addressMap as $key => $data) {
+                if (str_contains($addressText, $key)) {
+                    $autofill = $data;
+                    break;
+                }
+            }
+        }
+
+        if (!$autofill) {
+            $autofill = $defaultAutofill;
         }
 
         return response()->json([
             'enterprise' => [
-                'id' => $enterprise->id,
-                'name' => $enterprise->name,
-                'ruc' => $enterprise->ruc,
+                'id'             => $enterprise->id,
+                'name'           => $enterprise->name,
+                'ruc'            => $enterprise->ruc,
                 'matrix_address' => $enterprise->matrix_address,
                 'branch_address' => $enterprise->branch_address,
+                'city'           => $enterprise->city,
+                'province'       => $enterprise->province,
             ],
-            'autofill' => $matched,
+            'autofill' => $autofill,
         ]);
     });
 });

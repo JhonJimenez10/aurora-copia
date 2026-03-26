@@ -628,11 +628,21 @@ export default function ShippingInterface({
 
     // Origen por empresa
     const [agencyOrigin, setAgencyOrigin] = useState("");
+    const [enterpriseAutofill, setEnterpriseAutofill] = useState<
+        Partial<Person>
+    >({});
     useEffect(() => {
         const fetchEnterprise = async () => {
             try {
                 const res = await axios.get("/api/enterprise-info");
-                setAgencyOrigin(res.data.autofill.city.toUpperCase());
+                const autofill = res.data.autofill;
+                setAgencyOrigin(autofill.city.toUpperCase());
+                setEnterpriseAutofill({
+                    postal_code: autofill.postal_code ?? "",
+                    city: autofill.city ?? "",
+                    canton: autofill.canton ?? "",
+                    state: autofill.state ?? "",
+                });
             } catch (err) {
                 console.error("Error al obtener la ciudad de la empresa:", err);
             }
