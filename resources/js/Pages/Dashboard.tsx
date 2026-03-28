@@ -12,7 +12,7 @@ import {
     Pill,
     Sparkles,
     TrendingUp,
-    X,
+    CheckCircle,
 } from "lucide-react";
 import { Tabs, TabsContent } from "@/Components/ui/tabs";
 
@@ -218,6 +218,14 @@ export default function Dashboard() {
               box-shadow: 0 8px 30px rgba(234, 179, 8, 0.6), 0 0 40px rgba(234, 179, 8, 0.3);
             }
           }
+          @keyframes pulse-green {
+            0%, 100% { 
+              box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
+            }
+            50% { 
+              box-shadow: 0 8px 30px rgba(34, 197, 94, 0.6), 0 0 40px rgba(34, 197, 94, 0.3);
+            }
+          }
           @keyframes shimmer {
             0% { background-position: -1000px 0; }
             100% { background-position: 1000px 0; }
@@ -231,14 +239,8 @@ export default function Dashboard() {
             50% { transform: translateY(-3px); }
           }
           @keyframes modalFadeIn {
-            from { 
-              opacity: 0;
-              transform: scale(0.9);
-            }
-            to { 
-              opacity: 1;
-              transform: scale(1);
-            }
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
           }
           @keyframes shake {
             0%, 100% { transform: translateX(0); }
@@ -249,6 +251,7 @@ export default function Dashboard() {
           .animate-slideIn { animation: slideIn 0.3s ease-out forwards; }
           .animate-pulse-alert { animation: pulse-alert 2.5s ease-in-out infinite; }
           .animate-pulse-warning { animation: pulse-warning 2.5s ease-in-out infinite; }
+          .animate-pulse-green { animation: pulse-green 2.5s ease-in-out infinite; }
           .animate-float { animation: float 3s ease-in-out infinite; }
           .animate-bounce-subtle { animation: bounce-subtle 2s ease-in-out infinite; }
           .animate-modal { animation: modalFadeIn 0.3s ease-out forwards; }
@@ -264,12 +267,7 @@ export default function Dashboard() {
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(
-              90deg,
-              transparent,
-              rgba(255, 255, 255, 0.3),
-              transparent
-            );
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
             animation: shimmer 3s infinite;
           }
           .glass-effect {
@@ -288,9 +286,7 @@ export default function Dashboard() {
           .stat-card:hover .stat-icon {
             transform: scale(1.3) rotate(360deg);
           }
-          .stat-icon {
-            transition: transform 0.6s ease;
-          }
+          .stat-icon { transition: transform 0.6s ease; }
           .day-button {
             transition: all 0.3s ease;
             position: relative;
@@ -308,10 +304,7 @@ export default function Dashboard() {
             transform: translate(-50%, -50%);
             transition: width 0.6s, height 0.6s;
           }
-          .day-button:hover::before {
-            width: 300px;
-            height: 300px;
-          }
+          .day-button:hover::before { width: 300px; height: 300px; }
           .alert-card {
             transition: all 0.4s ease;
             cursor: pointer;
@@ -320,44 +313,40 @@ export default function Dashboard() {
             transform: translateY(-8px) scale(1.03);
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
           }
-          .location-card {
-            transition: all 0.3s ease;
-            cursor: pointer;
-          }
+          .location-card { transition: all 0.3s ease; cursor: pointer; }
           .location-card:hover {
             transform: translateX(5px);
             border-color: rgba(239, 68, 68, 0.8);
             box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
           }
+          .notice-block { transition: all 0.3s ease; }
+          .notice-block:hover { transform: translateY(-2px); }
         `}
             </style>
 
-            {/* MODAL DE ALERTA EMERGENTE */}
+            {/* MODAL DE AVISOS */}
             {showEmergencyAlert && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeInUp">
-                    <div className="relative max-w-lg w-full animate-modal">
-                        <div className="absolute inset-0 bg-gradient-to-br from-red-600 via-red-700 to-red-900 rounded-2xl blur-xl opacity-50 animate-pulse-alert"></div>
+                    <div className="relative max-w-xl w-full animate-modal">
+                        {/* Glow exterior verde */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-green-600 via-green-700 to-emerald-900 rounded-2xl blur-xl opacity-40 animate-pulse-green"></div>
 
-                        <div className="relative bg-gradient-to-br from-red-600 via-red-700 to-red-800 rounded-2xl shadow-2xl border-4 border-red-400/50 overflow-hidden">
+                        <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl shadow-2xl border-2 border-green-500/40 overflow-hidden">
                             <div className="shimmer-effect absolute inset-0"></div>
 
                             {/* Header */}
-                            <div className="relative bg-gradient-to-r from-red-900/80 to-red-800/80 p-6 border-b-4 border-red-400/50">
+                            <div className="relative bg-gradient-to-r from-green-700/90 to-emerald-700/90 p-5 border-b-2 border-green-400/40">
                                 <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-yellow-400 rounded-full animate-shake">
-                                        <AlertCircle className="w-10 h-10 text-red-900" />
+                                    <div className="p-3 bg-white/20 rounded-full animate-bounce-subtle">
+                                        <CheckCircle className="w-9 h-9 text-white" />
                                     </div>
                                     <div className="flex-1">
-                                        <h2 className="text-3xl font-black text-white uppercase tracking-wide flex items-center gap-2">
-                                            <span className="animate-bounce-subtle">
-                                                ⚠️
-                                            </span>
-                                            AVISO IMPORTANTE
-                                            <span className="animate-bounce-subtle">
-                                                ⚠️
-                                            </span>
+                                        <h2 className="text-2xl font-black text-white uppercase tracking-wide flex items-center gap-2">
+                                            <span>✅</span>
+                                            AVISOS A AGENTES
+                                            <span>✅</span>
                                         </h2>
-                                        <p className="text-red-100 text-sm font-semibold mt-1">
+                                        <p className="text-green-100 text-sm font-semibold mt-1">
                                             Lea detenidamente antes de continuar
                                         </p>
                                     </div>
@@ -365,65 +354,118 @@ export default function Dashboard() {
                             </div>
 
                             {/* Cuerpo */}
-                            <div className="relative p-8 space-y-4">
-                                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border-2 border-white/20">
-                                    <div className="flex items-start gap-4">
-                                        <div className="p-3 bg-yellow-400 rounded-full flex-shrink-0 animate-shake">
-                                            <X className="w-7 h-7 text-red-900" />
-                                        </div>
-                                        <div className="text-white space-y-3">
-                                            <p className="font-black text-2xl uppercase tracking-wide text-yellow-300">
-                                                📦 SOLO CARGA SECA
-                                            </p>
-                                            <p className="text-lg leading-relaxed font-semibold">
-                                                Se recepta{" "}
-                                                <span className="font-black text-yellow-300 underline text-xl">
-                                                    solo cosas secas
-                                                </span>{" "}
-                                                que hagan el envío temprano de
-                                                la carga por transporte.
-                                            </p>
-                                            <p className="text-lg leading-relaxed font-semibold">
-                                                Mande la guía al siguiente
-                                                número:{" "}
-                                                <span className="font-black text-yellow-300 text-xl underline">
-                                                    0983363729
-                                                </span>
-                                            </p>
-                                        </div>
+                            <div className="relative p-6 space-y-4">
+                                {/* Bloque 1 — Normalidad */}
+                                <div className="notice-block bg-gradient-to-r from-green-900/50 to-emerald-900/50 border-2 border-green-500/50 rounded-xl p-5 flex items-start gap-4">
+                                    <span className="text-3xl flex-shrink-0">
+                                        🟢
+                                    </span>
+                                    <div className="text-white space-y-1">
+                                        <p className="font-black text-base uppercase tracking-wide text-green-300 mb-2">
+                                            Recepción vuelve a la normalidad
+                                        </p>
+                                        <p className="text-sm leading-relaxed font-semibold">
+                                            Señores agentes, la recepción de
+                                            carga vuelve a la normalidad.{" "}
+                                            <span className="text-green-300 font-black underline">
+                                                Ya se puede receptar carga de
+                                                comida
+                                            </span>{" "}
+                                            para el embarque del día{" "}
+                                            <span className="text-yellow-300 font-black">
+                                                sábado.
+                                            </span>
+                                        </p>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2 text-red-100 text-sm pt-2">
-                                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
-                                    <div className="w-2 h-2 bg-yellow-400 rounded-full absolute"></div>
+                                {/* Bloque 2 — Sin embarque 4 de abril */}
+                                <div className="notice-block bg-gradient-to-r from-red-900/50 to-rose-900/50 border-2 border-red-500/50 rounded-xl p-5 flex items-start gap-4">
+                                    <span className="text-3xl flex-shrink-0">
+                                        🚫
+                                    </span>
+                                    <div className="text-white space-y-1">
+                                        <p className="font-black text-base uppercase tracking-wide text-red-300 mb-2">
+                                            Sin embarque — 4 de Abril
+                                        </p>
+                                        <p className="text-sm leading-relaxed font-semibold">
+                                            Se informa que el día{" "}
+                                            <span className="text-red-300 font-black underline">
+                                                4 de abril NO habrá embarque.
+                                            </span>{" "}
+                                            Tomar las previsiones del caso.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Bloque 3 — Carga seca jue/vie para embarque del 28 */}
+                                <div className="notice-block bg-gradient-to-r from-yellow-900/50 to-orange-900/50 border-2 border-yellow-500/50 rounded-xl p-5 flex items-start gap-4">
+                                    <span className="text-3xl flex-shrink-0">
+                                        📦
+                                    </span>
+                                    <div className="text-white space-y-1">
+                                        <p className="font-black text-base uppercase tracking-wide text-yellow-300 mb-2">
+                                            Embarque del sábado 28
+                                        </p>
+                                        <p className="text-sm leading-relaxed font-semibold">
+                                            Por favor receptar{" "}
+                                            <span className="text-yellow-300 font-black underline">
+                                                carga seca
+                                            </span>{" "}
+                                            los días{" "}
+                                            <span className="text-yellow-300 font-black">
+                                                jueves 26
+                                            </span>{" "}
+                                            y{" "}
+                                            <span className="text-yellow-300 font-black">
+                                                viernes 27 de marzo
+                                            </span>{" "}
+                                            para el embarque del{" "}
+                                            <span className="text-green-300 font-black underline">
+                                                sábado 28
+                                            </span>
+                                            , el cual{" "}
+                                            <span className="text-green-300 font-black">
+                                                sí se puede receptar comida.
+                                            </span>{" "}
+                                            Revisar el calendario para el
+                                            embarque.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Indicador */}
+                                <div className="flex items-center gap-2 text-gray-400 text-xs pt-1">
+                                    <div className="w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
+                                    <div className="w-2 h-2 bg-green-400 rounded-full absolute"></div>
                                     <span className="ml-2">
                                         Por favor, informe a sus clientes sobre
-                                        esta restricción
+                                        estos avisos
                                     </span>
                                 </div>
                             </div>
 
                             {/* Footer */}
-                            <div className="relative p-6 bg-gradient-to-r from-red-900/60 to-red-800/60 border-t-2 border-red-400/30">
+                            <div className="relative p-5 bg-gray-900/60 border-t border-gray-700/50">
                                 <button
                                     onClick={() => setShowEmergencyAlert(false)}
-                                    className="w-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 hover:from-yellow-500 hover:via-yellow-600 hover:to-orange-600 text-red-900 font-black text-lg py-4 px-8 rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 uppercase tracking-wider flex items-center justify-center gap-3 group"
+                                    className="w-full bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 text-white font-black text-lg py-4 px-8 rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 uppercase tracking-wider flex items-center justify-center gap-3 group"
                                 >
-                                    <span>He leído y entendido el aviso</span>
+                                    <span>He leído y entendido los avisos</span>
                                     <span className="text-2xl group-hover:animate-bounce-subtle">
                                         ✓
                                     </span>
                                 </button>
                             </div>
 
+                            {/* Detalles decorativos */}
                             <div className="absolute top-4 right-4">
-                                <div className="w-4 h-4 bg-yellow-400 rounded-full animate-ping"></div>
-                                <div className="absolute top-0 right-0 w-4 h-4 bg-yellow-400 rounded-full"></div>
+                                <div className="w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
+                                <div className="absolute top-0 right-0 w-3 h-3 bg-green-400 rounded-full"></div>
                             </div>
-                            <div className="absolute bottom-4 left-4">
-                                <div className="w-4 h-4 bg-yellow-400 rounded-full animate-ping"></div>
-                                <div className="absolute top-0 left-0 w-4 h-4 bg-yellow-400 rounded-full"></div>
+                            <div className="absolute bottom-20 left-4">
+                                <div className="w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
+                                <div className="absolute top-0 left-0 w-3 h-3 bg-green-400 rounded-full"></div>
                             </div>
                         </div>
                     </div>
