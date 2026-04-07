@@ -42,7 +42,7 @@ export default function Dashboard() {
     const { stats, enterprise } = props as any;
 
     const [activeTab, setActiveTab] = useState("overview");
-    const [currentMonth, setCurrentMonth] = useState<"marzo">("marzo");
+    const [currentMonth, setCurrentMonth] = useState<"abril">("abril");
     const [selectedDay, setSelectedDay] = useState<string>("lunes");
     const [hoveredStat, setHoveredStat] = useState<number | null>(null);
 
@@ -57,7 +57,8 @@ export default function Dashboard() {
         };
     }, [showEmergencyAlert]);
 
-    const scheduleMarz = {
+    // ─── CALENDARIO ABRIL (según imagen adjunta) ───────────────────────────────
+    const scheduleAbril = {
         lunes: {
             "NEW YORK": ["QUEENS", "BROOKLYN", "BRONX", "BRONX GUN HILL"],
             MARYLAND: ["BALTIMORE"],
@@ -99,7 +100,7 @@ export default function Dashboard() {
                 "BRONX GUN HILL",
                 "PORTCHESTER",
                 "SPRING VALLEY",
-                "PATCHOGUE",
+                "PATCHOGUE 2",
                 "HAMPTON BAYS",
                 "BAY SHORE",
             ],
@@ -124,21 +125,21 @@ export default function Dashboard() {
                 "PEEKSKILL",
                 "YONKERS",
                 "BRONX JEROME",
-                "PATCHOGUE",
                 "PORTCHESTER",
                 "BRONX GUN HILL",
+                "BAY SHORE",
             ],
             "NEW JERSEY": ["NEWARK", "ORANGE"],
             CONNECTICUT: ["DAMBURY"],
         },
         especiales: [
-            { ciudad: "BALTIMORE", fechas: "9 Y 23 DE MARZO" },
-            { ciudad: "PHILADELPHIA", fechas: "11 Y 25 MARZO" },
-            { ciudad: "ROCHESTER", fechas: "11 DE MARZO" },
+            { ciudad: "BALTIMORE", fechas: "13 Y 27 DE ABRIL" },
+            { ciudad: "PHILADELPHIA", fechas: "08 Y 22 ABRIL" },
+            { ciudad: "ROCHESTER", fechas: "15 DE ABRIL" },
         ],
     };
 
-    const currentSchedule = scheduleMarz;
+    const currentSchedule = scheduleAbril;
 
     const daysOfWeek = [
         {
@@ -324,7 +325,7 @@ export default function Dashboard() {
         `}
             </style>
 
-            {/* MODAL DE AVISOS */}
+            {/* ── MODAL DE AVISOS ─────────────────────────────────────────────── */}
             {showEmergencyAlert && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeInUp">
                     <div className="relative max-w-xl w-full animate-modal">
@@ -355,81 +356,87 @@ export default function Dashboard() {
 
                             {/* Cuerpo */}
                             <div className="relative p-6 space-y-4">
-                                {/* Bloque 1 — Normalidad */}
-                                <div className="notice-block bg-gradient-to-r from-green-900/50 to-emerald-900/50 border-2 border-green-500/50 rounded-xl p-5 flex items-start gap-4">
+                                {/* Bloque 1 — Envíos lunes solo Baltimore */}
+                                <div className="notice-block bg-gradient-to-r from-blue-900/50 to-indigo-900/50 border-2 border-blue-500/50 rounded-xl p-5 flex items-start gap-4">
                                     <span className="text-3xl flex-shrink-0">
-                                        🟢
+                                        📋
                                     </span>
                                     <div className="text-white space-y-1">
-                                        <p className="font-black text-base uppercase tracking-wide text-green-300 mb-2">
-                                            Recepción vuelve a la normalidad
+                                        <p className="font-black text-base uppercase tracking-wide text-blue-300 mb-2">
+                                            Envíos del día LUNES
                                         </p>
                                         <p className="text-sm leading-relaxed font-semibold">
-                                            Señores agentes, la recepción de
-                                            carga vuelve a la normalidad.{" "}
-                                            <span className="text-green-300 font-black underline">
-                                                Ya se puede receptar carga de
-                                                comida
+                                            Estimados usuarios, los envíos los
+                                            días{" "}
+                                            <span className="text-blue-300 font-black underline">
+                                                lunes
                                             </span>{" "}
-                                            para el embarque del día{" "}
+                                            son únicamente con los días de envío
+                                            para la ciudad de{" "}
                                             <span className="text-yellow-300 font-black">
-                                                sábado.
+                                                BALTIMORE.
                                             </span>
                                         </p>
                                     </div>
                                 </div>
 
-                                {/* Bloque 2 — Sin embarque 4 de abril */}
-                                <div className="notice-block bg-gradient-to-r from-red-900/50 to-rose-900/50 border-2 border-red-500/50 rounded-xl p-5 flex items-start gap-4">
-                                    <span className="text-3xl flex-shrink-0">
-                                        🚫
-                                    </span>
-                                    <div className="text-white space-y-1">
-                                        <p className="font-black text-base uppercase tracking-wide text-red-300 mb-2">
-                                            Sin embarque — 4 de Abril
-                                        </p>
-                                        <p className="text-sm leading-relaxed font-semibold">
-                                            Se informa que el día{" "}
-                                            <span className="text-red-300 font-black underline">
-                                                4 de abril NO habrá embarque.
-                                            </span>{" "}
-                                            Tomar las previsiones del caso.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Bloque 3 — Carga seca jue/vie para embarque del 28 */}
+                                {/* Bloque 2 — Horario de carga */}
                                 <div className="notice-block bg-gradient-to-r from-yellow-900/50 to-orange-900/50 border-2 border-yellow-500/50 rounded-xl p-5 flex items-start gap-4">
                                     <span className="text-3xl flex-shrink-0">
-                                        📦
+                                        ⏰
                                     </span>
                                     <div className="text-white space-y-1">
                                         <p className="font-black text-base uppercase tracking-wide text-yellow-300 mb-2">
-                                            Embarque del sábado 28
+                                            Horario de entrega de carga
                                         </p>
                                         <p className="text-sm leading-relaxed font-semibold">
-                                            Por favor receptar{" "}
+                                            El envío de carga tiene que ser{" "}
                                             <span className="text-yellow-300 font-black underline">
-                                                carga seca
-                                            </span>{" "}
-                                            los días{" "}
-                                            <span className="text-yellow-300 font-black">
-                                                jueves 26
-                                            </span>{" "}
-                                            y{" "}
-                                            <span className="text-yellow-300 font-black">
-                                                viernes 27 de marzo
-                                            </span>{" "}
-                                            para el embarque del{" "}
-                                            <span className="text-green-300 font-black underline">
-                                                sábado 28
+                                                temprano
                                             </span>
-                                            , el cual{" "}
+                                            . Las cargas deben estar en el
+                                            terminal u oficina hasta las{" "}
                                             <span className="text-green-300 font-black">
-                                                sí se puede receptar comida.
+                                                12:30
+                                            </span>
+                                            . En caso de llegar más tarde, el
+                                            máximo es hasta la{" "}
+                                            <span className="text-red-300 font-black">
+                                                1:30
                                             </span>{" "}
-                                            Revisar el calendario para el
-                                            embarque.
+                                            — pero deben entregar la carga en la
+                                            oficina. Por favor enviar la guía al
+                                            número:{" "}
+                                            <span className="text-yellow-300 font-black text-base">
+                                                📱 0983363729
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Bloque 3 — Perfumería cada 15 días */}
+                                <div className="notice-block bg-gradient-to-r from-pink-900/50 to-rose-900/50 border-2 border-pink-500/50 rounded-xl p-5 flex items-start gap-4">
+                                    <span className="text-3xl flex-shrink-0">
+                                        🌸
+                                    </span>
+                                    <div className="text-white space-y-1">
+                                        <p className="font-black text-base uppercase tracking-wide text-pink-300 mb-2">
+                                            Envío de Perfumería
+                                        </p>
+                                        <p className="text-sm leading-relaxed font-semibold">
+                                            El envío de perfumería es{" "}
+                                            <span className="text-pink-300 font-black underline">
+                                                cada 15 días
+                                            </span>
+                                            . El próximo envío a USA es el{" "}
+                                            <span className="text-yellow-300 font-black">
+                                                día 16
+                                            </span>{" "}
+                                            y el siguiente sería el{" "}
+                                            <span className="text-yellow-300 font-black">
+                                                día 1
+                                            </span>
+                                            .
                                         </p>
                                     </div>
                                 </div>
@@ -690,15 +697,15 @@ export default function Dashboard() {
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() =>
-                                                    setCurrentMonth("marzo")
+                                                    setCurrentMonth("abril")
                                                 }
                                                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-110 ${
-                                                    currentMonth === "marzo"
+                                                    currentMonth === "abril"
                                                         ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-900/50"
                                                         : "bg-gray-800 text-gray-400 hover:bg-gray-700"
                                                 }`}
                                             >
-                                                Marzo ✝️
+                                                Abril 🌷
                                             </button>
                                         </div>
                                     </div>
@@ -738,7 +745,7 @@ export default function Dashboard() {
                                             <div className="space-y-3 animate-slideIn">
                                                 <h3 className="text-orange-400 font-bold text-sm uppercase mb-3 flex items-center gap-2">
                                                     <Sparkles className="w-4 h-4 animate-bounce-subtle" />
-                                                    Embarques Especiales
+                                                    Embarques Especiales — Abril
                                                 </h3>
                                                 {(
                                                     getCurrentDayData() as SpecialEntry[]
