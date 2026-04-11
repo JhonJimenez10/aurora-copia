@@ -58,7 +58,7 @@ export default function SidebarNavigation() {
                 title: "Usuarios",
                 href: "/users",
                 icon: <Users className="h-5 w-5" />,
-            }
+            },
         );
     }
 
@@ -144,20 +144,20 @@ export default function SidebarNavigation() {
                     {
                         title: "Reporte Manifiesto",
                         href: "/reports",
-                        icon: <ClipboardList className="h-4 w-4" />, // 👈 nuevo
+                        icon: <ClipboardList className="h-4 w-4" />,
                     },
                     {
                         title: "Reporte Facturación",
                         href: "/reports/invoices",
-                        icon: <FileSpreadsheet className="h-4 w-4" />, // 👈 nuevo
+                        icon: <FileSpreadsheet className="h-4 w-4" />,
                     },
                     {
                         title: "Detalle Facturación",
                         href: "/receptions",
-                        icon: <FileSearch className="h-4 w-4" />, // 👈 nuevo
+                        icon: <FileSearch className="h-4 w-4" />,
                     },
                     {
-                        title: "Manifiesto Aduana IBC", // 👈 nuevo
+                        title: "Manifiesto Aduana IBC",
                         href: "/reports/ibc-manifest",
                         icon: <FileSpreadsheet className="h-4 w-4" />,
                     },
@@ -178,7 +178,6 @@ export default function SidebarNavigation() {
                     },
                 ],
             },
-            // 🔁 NUEVO MÓDULO: TRASLADOS
             {
                 title: "Traslados",
                 icon: <ArrowLeftRight className="h-5 w-5" />,
@@ -190,7 +189,6 @@ export default function SidebarNavigation() {
                     },
                 ],
             },
-            // ✅ NUEVO MÓDULO: CLASIFICACIÓN
             {
                 title: "Clasificación",
                 icon: <CheckCircle2 className="h-5 w-5" />,
@@ -201,7 +199,7 @@ export default function SidebarNavigation() {
                         icon: <PackageCheck className="h-4 w-4" />,
                     },
                 ],
-            }
+            },
         );
     }
 
@@ -219,7 +217,7 @@ export default function SidebarNavigation() {
                     {
                         title: "Detalle Facturación",
                         href: "/receptions",
-                        icon: <FileSearch className="h-4 w-4" />, // 👈 nuevo
+                        icon: <FileSearch className="h-4 w-4" />,
                     },
                     {
                         title: "Reporte Factura",
@@ -227,7 +225,18 @@ export default function SidebarNavigation() {
                         icon: <FileSpreadsheet className="h-4 w-4" />,
                     },
                 ],
-            }
+            },
+            {
+                title: "Traslados",
+                icon: <ArrowLeftRight className="h-5 w-5" />,
+                children: [
+                    {
+                        title: "Elaborar traslado",
+                        href: "/transfers/create",
+                        icon: <ClipboardList className="h-4 w-4" />,
+                    },
+                ],
+            },
         );
     }
 
@@ -248,7 +257,7 @@ export default function SidebarNavigation() {
                         }
                         className={cn(
                             "flex items-center justify-between w-full px-4 py-3 text-sm transition-colors",
-                            isOpen ? activeColor : `${textColor} ${hoverColor}`
+                            isOpen ? activeColor : `${textColor} ${hoverColor}`,
                         )}
                     >
                         <span className="flex items-center gap-3">
@@ -272,7 +281,7 @@ export default function SidebarNavigation() {
                                         "flex items-center gap-2 py-2 text-sm transition-colors",
                                         url.startsWith(child.href!)
                                             ? "text-white font-medium"
-                                            : `${textColor} ${hoverColor}`
+                                            : `${textColor} ${hoverColor}`,
                                     )}
                                 >
                                     {child.icon}
@@ -292,7 +301,7 @@ export default function SidebarNavigation() {
                 className={cn(
                     "flex items-center gap-3 px-4 py-3 text-sm transition-colors",
                     isActive ? activeColor : `${textColor} ${hoverColor}`,
-                    isCollapsed && "justify-center px-0"
+                    isCollapsed && "justify-center px-0",
                 )}
                 title={isCollapsed ? item.title : undefined}
             >
@@ -337,13 +346,13 @@ export default function SidebarNavigation() {
             <div
                 className={cn(
                     "hidden lg:flex flex-col min-h-screen border-r border-red-700 bg-black transition-all duration-300 text-white",
-                    isCollapsed ? "w-[70px]" : "w-[240px]"
+                    isCollapsed ? "w-[70px]" : "w-[240px]",
                 )}
             >
                 <div
                     className={cn(
                         "h-16 flex items-center px-4 border-b border-red-700 font-medium",
-                        isCollapsed && "justify-center"
+                        isCollapsed && "justify-center",
                     )}
                 >
                     {!isCollapsed && "Panel de Administración"}

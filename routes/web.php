@@ -25,7 +25,7 @@ use App\Http\Controllers\{
     AgencyDestController,
     WeightReportController,
     TransferController,
-    TransferConfirmController // ✅ NUEVO
+    TransferConfirmController
 };
 
 use App\Http\Middleware\EnsureSudo;
@@ -83,9 +83,9 @@ Route::middleware('auth')->group(function () {
             'CENTRO SARAGURO'=> ['postal_code' => '110205', 'city' => 'Saraguro', 'canton' => 'Saraguro', 'state' => 'Loja'],
             'ZHUD'           => ['postal_code' => '030101', 'city' => 'Cañar',    'canton' => 'Cañar',    'state' => 'Cañar'],
             'PASAJE'         => ['postal_code' => '070201', 'city' => 'Pasaje',   'canton' => 'Pasaje',   'state' => 'El Oro'],
-            'NARANJAL'   => ['postal_code' => '090601', 'city' => 'Naranjal',   'canton' => 'Naranjal',  'state' => 'Guayas'],
-            'TAMBO'      => ['postal_code' => '030201', 'city' => 'El Tambo',   'canton' => 'El Tambo',  'state' => 'Cañar'],
-            'EL TAMBO'   => ['postal_code' => '030201', 'city' => 'El Tambo',   'canton' => 'El Tambo',  'state' => 'Cañar'],
+            'NARANJAL'       => ['postal_code' => '090601', 'city' => 'Naranjal', 'canton' => 'Naranjal', 'state' => 'Guayas'],
+            'TAMBO'          => ['postal_code' => '030201', 'city' => 'El Tambo', 'canton' => 'El Tambo', 'state' => 'Cañar'],
+            'EL TAMBO'       => ['postal_code' => '030201', 'city' => 'El Tambo', 'canton' => 'El Tambo', 'state' => 'Cañar'],
         ];
 
         $autofill = null;
@@ -145,7 +145,7 @@ Route::middleware(['auth', EnsureSudo::class])->group(function () {
 });
 
 // -----------------------------
-// RUTAS COMPARTIDAS ENTRE TODOS LOS ROLES
+// RUTAS COMPARTIDAS ENTRE TODOS LOS ROLES (incluye Customer)
 // -----------------------------
 Route::middleware(['auth'])->group(function () {
     Route::get('/agencies_dest/list/json', [AgencyDestController::class, 'listByEnterprise']);
@@ -183,29 +183,27 @@ Route::middleware(['auth'])->group(function () {
     // Artículos para combo
     Route::get('/art_packgs/list/json', [ArtPackgController::class, 'listJson'])->name('art_packgs.list.json');
     Route::get('/art_packages/list/json', [ArtPackageController::class, 'listJson'])->name('art_packages.list.json');
+
+    // TRASLADOS - Accesible para todos los roles autenticados (Sudo, Admin, Customer)
+    Route::get('/transfers/create', [TransferController::class, 'create'])
+        ->name('transfers.create');
+    Route::post('/transfers', [TransferController::class, 'store'])
+        ->name('transfers.store');
+    Route::get('/api/transfers/available-packages', [TransferController::class, 'availablePackages'])
+        ->name('transfers.available-packages');
+    Route::get('/api/transfers/search', [TransferController::class, 'search'])
+        ->name('transfers.search');
 });
 
 // -----------------------------
 // RUTAS PARA ADMIN Y SUDO
 // -----------------------------
 Route::middleware(['auth', 'admin'])->group(function () {
-    // ✅ TRASLADOS - CREAR
-    Route::get('/transfers/create', [TransferController::class, 'create'])
-        ->name('transfers.create');
-    Route::post('/transfers', [TransferController::class, 'store'])
-        ->name('transfers.store');
-    // ✅ CLASIFICACIÓN - CONFIRMAR TRASLADOS
+    // CLASIFICACIÓN - CONFIRMAR TRASLADOS (solo Admin/Sudo)
     Route::get('/classification/transfers/confirm', [TransferConfirmController::class, 'index'])
         ->name('classification.transfers.confirm');
-    // ✅ TRASLADOS - PAQUETES DISPONIBLES
-    Route::get('/api/transfers/available-packages', [TransferController::class, 'availablePackages'])
-        ->name('transfers.available-packages');
 
-    // ✅ TRASLADOS - BUSCAR DOCUMENTOS
-    Route::get('/api/transfers/search', [TransferController::class, 'search'])
-        ->name('transfers.search');
-
-    // ✅ TRASLADOS - CONFIRMACIÓN (NUEVAS RUTAS)
+    // TRASLADOS - CONFIRMACIÓN (solo Admin/Sudo)
     Route::get('/api/transfers/{transfer}/details', [TransferConfirmController::class, 'show'])
         ->name('transfers.details');
     Route::put('/api/transfers/{transfer}/sacks', [TransferConfirmController::class, 'updateSacks'])
