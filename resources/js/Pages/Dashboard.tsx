@@ -322,21 +322,31 @@ export default function Dashboard() {
           }
           .notice-block { transition: all 0.3s ease; }
           .notice-block:hover { transform: translateY(-2px); }
+          .modal-scroll::-webkit-scrollbar { width: 4px; }
+          .modal-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
+          .modal-scroll::-webkit-scrollbar-thumb { background: rgba(34,197,94,0.5); border-radius: 4px; }
+          .modal-scroll::-webkit-scrollbar-thumb:hover { background: rgba(34,197,94,0.8); }
         `}
             </style>
 
             {/* ── MODAL DE AVISOS ─────────────────────────────────────────────── */}
             {showEmergencyAlert && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeInUp">
-                    <div className="relative max-w-xl w-full animate-modal">
+                    <div
+                        className="relative max-w-xl w-full animate-modal flex flex-col"
+                        style={{ maxHeight: "90vh" }}
+                    >
                         {/* Glow exterior verde */}
                         <div className="absolute inset-0 bg-gradient-to-br from-green-600 via-green-700 to-emerald-900 rounded-2xl blur-xl opacity-40 animate-pulse-green"></div>
 
-                        <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl shadow-2xl border-2 border-green-500/40 overflow-hidden">
-                            <div className="shimmer-effect absolute inset-0"></div>
+                        <div
+                            className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl shadow-2xl border-2 border-green-500/40 overflow-hidden flex flex-col"
+                            style={{ maxHeight: "90vh" }}
+                        >
+                            <div className="shimmer-effect absolute inset-0 pointer-events-none"></div>
 
-                            {/* Header */}
-                            <div className="relative bg-gradient-to-r from-green-700/90 to-emerald-700/90 p-5 border-b-2 border-green-400/40">
+                            {/* Header — fijo */}
+                            <div className="relative bg-gradient-to-r from-green-700/90 to-emerald-700/90 p-5 border-b-2 border-green-400/40 flex-shrink-0">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 bg-white/20 rounded-full animate-bounce-subtle">
                                         <CheckCircle className="w-9 h-9 text-white" />
@@ -354,9 +364,82 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-                            {/* Cuerpo */}
-                            <div className="relative p-6 space-y-4">
-                                {/* Bloque 1 — Envíos lunes solo Baltimore */}
+                            {/* Cuerpo — scrolleable */}
+                            <div className="relative p-6 space-y-4 overflow-y-auto modal-scroll flex-1">
+                                {/* ── NUEVO BLOQUE 1 — Productos prohibidos (ADUANA) ── */}
+                                <div className="notice-block bg-gradient-to-r from-red-900/60 to-rose-900/60 border-2 border-red-500/60 rounded-xl p-5 flex items-start gap-4">
+                                    <span className="text-3xl flex-shrink-0">
+                                        🚫
+                                    </span>
+                                    <div className="text-white space-y-2">
+                                        <p className="font-black text-base uppercase tracking-wide text-red-300 mb-2">
+                                            Productos PROHIBIDOS — Inspección
+                                            Aduanera al 100%
+                                        </p>
+                                        <p className="text-sm leading-relaxed font-semibold">
+                                            Queda{" "}
+                                            <span className="text-red-300 font-black underline">
+                                                completamente prohibido
+                                            </span>{" "}
+                                            enviar:{" "}
+                                            <span className="text-yellow-300 font-black">
+                                                frutas, embutidos, carnes
+                                                frescas, huevos, pollo, conejo y
+                                                tubérculos.
+                                            </span>{" "}
+                                            La aduana realizará inspecciones al{" "}
+                                            <span className="text-red-300 font-black">
+                                                100%
+                                            </span>
+                                            .
+                                        </p>
+                                        <p className="text-xs leading-relaxed text-red-200 bg-red-900/40 rounded-lg px-3 py-2 border border-red-500/30">
+                                            ⚠️ Ya existen antecedentes de envíos
+                                            con productos prohibidos y{" "}
+                                            <span className="text-yellow-300 font-semibold">
+                                                se identificarán las agencias
+                                                responsables.
+                                            </span>{" "}
+                                            Es mejor enviar menos carga pero
+                                            segura para evitar pérdidas.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* ── NUEVO BLOQUE 2 — Reunión Mintel / Licencias ── */}
+                                <div className="notice-block bg-gradient-to-r from-violet-900/60 to-indigo-900/60 border-2 border-violet-500/60 rounded-xl p-5 flex items-start gap-4">
+                                    <span className="text-3xl flex-shrink-0">
+                                        📄
+                                    </span>
+                                    <div className="text-white space-y-2">
+                                        <p className="font-black text-base uppercase tracking-wide text-violet-300 mb-2">
+                                            Reunión con Mintel — Licencias de
+                                            Agencias
+                                        </p>
+                                        <p className="text-sm leading-relaxed font-semibold">
+                                            Se realizó una reunión con{" "}
+                                            <span className="text-violet-300 font-black">
+                                                Mintel
+                                            </span>{" "}
+                                            debido a retrasos causados por
+                                            aerolíneas. Se requiere presentar
+                                            las{" "}
+                                            <span className="text-yellow-300 font-black">
+                                                licencias de cada agencia.
+                                            </span>
+                                        </p>
+                                        <p className="text-xs leading-relaxed text-violet-200 bg-violet-900/40 rounded-lg px-3 py-2 border border-violet-500/30">
+                                            🔔 Las agencias que aún{" "}
+                                            <span className="text-yellow-300 font-semibold">
+                                                no han firmado contrato
+                                            </span>{" "}
+                                            deben regularizar su situación lo
+                                            antes posible.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Bloque 3 — Envíos lunes solo Baltimore */}
                                 <div className="notice-block bg-gradient-to-r from-blue-900/50 to-indigo-900/50 border-2 border-blue-500/50 rounded-xl p-5 flex items-start gap-4">
                                     <span className="text-3xl flex-shrink-0">
                                         📋
@@ -380,7 +463,7 @@ export default function Dashboard() {
                                     </div>
                                 </div>
 
-                                {/* Bloque 2 — Horario de carga */}
+                                {/* Bloque 4 — Horario de carga */}
                                 <div className="notice-block bg-gradient-to-r from-yellow-900/50 to-orange-900/50 border-2 border-yellow-500/50 rounded-xl p-5 flex items-start gap-4">
                                     <span className="text-3xl flex-shrink-0">
                                         ⏰
@@ -414,7 +497,7 @@ export default function Dashboard() {
                                     </div>
                                 </div>
 
-                                {/* Bloque 3 — Perfumería cada 15 días */}
+                                {/* Bloque 5 — Perfumería cada 15 días */}
                                 <div className="notice-block bg-gradient-to-r from-pink-900/50 to-rose-900/50 border-2 border-pink-500/50 rounded-xl p-5 flex items-start gap-4">
                                     <span className="text-3xl flex-shrink-0">
                                         🌸
@@ -452,8 +535,8 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-                            {/* Footer */}
-                            <div className="relative p-5 bg-gray-900/60 border-t border-gray-700/50">
+                            {/* Footer — fijo */}
+                            <div className="relative p-5 bg-gray-900/60 border-t border-gray-700/50 flex-shrink-0">
                                 <button
                                     onClick={() => setShowEmergencyAlert(false)}
                                     className="w-full bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 text-white font-black text-lg py-4 px-8 rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 uppercase tracking-wider flex items-center justify-center gap-3 group"
