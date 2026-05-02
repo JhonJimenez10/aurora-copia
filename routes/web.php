@@ -25,7 +25,8 @@ use App\Http\Controllers\{
     AgencyDestController,
     WeightReportController,
     TransferController,
-    TransferConfirmController
+    TransferConfirmController,
+    ShipmentController,
 };
 
 use App\Http\Middleware\EnsureSudo;
@@ -256,4 +257,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::get('/reports/weights', [WeightReportController::class, 'index'])->name('reports.weights');
     Route::get('/reports/weights/export', [WeightReportController::class, 'export'])->name('reports.weights.export');
+    // EMBARQUES (solo Admin y Sudo, NO Customer)
+    Route::resource('shipments', ShipmentController::class);
+    Route::patch('/shipments/{shipment}/cancel', [ShipmentController::class, 'cancel'])
+        ->name('shipments.cancel');
+    Route::get('/api/shipments/next-number', [ShipmentController::class, 'nextNumber'])
+        ->name('shipments.nextNumber');
 });

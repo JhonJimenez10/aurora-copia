@@ -22,6 +22,7 @@ import {
     FileSearch,
     CheckCircle2,
     ArrowLeftRight,
+    Package2,
 } from "lucide-react";
 
 import { Button } from "@/Components/ui/button";
@@ -197,6 +198,22 @@ export default function SidebarNavigation() {
                         title: "Confirmar llegada traslado",
                         href: "/classification/transfers/confirm",
                         icon: <PackageCheck className="h-4 w-4" />,
+                    },
+                ],
+            },
+            {
+                title: "Embarques",
+                icon: <Package2 className="h-5 w-5" />,
+                children: [
+                    {
+                        title: "Elaborar Embarque",
+                        href: "/shipments/create",
+                        icon: <PackagePlus className="h-4 w-4" />,
+                    },
+                    {
+                        title: "Listado Embarques",
+                        href: "/shipments",
+                        icon: <ClipboardList className="h-4 w-4" />,
                     },
                 ],
             },
