@@ -42,7 +42,6 @@ export default function Dashboard() {
     const { stats, enterprise } = props as any;
 
     const [activeTab, setActiveTab] = useState("overview");
-    const [currentMonth, setCurrentMonth] = useState<"abril">("abril");
     const [selectedDay, setSelectedDay] = useState<string>("lunes");
     const [hoveredStat, setHoveredStat] = useState<number | null>(null);
 
@@ -57,8 +56,7 @@ export default function Dashboard() {
         };
     }, [showEmergencyAlert]);
 
-    // ─── CALENDARIO ABRIL (según imagen adjunta) ───────────────────────────────
-    const scheduleAbril = {
+    const scheduleMayo = {
         lunes: {
             "NEW YORK": ["QUEENS", "BROOKLYN", "BRONX", "BRONX GUN HILL"],
             MARYLAND: ["BALTIMORE"],
@@ -133,13 +131,13 @@ export default function Dashboard() {
             CONNECTICUT: ["DAMBURY"],
         },
         especiales: [
-            { ciudad: "BALTIMORE", fechas: "13 Y 27 DE ABRIL" },
-            { ciudad: "PHILADELPHIA", fechas: "08 Y 22 ABRIL" },
-            { ciudad: "ROCHESTER", fechas: "15 DE ABRIL" },
+            { ciudad: "BALTIMORE", fechas: "04 Y 18 DE MAYO" },
+            { ciudad: "PHILADELPHIA", fechas: "06 Y 20 DE MAYO" },
+            { ciudad: "ROCHESTER", fechas: "POR CONFIRMAR" },
         ],
     };
 
-    const currentSchedule = scheduleAbril;
+    const currentSchedule = scheduleMayo;
 
     const daysOfWeek = [
         {
@@ -366,7 +364,7 @@ export default function Dashboard() {
 
                             {/* Cuerpo — scrolleable */}
                             <div className="relative p-6 space-y-4 overflow-y-auto modal-scroll flex-1">
-                                {/* ── NUEVO BLOQUE 1 — Productos prohibidos (ADUANA) ── */}
+                                {/* Bloque 1 — Productos prohibidos (ADUANA) */}
                                 <div className="notice-block bg-gradient-to-r from-red-900/60 to-rose-900/60 border-2 border-red-500/60 rounded-xl p-5 flex items-start gap-4">
                                     <span className="text-3xl flex-shrink-0">
                                         🚫
@@ -406,40 +404,7 @@ export default function Dashboard() {
                                     </div>
                                 </div>
 
-                                {/* ── NUEVO BLOQUE 2 — Reunión Mintel / Licencias ── */}
-                                <div className="notice-block bg-gradient-to-r from-violet-900/60 to-indigo-900/60 border-2 border-violet-500/60 rounded-xl p-5 flex items-start gap-4">
-                                    <span className="text-3xl flex-shrink-0">
-                                        📄
-                                    </span>
-                                    <div className="text-white space-y-2">
-                                        <p className="font-black text-base uppercase tracking-wide text-violet-300 mb-2">
-                                            Reunión con Mintel — Licencias de
-                                            Agencias
-                                        </p>
-                                        <p className="text-sm leading-relaxed font-semibold">
-                                            Se realizó una reunión con{" "}
-                                            <span className="text-violet-300 font-black">
-                                                Mintel
-                                            </span>{" "}
-                                            debido a retrasos causados por
-                                            aerolíneas. Se requiere presentar
-                                            las{" "}
-                                            <span className="text-yellow-300 font-black">
-                                                licencias de cada agencia.
-                                            </span>
-                                        </p>
-                                        <p className="text-xs leading-relaxed text-violet-200 bg-violet-900/40 rounded-lg px-3 py-2 border border-violet-500/30">
-                                            🔔 Las agencias que aún{" "}
-                                            <span className="text-yellow-300 font-semibold">
-                                                no han firmado contrato
-                                            </span>{" "}
-                                            deben regularizar su situación lo
-                                            antes posible.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Bloque 3 — Envíos lunes solo Baltimore */}
+                                {/* Bloque 2 — Envíos lunes solo Baltimore */}
                                 <div className="notice-block bg-gradient-to-r from-blue-900/50 to-indigo-900/50 border-2 border-blue-500/50 rounded-xl p-5 flex items-start gap-4">
                                     <span className="text-3xl flex-shrink-0">
                                         📋
@@ -463,7 +428,7 @@ export default function Dashboard() {
                                     </div>
                                 </div>
 
-                                {/* Bloque 4 — Horario de carga */}
+                                {/* Bloque 3 — Horario de carga */}
                                 <div className="notice-block bg-gradient-to-r from-yellow-900/50 to-orange-900/50 border-2 border-yellow-500/50 rounded-xl p-5 flex items-start gap-4">
                                     <span className="text-3xl flex-shrink-0">
                                         ⏰
@@ -497,7 +462,7 @@ export default function Dashboard() {
                                     </div>
                                 </div>
 
-                                {/* Bloque 5 — Perfumería cada 15 días */}
+                                {/* Bloque 4 — Perfumería cada 15 días */}
                                 <div className="notice-block bg-gradient-to-r from-pink-900/50 to-rose-900/50 border-2 border-pink-500/50 rounded-xl p-5 flex items-start gap-4">
                                     <span className="text-3xl flex-shrink-0">
                                         🌸
@@ -777,19 +742,9 @@ export default function Dashboard() {
                                                 Cronograma de Envíos
                                             </h3>
                                         </div>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() =>
-                                                    setCurrentMonth("abril")
-                                                }
-                                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-110 ${
-                                                    currentMonth === "abril"
-                                                        ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-900/50"
-                                                        : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-                                                }`}
-                                            >
-                                                Abril 🌷
-                                            </button>
+                                        {/* Mes actual: Mayo */}
+                                        <div className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-900/50">
+                                            Mayo 🌹
                                         </div>
                                     </div>
 
@@ -828,7 +783,7 @@ export default function Dashboard() {
                                             <div className="space-y-3 animate-slideIn">
                                                 <h3 className="text-orange-400 font-bold text-sm uppercase mb-3 flex items-center gap-2">
                                                     <Sparkles className="w-4 h-4 animate-bounce-subtle" />
-                                                    Embarques Especiales — Abril
+                                                    Embarques Especiales — Mayo
                                                 </h3>
                                                 {(
                                                     getCurrentDayData() as SpecialEntry[]
