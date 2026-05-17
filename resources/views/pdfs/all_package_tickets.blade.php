@@ -12,7 +12,7 @@
             font-family: DejaVu Sans, sans-serif;
             font-size: 9px;
             color: #111;
-            margin: 2 8px 4px 8px;
+            margin: 2px 8px 4px 8px;
         }
 
         .center {
@@ -52,15 +52,22 @@
         .section-title {
             background-color: #f2f2f2;
             font-weight: bold;
-            font-size: 10px;
+            font-size: 11px;
             padding: 2px 3px;
             border-left: 3px solid #333;
-            margin-bottom: 2px;
+            margin-bottom: 3px;
         }
 
         .info-line {
-            margin: 0.5px 0;
-            line-height: 1.3;
+            margin: 1px 0;
+            line-height: 1.5;
+        }
+
+        /* Teléfono más grande */
+        .info-line.phone {
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 2px;
         }
 
         .icon {
@@ -107,6 +114,23 @@
             padding: 0 4px;
         }
 
+        /* Estado de pago — más grande */
+        .pay-status {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            letter-spacing: 1px;
+        }
+
+        /* Total al cobro — más grande */
+        .pay-amount {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
         .page-break {
             page-break-after: always;
         }
@@ -133,17 +157,13 @@
             <div class="bold" style="font-size: 10px;">{{ $package->barcode ?? '---' }}</div>
         </div>
 
-        {{-- Indicador de Pago --}}
+        {{-- Indicador de Pago (más grande) --}}
         @if ($isPorCobrar)
-            <div class="center" style="margin-bottom: 4px;">
-                <div class="bold red" style="font-size: 13px;">POR COBRAR</div>
-            </div>
+            <div class="pay-status red">POR COBRAR</div>
+            <div class="pay-amount red">${{ number_format($reception->total, 2) }}</div>
         @elseif ($isPagado)
-            <div class="center" style="margin-bottom: 4px;">
-                <div class="bold green" style="font-size: 13px;">PAGADO</div>
-            </div>
+            <div class="pay-status green">PAGADO</div>
         @endif
-
 
         {{-- Datos generales --}}
         <table class="details-table">
@@ -155,52 +175,44 @@
             <tr>
                 @php
                     $contentNames = $package->packageItems
-                        ->map(function ($item) {
-                            return $item->artPackage->name ?? 'Artículo';
-                        })
+                        ->map(fn($item) => $item->artPackage->name ?? 'Artículo')
                         ->toArray();
                 @endphp
                 <td><span class="bold">CONTENIDO:</span> {{ implode(', ', $contentNames) }}</td>
                 <td><span class="bold">PESO LBS:</span> {{ number_format($weightLbs, 2) }}</td>
             </tr>
             <tr>
-                @if ($isPorCobrar)
-                    <td>
+                <td>
+                    @if ($isPorCobrar)
                         <span class="bold">AL COBRO:</span>
-                        <span class="red">
-                            ${{ number_format($reception->total, 2) }}
-                        </span>
-                    </td>
-                @else
-                    <td>
+                        <span class="red bold">${{ number_format($reception->total, 2) }}</span>
+                    @else
                         <span class="bold green">PAGADO</span>
-                    </td>
-                @endif
-
+                    @endif
+                </td>
                 <td><span class="bold">PESO KGS:</span> {{ number_format($weightKgs, 2) }}</td>
             </tr>
-
         </table>
 
         {{-- Agencia de destino --}}
         <div class="bridgeport-title">{{ $agencyDestName }}</div>
 
-        {{-- Información del remitente y destinatario --}}
+        {{-- REMITENTE (izquierda) y DESTINATARIO (derecha) — invertidos --}}
         <div class="dual-section">
-            <div class="column">
-                <div class="section-title">DESTINATARIO:</div>
-                <p class="info-line"><span class="icon">*</span> {{ $reception->recipient->full_name }}</p>
-                <p class="info-line"><span class="icon">#</span> {{ $reception->recipient->identification }}</p>
-                <p class="info-line"><span class="icon">@</span> {{ $reception->recipient->address }}</p>
-                <p class="info-line"><span class="icon">☎</span> {{ $reception->recipient->phone }}</p>
-            </div>
-
             <div class="column">
                 <div class="section-title">REMITENTE:</div>
                 <p class="info-line"><span class="icon">*</span> {{ $reception->sender->full_name }}</p>
                 <p class="info-line"><span class="icon">#</span> {{ $reception->sender->identification }}</p>
                 <p class="info-line"><span class="icon">@</span> {{ $reception->sender->address }}</p>
-                <p class="info-line"><span class="icon">☎</span> {{ $reception->sender->phone }}</p>
+                <p class="info-line phone"><span class="icon">☎</span> {{ $reception->sender->phone }}</p>
+            </div>
+
+            <div class="column">
+                <div class="section-title">DESTINATARIO:</div>
+                <p class="info-line"><span class="icon">*</span> {{ $reception->recipient->full_name }}</p>
+                <p class="info-line"><span class="icon">#</span> {{ $reception->recipient->identification }}</p>
+                <p class="info-line"><span class="icon">@</span> {{ $reception->recipient->address }}</p>
+                <p class="info-line phone"><span class="icon">☎</span> {{ $reception->recipient->phone }}</p>
             </div>
         </div>
 

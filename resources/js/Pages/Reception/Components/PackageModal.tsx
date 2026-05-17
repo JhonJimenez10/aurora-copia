@@ -185,7 +185,7 @@ export default function PackageModal({
 
         // ✅ VALIDACIÓN DE V. DECLARADO
         const hasInvalidDeclarado = rows.some(
-            (r) => !r.declarado || parseFloat(r.declarado) <= 0,
+            (r) => !r.declarado || parseFloat(r.declarado) < 1,
         );
 
         if (hasInvalidDeclarado) {
@@ -195,7 +195,7 @@ export default function PackageModal({
 
         // ✅ VALIDACIÓN DE ITEMS DECLARADO
         const hasInvalidItems = rows.some(
-            (r) => !r.items_decl || parseFloat(r.items_decl) <= 0,
+            (r) => !r.items_decl || parseFloat(r.items_decl) < 1,
         );
 
         if (hasInvalidItems) {
@@ -526,7 +526,7 @@ export default function PackageModal({
                             Atención
                         </DialogTitle>
                         <p className="text-sm text-gray-300">
-                            El valor declarado debe ser mayor a cero.
+                            El valor declarado debe ser mínimo $1.00.
                         </p>
                         <Button
                             className="mt-4 bg-red-500 hover:bg-red-600"
@@ -552,7 +552,7 @@ export default function PackageModal({
                             Atención
                         </DialogTitle>
                         <p className="text-sm text-gray-300">
-                            El valor de ITEMS DECLARADO debe ser mayor a cero.
+                            El valor de ITEMS DECLARADO debe ser mínimo $1.00.
                         </p>
                         <Button
                             className="mt-4 bg-red-500 hover:bg-red-600"
