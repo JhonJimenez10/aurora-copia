@@ -185,7 +185,10 @@ export default function PackageModal({
 
         // ✅ VALIDACIÓN DE V. DECLARADO
         const hasInvalidDeclarado = rows.some(
-            (r) => !r.declarado || parseFloat(r.declarado) < 1,
+            (r) =>
+                !r.declarado ||
+                parseInt(r.declarado) < 1 ||
+                isNaN(parseInt(r.declarado)),
         );
 
         if (hasInvalidDeclarado) {
@@ -195,7 +198,10 @@ export default function PackageModal({
 
         // ✅ VALIDACIÓN DE ITEMS DECLARADO
         const hasInvalidItems = rows.some(
-            (r) => !r.items_decl || parseFloat(r.items_decl) < 1,
+            (r) =>
+                !r.items_decl ||
+                parseInt(r.items_decl) < 1 ||
+                isNaN(parseInt(r.items_decl)),
         );
 
         if (hasInvalidItems) {
@@ -413,29 +419,75 @@ export default function PackageModal({
                                         </td>
                                         <td>
                                             <Input
+                                                type="number"
+                                                min={1}
+                                                step={1}
                                                 className="h-6 text-center text-[11px]"
                                                 value={row.items_decl}
                                                 onChange={(e) =>
                                                     updateRow(
                                                         i,
                                                         "items_decl",
-                                                        e.target.value,
+                                                        String(
+                                                            Math.max(
+                                                                1,
+                                                                parseInt(
+                                                                    e.target
+                                                                        .value,
+                                                                ) || 1,
+                                                            ),
+                                                        ),
                                                     )
                                                 }
+                                                onKeyDown={(e) => {
+                                                    if (
+                                                        [
+                                                            ".",
+                                                            ",",
+                                                            "-",
+                                                            "e",
+                                                            "E",
+                                                        ].includes(e.key)
+                                                    )
+                                                        e.preventDefault();
+                                                }}
                                                 readOnly={readOnly}
                                             />
                                         </td>
                                         <td>
                                             <Input
+                                                type="number"
+                                                min={1}
+                                                step={1}
                                                 className="h-6 text-center text-[11px]"
                                                 value={row.declarado}
                                                 onChange={(e) =>
                                                     updateRow(
                                                         i,
                                                         "declarado",
-                                                        e.target.value,
+                                                        String(
+                                                            Math.max(
+                                                                1,
+                                                                parseInt(
+                                                                    e.target
+                                                                        .value,
+                                                                ) || 1,
+                                                            ),
+                                                        ),
                                                     )
                                                 }
+                                                onKeyDown={(e) => {
+                                                    if (
+                                                        [
+                                                            ".",
+                                                            ",",
+                                                            "-",
+                                                            "e",
+                                                            "E",
+                                                        ].includes(e.key)
+                                                    )
+                                                        e.preventDefault();
+                                                }}
                                                 readOnly={readOnly}
                                             />
                                         </td>
