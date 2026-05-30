@@ -943,7 +943,7 @@ export default function ShippingInterface({
             setModalTitleClass("text-green-400");
             setModalTitle("Factura generada correctamente");
             setModalMessage(
-                `Factura generada con número ${invoice_number}.\nSe guardó el XML en:\n${xml_path}`,
+                `Factura generada con número ${invoice_number ?? "N/D"}.`,
             );
             setModalLink(xml_path);
             setShowSuccessModal(true);

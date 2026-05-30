@@ -39,15 +39,14 @@ class InvoiceController extends Controller
                 ], 403);
             }
 
-            // Secuencial y número
+            // Secuencial y número — se toma directo de la recepción
             $establishment = '001';
             $emissionPoint = '001';
-            $lastInvoice   = Invoice::where('enterprise_id', $enterpriseId)
-                ->orderByDesc('sequential')
-                ->lockForUpdate()
-                ->first();
-            $sequential    = $lastInvoice ? $lastInvoice->sequential + 1 : 1;
-            $number        = sprintf('%s-%s-%09d', $establishment, $emissionPoint, $sequential);
+
+            // Extraer el secuencial del número de recepción (ej: 001-001-000000036 → 36)
+            preg_match('/(\d+)$/', $reception->number, $matches);
+            $sequential = isset($matches[1]) ? (int) $matches[1] : 1;
+            $number     = sprintf('%s-%s-%09d', $establishment, $emissionPoint, $sequential);
 
             // Crear encabezado
             $invoice = Invoice::create([
