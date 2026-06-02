@@ -56,9 +56,16 @@ export default function Dashboard() {
         };
     }, [showEmergencyAlert]);
 
-    const scheduleMayo = {
+    // ─── CALENDARIO JUNIO ──────────────────────────────────────────────────────
+    const scheduleJunio = {
         lunes: {
-            "NEW YORK": ["QUEENS", "BROOKLYN", "BRONX", "BRONX GUN HILL"],
+            "NEW YORK": [
+                "QUEENS",
+                "BROOKLYN",
+                "BRONX",
+                "BRONX WATSON",
+                "PORTWASHINGTON",
+            ],
             MARYLAND: ["BALTIMORE"],
             CONNECTICUT: ["DAMBURY"],
             "NEW JERSEY": ["NEWARK", "ORANGE"],
@@ -70,8 +77,6 @@ export default function Dashboard() {
                 "SPRING VALLEY",
                 "ALBANY",
                 "MIDDLETOWN",
-                "OSSINING",
-                "SLEEPY HOLLOW",
             ],
             MASSACHUSETS: [
                 "BROCKTON",
@@ -82,8 +87,9 @@ export default function Dashboard() {
                 "HYANNIS",
                 "LAWRENCE",
                 "WOONSCKET",
+                "SPRINGFIELD",
             ],
-            CONNECTICUT: ["NEW HAVEN", "EAST HAVEN"],
+            CONNECTICUT: ["NEW HAVEN"],
         },
         miercoles: {
             "NEW YORK": [
@@ -95,7 +101,7 @@ export default function Dashboard() {
                 "PEEKSKILL",
                 "YONKERS",
                 "BRONX JEROME",
-                "BRONX GUN HILL",
+                "BRONX WATSON",
                 "PORTCHESTER",
                 "SPRING VALLEY",
                 "PATCHOGUE 2",
@@ -106,7 +112,7 @@ export default function Dashboard() {
             ILLINOIS: ["CHICAGO"],
             MINNESOTA: ["MINNEAPOLIS"],
             "NEW JERSEY": ["NEWARK", "ORANGE"],
-            PENSILVANIA: ["PHILADELPHIA"],
+            PENSILVANIA: ["PHILADELPHIA — MIÉRCOLES 3 Y 17 DE JUNIO"],
         },
         jueves: {
             "NEW YORK": [] as string[],
@@ -123,21 +129,23 @@ export default function Dashboard() {
                 "PEEKSKILL",
                 "YONKERS",
                 "BRONX JEROME",
+                "PATCHOGUE",
                 "PORTCHESTER",
                 "BRONX GUN HILL",
                 "BAY SHORE",
+                "BRONX WATSON",
             ],
             "NEW JERSEY": ["NEWARK", "ORANGE"],
             CONNECTICUT: ["DAMBURY"],
         },
         especiales: [
-            { ciudad: "BALTIMORE", fechas: "04 Y 18 DE MAYO" },
-            { ciudad: "PHILADELPHIA", fechas: "06 Y 20 DE MAYO" },
-            { ciudad: "ROCHESTER", fechas: "POR CONFIRMAR" },
+            { ciudad: "BALTIMORE", fechas: "01 - 15 Y 29 DE JUNIO" },
+            { ciudad: "PHILADELPHIA", fechas: "MIÉRCOLES 3 Y 17 DE JUNIO" },
+            { ciudad: "ROCHESTER", fechas: "17 DE JUNIO" },
         ],
     };
 
-    const currentSchedule = scheduleMayo;
+    const currentSchedule = scheduleJunio;
 
     const daysOfWeek = [
         {
@@ -324,6 +332,18 @@ export default function Dashboard() {
           .modal-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
           .modal-scroll::-webkit-scrollbar-thumb { background: rgba(34,197,94,0.5); border-radius: 4px; }
           .modal-scroll::-webkit-scrollbar-thumb:hover { background: rgba(34,197,94,0.8); }
+          .philadelphia-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 9999px;
+            margin-left: 4px;
+            vertical-align: middle;
+            white-space: nowrap;
+          }
         `}
             </style>
 
@@ -334,7 +354,6 @@ export default function Dashboard() {
                         className="relative max-w-xl w-full animate-modal flex flex-col"
                         style={{ maxHeight: "90vh" }}
                     >
-                        {/* Glow exterior verde */}
                         <div className="absolute inset-0 bg-gradient-to-br from-green-600 via-green-700 to-emerald-900 rounded-2xl blur-xl opacity-40 animate-pulse-green"></div>
 
                         <div
@@ -343,7 +362,7 @@ export default function Dashboard() {
                         >
                             <div className="shimmer-effect absolute inset-0 pointer-events-none"></div>
 
-                            {/* Header — fijo */}
+                            {/* Header */}
                             <div className="relative bg-gradient-to-r from-green-700/90 to-emerald-700/90 p-5 border-b-2 border-green-400/40 flex-shrink-0">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 bg-white/20 rounded-full animate-bounce-subtle">
@@ -362,9 +381,9 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-                            {/* Cuerpo — scrolleable */}
+                            {/* Cuerpo */}
                             <div className="relative p-6 space-y-4 overflow-y-auto modal-scroll flex-1">
-                                {/* Bloque 1 — Productos prohibidos (ADUANA) */}
+                                {/* Bloque 1 — Productos prohibidos */}
                                 <div className="notice-block bg-gradient-to-r from-red-900/60 to-rose-900/60 border-2 border-red-500/60 rounded-xl p-5 flex items-start gap-4">
                                     <span className="text-3xl flex-shrink-0">
                                         🚫
@@ -500,7 +519,7 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-                            {/* Footer — fijo */}
+                            {/* Footer */}
                             <div className="relative p-5 bg-gray-900/60 border-t border-gray-700/50 flex-shrink-0">
                                 <button
                                     onClick={() => setShowEmergencyAlert(false)}
@@ -513,7 +532,6 @@ export default function Dashboard() {
                                 </button>
                             </div>
 
-                            {/* Detalles decorativos */}
                             <div className="absolute top-4 right-4">
                                 <div className="w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
                                 <div className="absolute top-0 right-0 w-3 h-3 bg-green-400 rounded-full"></div>
@@ -742,9 +760,9 @@ export default function Dashboard() {
                                                 Cronograma de Envíos
                                             </h3>
                                         </div>
-                                        {/* Mes actual: Mayo */}
+                                        {/* Mes actual: Junio */}
                                         <div className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-900/50">
-                                            Mayo 🌹
+                                            Junio ☀️
                                         </div>
                                     </div>
 
@@ -783,7 +801,7 @@ export default function Dashboard() {
                                             <div className="space-y-3 animate-slideIn">
                                                 <h3 className="text-orange-400 font-bold text-sm uppercase mb-3 flex items-center gap-2">
                                                     <Sparkles className="w-4 h-4 animate-bounce-subtle" />
-                                                    Embarques Especiales — Mayo
+                                                    Embarques Especiales — Junio
                                                 </h3>
                                                 {(
                                                     getCurrentDayData() as SpecialEntry[]
@@ -858,23 +876,52 @@ export default function Dashboard() {
                                                                         0
                                                                     )
                                                                         return null;
+                                                                    const isPhiladelphia =
+                                                                        state ===
+                                                                        "PENSILVANIA";
                                                                     return (
                                                                         <div
                                                                             key={
                                                                                 state
                                                                             }
-                                                                            className="location-card bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-3 rounded-lg border border-gray-700/50"
+                                                                            className={`location-card bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-3 rounded-lg border ${
+                                                                                isPhiladelphia
+                                                                                    ? "border-violet-500/50"
+                                                                                    : "border-gray-700/50"
+                                                                            }`}
                                                                         >
                                                                             <span className="text-yellow-400 font-bold text-xs block mb-2">
                                                                                 {
                                                                                     state
                                                                                 }
-                                                                            </span>
-                                                                            <span className="text-gray-300 text-[11px] leading-relaxed">
-                                                                                {cities.join(
-                                                                                    ", ",
+                                                                                {isPhiladelphia && (
+                                                                                    <span className="philadelphia-badge">
+                                                                                        MIÉRC.
+                                                                                        3
+                                                                                        Y
+                                                                                        17
+                                                                                    </span>
                                                                                 )}
                                                                             </span>
+                                                                            <span className="text-gray-300 text-[11px] leading-relaxed">
+                                                                                {isPhiladelphia
+                                                                                    ? "PHILADELPHIA"
+                                                                                    : cities.join(
+                                                                                          ", ",
+                                                                                      )}
+                                                                            </span>
+                                                                            {isPhiladelphia && (
+                                                                                <p className="text-violet-300 text-[10px] mt-1 font-semibold">
+                                                                                    ⚡
+                                                                                    Solo
+                                                                                    miércoles
+                                                                                    3
+                                                                                    y
+                                                                                    17
+                                                                                    de
+                                                                                    junio
+                                                                                </p>
+                                                                            )}
                                                                         </div>
                                                                     );
                                                                 },
