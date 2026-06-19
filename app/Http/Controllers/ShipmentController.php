@@ -33,9 +33,21 @@ class ShipmentController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        $enterprise = \App\Models\Enterprise::find($enterpriseId);
+
+        $last = Shipment::where('enterprise_id', $enterpriseId)
+            ->orderByDesc('created_at')->first();
+        $nextSeq = 1;
+        if ($last && preg_match('/(\d+)$/', $last->number, $m)) {
+            $nextSeq = (int) $m[1] + 1;
+        }
+        $nextNumber = 'EMB-' . str_pad($nextSeq, 6, '0', STR_PAD_LEFT);
+
         return Inertia::render('Shipment/Index', [
-            'shipments' => $shipments,
-            'filters'   => $request->only(['from', 'to', 'number', 'status']),
+            'shipments'  => $shipments,
+            'filters'    => $request->only(['from', 'to', 'number', 'status']),
+            'nextNumber' => $nextNumber,
+            'enterprise' => $enterprise ? ['agency_origin' => $enterprise->city ?? $enterprise->name] : null,
         ]);
     }
 
@@ -95,7 +107,7 @@ class ShipmentController extends Controller
         ]);
 
         try {
-            Shipment::create([
+            $shipment = Shipment::create([
                 'enterprise_id'  => $enterpriseId,
                 'date'           => $request->date,
                 'country_origin' => $request->country_origin,
@@ -113,11 +125,17 @@ class ShipmentController extends Controller
                 'created_by'     => auth()->id(),
             ]);
 
-            return redirect()->route('shipments.index')
-                ->with('success', 'Embarque creado correctamente.');
+            return response()->json([
+                'message' => 'Embarque creado correctamente.',
+                'id'      => $shipment->id,
+                'number'  => $shipment->number,
+            ], 201);
         } catch (\Throwable $e) {
             Log::error('Error al crear embarque: ' . $e->getMessage());
-            return back()->withErrors(['number' => 'Error interno al guardar el embarque.']);
+            return response()->json([
+                'error'   => 'Error interno al guardar el embarque.',
+                'details' => ['number' => ['Error interno al guardar el embarque.']],
+            ], 500);
         }
     }
 

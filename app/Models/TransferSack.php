@@ -39,4 +39,8 @@ class TransferSack extends Model
             ->withPivot('confirmed', 'pounds', 'kilograms')
             ->withTimestamps();
     }
+    public function sackPackages()
+    {
+        return $this->hasMany(TransferSackPackage::class, 'transfer_sack_id');
+    }
 }

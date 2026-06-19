@@ -203,19 +203,8 @@ export default function SidebarNavigation() {
             },
             {
                 title: "Embarques",
+                href: "/shipments",
                 icon: <Package2 className="h-5 w-5" />,
-                children: [
-                    {
-                        title: "Elaborar Embarque",
-                        href: "/shipments/create",
-                        icon: <PackagePlus className="h-4 w-4" />,
-                    },
-                    {
-                        title: "Listado Embarques",
-                        href: "/shipments",
-                        icon: <ClipboardList className="h-4 w-4" />,
-                    },
-                ],
             },
         );
     }

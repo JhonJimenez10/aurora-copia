@@ -27,6 +27,7 @@ use App\Http\Controllers\{
     TransferController,
     TransferConfirmController,
     ShipmentController,
+    ShipmentSackController,
 };
 
 use App\Http\Middleware\EnsureSudo;
@@ -69,24 +70,30 @@ Route::middleware('auth')->group(function () {
         $provinceRaw = strtoupper(trim($enterprise->province ?? ''));
 
         $addressMap = [
-            'LOJA'           => ['postal_code' => '110150', 'city' => 'Loja',     'canton' => 'Loja',     'state' => 'Loja'],
-            'SIGSIG'         => ['postal_code' => '010309', 'city' => 'Sígsig',   'canton' => 'Sígsig',   'state' => 'Azuay'],
-            'CUENCA'         => ['postal_code' => '010101', 'city' => 'Cuenca',   'canton' => 'Cuenca',   'state' => 'Azuay'],
-            'BIBLIAN'        => ['postal_code' => '030105', 'city' => 'Biblián',  'canton' => 'Biblián',  'state' => 'Cañar'],
-            'SARAGURO'       => ['postal_code' => '110205', 'city' => 'Saraguro', 'canton' => 'Saraguro', 'state' => 'Loja'],
-            'CAÑAR'          => ['postal_code' => '030101', 'city' => 'Cañar',    'canton' => 'Cañar',    'state' => 'Cañar'],
-            'SAYAUSI'        => ['postal_code' => '010164', 'city' => 'Sayausí',  'canton' => 'Cuenca',   'state' => 'Azuay'],
-            'MOLLETURO'      => ['postal_code' => '010165', 'city' => 'Molleturo','canton' => 'Cuenca',   'state' => 'Azuay'],
-            'PAUTE'          => ['postal_code' => '010601', 'city' => 'Paute',    'canton' => 'Paute',    'state' => 'Azuay'],
-            'PUCARA'         => ['postal_code' => '010801', 'city' => 'Pucará',   'canton' => 'Pucará',   'state' => 'Azuay'],
-            'SG'             => ['postal_code' => '010309', 'city' => 'Sígsig',   'canton' => 'Sígsig',   'state' => 'Azuay'],
-            'SY'             => ['postal_code' => '010164', 'city' => 'Sayausí',  'canton' => 'Cuenca',   'state' => 'Azuay'],
-            'CENTRO SARAGURO'=> ['postal_code' => '110205', 'city' => 'Saraguro', 'canton' => 'Saraguro', 'state' => 'Loja'],
-            'ZHUD'           => ['postal_code' => '030101', 'city' => 'Cañar',    'canton' => 'Cañar',    'state' => 'Cañar'],
-            'PASAJE'         => ['postal_code' => '070201', 'city' => 'Pasaje',   'canton' => 'Pasaje',   'state' => 'El Oro'],
-            'NARANJAL'       => ['postal_code' => '090601', 'city' => 'Naranjal', 'canton' => 'Naranjal', 'state' => 'Guayas'],
-            'TAMBO'          => ['postal_code' => '030201', 'city' => 'El Tambo', 'canton' => 'El Tambo', 'state' => 'Cañar'],
-            'EL TAMBO'       => ['postal_code' => '030201', 'city' => 'El Tambo', 'canton' => 'El Tambo', 'state' => 'Cañar'],
+            // Azuay
+            'LOJA'            => ['postal_code' => '110150', 'city' => 'Loja',           'canton' => 'Loja',           'state' => 'Loja'],
+            'SIGSIG'          => ['postal_code' => '010309', 'city' => 'Sígsig',         'canton' => 'Sígsig',         'state' => 'Azuay'],
+            'CUENCA'          => ['postal_code' => '010101', 'city' => 'Cuenca',         'canton' => 'Cuenca',         'state' => 'Azuay'],
+            'BIBLIAN'         => ['postal_code' => '030105', 'city' => 'Biblián',        'canton' => 'Biblián',        'state' => 'Cañar'],
+            'SARAGURO'        => ['postal_code' => '110205', 'city' => 'Saraguro',       'canton' => 'Saraguro',       'state' => 'Loja'],
+            'CAÑAR'           => ['postal_code' => '030101', 'city' => 'Cañar',         'canton' => 'Cañar',         'state' => 'Cañar'],
+            'SAYAUSI'         => ['postal_code' => '010164', 'city' => 'Sayausí',        'canton' => 'Cuenca',         'state' => 'Azuay'],
+            'MOLLETURO'       => ['postal_code' => '010165', 'city' => 'Molleturo',      'canton' => 'Cuenca',         'state' => 'Azuay'],
+            'PAUTE'           => ['postal_code' => '010601', 'city' => 'Paute',         'canton' => 'Paute',          'state' => 'Azuay'],
+            'PUCARA'          => ['postal_code' => '010801', 'city' => 'Pucará',        'canton' => 'Pucará',         'state' => 'Azuay'],
+            'SG'              => ['postal_code' => '010309', 'city' => 'Sígsig',         'canton' => 'Sígsig',         'state' => 'Azuay'],
+            'SY'              => ['postal_code' => '010164', 'city' => 'Sayausí',        'canton' => 'Cuenca',         'state' => 'Azuay'],
+            'CENTRO SARAGURO' => ['postal_code' => '110205', 'city' => 'Saraguro',       'canton' => 'Saraguro',       'state' => 'Loja'],
+            'ZHUD'            => ['postal_code' => '030101', 'city' => 'Cañar',         'canton' => 'Cañar',         'state' => 'Cañar'],
+            'PASAJE'          => ['postal_code' => '070201', 'city' => 'Pasaje',        'canton' => 'Pasaje',         'state' => 'El Oro'],
+            'NARANJAL'        => ['postal_code' => '090601', 'city' => 'Naranjal',       'canton' => 'Naranjal',       'state' => 'Guayas'],
+            'TAMBO'           => ['postal_code' => '030201', 'city' => 'El Tambo',      'canton' => 'El Tambo',       'state' => 'Cañar'],
+            'EL TAMBO'        => ['postal_code' => '030201', 'city' => 'El Tambo',      'canton' => 'El Tambo',       'state' => 'Cañar'],
+            'FL'              => ['postal_code' => '010150', 'city' => 'Feria Libre',    'canton' => 'Cuenca',         'state' => 'Azuay'],
+            'GIRON'           => ['postal_code' => '010701', 'city' => 'Girón',         'canton' => 'Girón',          'state' => 'Azuay'],
+            'GUACHAPALA'      => ['postal_code' => '010451', 'city' => 'Guachapala',     'canton' => 'Guachapala',     'state' => 'Azuay'],
+            'GUADALUPE'       => ['postal_code' => '190201', 'city' => 'Guadalupe',      'canton' => 'Zamora',         'state' => 'Zamora Chinchipe'],
+            'GUALAQUIZA'      => ['postal_code' => '140501', 'city' => 'Gualaquiza',     'canton' => 'Gualaquiza',     'state' => 'Morona Santiago'],
         ];
 
         $autofill = null;
@@ -195,7 +202,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/transfers/search', [TransferController::class, 'search'])
         ->name('transfers.search');
 });
-
 // -----------------------------
 // RUTAS PARA ADMIN Y SUDO
 // -----------------------------
@@ -238,29 +244,38 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
     Route::get('/reports/invoices', [ReportController::class, 'invoiceIndex'])->name('reports.invoices.index');
     Route::get('/reports/invoices/export', [ReportController::class, 'invoiceExport'])->name('reports.invoices.export');
-
-    // Reporte Manifiesto IBC
     Route::get('/reports/ibc-manifest', [ReportController::class, 'ibcManifestIndex'])->name('reports.ibc.index');
     Route::get('/reports/ibc-manifest/export', [ReportController::class, 'ibcManifestExport'])->name('reports.ibc.export');
     Route::get('/reports/ibc-manifest/export-csv', [ReportController::class, 'ibcManifestExportCsv'])->name('reports.ibc.export.csv');
     Route::get('/reports/airline-manifest', [ReportController::class, 'airlineManifestIndex'])->name('reports.airline.index');
     Route::get('/reports/airline-manifest/export', [ReportController::class, 'airlineManifestExport'])->name('reports.airline.export');
-    Route::get('/reports/acas-avianca-manifest', [ReportController::class, 'acasAviancaManifestIndex'])
-        ->name('reports.acas.index');
-    Route::get('/reports/acas-avianca-manifest/export', [ReportController::class, 'acasAviancaManifestExport'])
-        ->name('reports.acas.export');
+    Route::get('/reports/acas-avianca-manifest', [ReportController::class, 'acasAviancaManifestIndex'])->name('reports.acas.index');
+    Route::get('/reports/acas-avianca-manifest/export', [ReportController::class, 'acasAviancaManifestExport'])->name('reports.acas.export');
+    Route::get('/reports/weights', [WeightReportController::class, 'index'])->name('reports.weights');
+    Route::get('/reports/weights/export', [WeightReportController::class, 'export'])->name('reports.weights.export');
 
     // Agencias de destino
     Route::resource('agencies_dest', AgencyDestController::class);
     Route::patch('/agencies_dest/{id}/toggle-active', [AgencyDestController::class, 'toggleActive'])
         ->name('agencies_dest.toggle-active');
 
-    Route::get('/reports/weights', [WeightReportController::class, 'index'])->name('reports.weights');
-    Route::get('/reports/weights/export', [WeightReportController::class, 'export'])->name('reports.weights.export');
-    // EMBARQUES (solo Admin y Sudo, NO Customer)
-    Route::resource('shipments', ShipmentController::class);
-    Route::patch('/shipments/{shipment}/cancel', [ShipmentController::class, 'cancel'])
-        ->name('shipments.cancel');
+    // ─── EMBARQUES ───────────────────────────────────────────
+    // ✅ 1. Rutas ESTÁTICAS primero (sin parámetros variables)
+    Route::get('/api/shipments/available-sacks', [ShipmentSackController::class, 'availableSacks'])
+        ->name('shipments.sacks.available');
     Route::get('/api/shipments/next-number', [ShipmentController::class, 'nextNumber'])
         ->name('shipments.nextNumber');
+
+    // ✅ 2. Resource (genera rutas con {shipment})
+    Route::resource('shipments', ShipmentController::class);
+
+    // ✅ 3. Rutas CON parámetro {shipment} después del resource
+    Route::patch('/shipments/{shipment}/cancel', [ShipmentController::class, 'cancel'])
+        ->name('shipments.cancel');
+    Route::get('/api/shipments/{shipment}/sacks', [ShipmentSackController::class, 'sacksForShipment'])
+        ->name('shipments.sacks.index');
+    Route::post('/api/shipments/{shipment}/sacks', [ShipmentSackController::class, 'assignSacks'])
+        ->name('shipments.sacks.assign');
+    Route::delete('/api/shipments/{shipment}/sacks/{shipmentSack}', [ShipmentSackController::class, 'removeSack'])
+        ->name('shipments.sacks.remove');
 });

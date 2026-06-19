@@ -55,6 +55,12 @@ class HandleInertiaRequests extends Middleware
                 // Si no hay usuario autenticado, devolvemos null en lugar de arreglo
                 return null;
             },
+            'flash' => [
+                'success'         => fn() => $request->session()->get('success'),
+                'error'           => fn() => $request->session()->get('error'),
+                'shipment_id'     => fn() => $request->session()->get('shipment_id'),
+                'shipment_number' => fn() => $request->session()->get('shipment_number'),
+            ],
         ]);
     }
 }
