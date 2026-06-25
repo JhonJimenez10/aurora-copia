@@ -481,29 +481,54 @@ export default function Dashboard() {
                                     </div>
                                 </div>
 
-                                {/* Bloque 4 — Perfumería cada 15 días */}
+                                {/* Bloque 4 — Envío de perfumería (actualizado) */}
                                 <div className="notice-block bg-gradient-to-r from-pink-900/50 to-rose-900/50 border-2 border-pink-500/50 rounded-xl p-5 flex items-start gap-4">
                                     <span className="text-3xl flex-shrink-0">
                                         🌸
                                     </span>
-                                    <div className="text-white space-y-1">
+                                    <div className="text-white space-y-2">
                                         <p className="font-black text-base uppercase tracking-wide text-pink-300 mb-2">
                                             Envío de Perfumería
                                         </p>
                                         <p className="text-sm leading-relaxed font-semibold">
-                                            El envío de perfumería es{" "}
+                                            Los perfumes se embarcan{" "}
                                             <span className="text-pink-300 font-black underline">
-                                                cada 15 días
+                                                todas las semanas
                                             </span>
-                                            . El próximo envío a USA es el{" "}
+                                            . Se receptan de{" "}
                                             <span className="text-yellow-300 font-black">
-                                                día 16
+                                                lunes a jueves
                                             </span>{" "}
-                                            y el siguiente sería el{" "}
-                                            <span className="text-yellow-300 font-black">
-                                                día 1
+                                            y se envían esa misma semana.
+                                        </p>
+                                        <p className="text-xs leading-relaxed text-pink-200 bg-pink-900/40 rounded-lg px-3 py-2 border border-pink-500/30">
+                                            📦 Para que la carga llegue el{" "}
+                                            <span className="text-yellow-300 font-semibold">
+                                                viernes
                                             </span>
-                                            .
+                                            , la recolección es de{" "}
+                                            <span className="text-yellow-300 font-semibold">
+                                                lunes a jueves
+                                            </span>{" "}
+                                            y debe enviarse el{" "}
+                                            <span className="text-yellow-300 font-semibold">
+                                                jueves hasta las 5 pm o en la
+                                                noche
+                                            </span>{" "}
+                                            para que la carga llegue temprano el
+                                            día viernes.
+                                        </p>
+                                        <p className="text-xs leading-relaxed text-pink-200 bg-pink-900/40 rounded-lg px-3 py-2 border border-pink-500/30">
+                                            🎀 Todos los perfumes deben ir
+                                            empacados en una{" "}
+                                            <span className="text-yellow-300 font-semibold">
+                                                funda de color distinto
+                                            </span>{" "}
+                                            (cualquier color, excepto{" "}
+                                            <span className="text-yellow-300 font-semibold">
+                                                negro o blanco
+                                            </span>
+                                            ).
                                         </p>
                                     </div>
                                 </div>
