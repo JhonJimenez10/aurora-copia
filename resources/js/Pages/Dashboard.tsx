@@ -56,13 +56,12 @@ export default function Dashboard() {
         };
     }, [showEmergencyAlert]);
 
-    // ─── CALENDARIO JUNIO ──────────────────────────────────────────────────────
-    const scheduleJunio = {
+    // ─── CALENDARIO JULIO ──────────────────────────────────────────────────────
+    const scheduleJulio = {
         lunes: {
             "NEW YORK": [
                 "QUEENS",
                 "BROOKLYN",
-                "BRONX",
                 "BRONX WATSON",
                 "PORTWASHINGTON",
             ],
@@ -112,7 +111,7 @@ export default function Dashboard() {
             ILLINOIS: ["CHICAGO"],
             MINNESOTA: ["MINNEAPOLIS"],
             "NEW JERSEY": ["NEWARK", "ORANGE"],
-            PENSILVANIA: ["PHILADELPHIA — MIÉRCOLES 3 Y 17 DE JUNIO"],
+            PENSILVANIA: ["PHILADELPHIA"],
         },
         jueves: {
             "NEW YORK": [] as string[],
@@ -129,9 +128,7 @@ export default function Dashboard() {
                 "PEEKSKILL",
                 "YONKERS",
                 "BRONX JEROME",
-                "PATCHOGUE",
                 "PORTCHESTER",
-                "BRONX GUN HILL",
                 "BAY SHORE",
                 "BRONX WATSON",
             ],
@@ -139,13 +136,13 @@ export default function Dashboard() {
             CONNECTICUT: ["DAMBURY"],
         },
         especiales: [
-            { ciudad: "BALTIMORE", fechas: "01 - 15 Y 29 DE JUNIO" },
-            { ciudad: "PHILADELPHIA", fechas: "MIÉRCOLES 3 Y 17 DE JUNIO" },
-            { ciudad: "ROCHESTER", fechas: "17 DE JUNIO" },
+            { ciudad: "BALTIMORE", fechas: "13 Y 27 DE JULIO" },
+            { ciudad: "PHILADELPHIA", fechas: "01, 15 Y 29 DE JULIO" },
+            { ciudad: "ROCHESTER", fechas: "POR CONFIRMAR" },
         ],
     };
 
-    const currentSchedule = scheduleJunio;
+    const currentSchedule = scheduleJulio;
 
     const daysOfWeek = [
         {
@@ -447,41 +444,44 @@ export default function Dashboard() {
                                     </div>
                                 </div>
 
-                                {/* Bloque 3 — Horario de carga */}
-                                <div className="notice-block bg-gradient-to-r from-yellow-900/50 to-orange-900/50 border-2 border-yellow-500/50 rounded-xl p-5 flex items-start gap-4">
+                                {/* Bloque 3 — ROCHESTER JULIO (nuevo aviso) */}
+                                <div className="notice-block bg-gradient-to-r from-orange-900/60 to-amber-900/60 border-2 border-orange-500/60 rounded-xl p-5 flex items-start gap-4">
                                     <span className="text-3xl flex-shrink-0">
-                                        ⏰
+                                        ⚠️
                                     </span>
-                                    <div className="text-white space-y-1">
-                                        <p className="font-black text-base uppercase tracking-wide text-yellow-300 mb-2">
-                                            Horario de entrega de carga
+                                    <div className="text-white space-y-2">
+                                        <p className="font-black text-base uppercase tracking-wide text-orange-300 mb-2">
+                                            Aviso importante — Rochester
                                         </p>
                                         <p className="text-sm leading-relaxed font-semibold">
-                                            El envío de carga tiene que ser{" "}
-                                            <span className="text-yellow-300 font-black underline">
-                                                temprano
-                                            </span>
-                                            . Las cargas deben estar en el
-                                            terminal u oficina hasta las{" "}
-                                            <span className="text-green-300 font-black">
-                                                12:30
-                                            </span>
-                                            . En caso de llegar más tarde, el
-                                            máximo es hasta la{" "}
-                                            <span className="text-red-300 font-black">
-                                                1:30
+                                            De{" "}
+                                            <span className="text-yellow-300 font-black">
+                                                ROCHESTER
                                             </span>{" "}
-                                            — pero deben entregar la carga en la
-                                            oficina. Por favor enviar la guía al
-                                            número:{" "}
-                                            <span className="text-yellow-300 font-black text-base">
-                                                📱 0983363729
+                                            puede ser{" "}
+                                            <span className="text-orange-300 font-black underline">
+                                                solo cosas secas
                                             </span>
+                                            , ya que la señora este mes{" "}
+                                            <span className="text-red-300 font-black">
+                                                no va a salir
+                                            </span>{" "}
+                                            por problemas con migración.
+                                        </p>
+                                        <p className="text-xs leading-relaxed text-orange-200 bg-orange-900/40 rounded-lg px-3 py-2 border border-orange-500/30">
+                                            🏛️ Migración se llevó todo del local
+                                            y{" "}
+                                            <span className="text-yellow-300 font-semibold">
+                                                no tiene cómo trabajar por el
+                                                momento.
+                                            </span>{" "}
+                                            Solo se receptará carga seca hasta
+                                            nuevo aviso.
                                         </p>
                                     </div>
                                 </div>
 
-                                {/* Bloque 4 — Envío de perfumería (actualizado) */}
+                                {/* Bloque 4 — Perfumería */}
                                 <div className="notice-block bg-gradient-to-r from-pink-900/50 to-rose-900/50 border-2 border-pink-500/50 rounded-xl p-5 flex items-start gap-4">
                                     <span className="text-3xl flex-shrink-0">
                                         🌸
@@ -506,17 +506,12 @@ export default function Dashboard() {
                                             <span className="text-yellow-300 font-semibold">
                                                 viernes
                                             </span>
-                                            , la recolección es de{" "}
-                                            <span className="text-yellow-300 font-semibold">
-                                                lunes a jueves
-                                            </span>{" "}
-                                            y debe enviarse el{" "}
+                                            , debe enviarse el{" "}
                                             <span className="text-yellow-300 font-semibold">
                                                 jueves hasta las 5 pm o en la
                                                 noche
-                                            </span>{" "}
-                                            para que la carga llegue temprano el
-                                            día viernes.
+                                            </span>
+                                            .
                                         </p>
                                         <p className="text-xs leading-relaxed text-pink-200 bg-pink-900/40 rounded-lg px-3 py-2 border border-pink-500/30">
                                             🎀 Todos los perfumes deben ir
@@ -785,9 +780,9 @@ export default function Dashboard() {
                                                 Cronograma de Envíos
                                             </h3>
                                         </div>
-                                        {/* Mes actual: Junio */}
+                                        {/* Mes actual: Julio */}
                                         <div className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-900/50">
-                                            Junio ☀️
+                                            Julio 🌞
                                         </div>
                                     </div>
 
@@ -826,7 +821,7 @@ export default function Dashboard() {
                                             <div className="space-y-3 animate-slideIn">
                                                 <h3 className="text-orange-400 font-bold text-sm uppercase mb-3 flex items-center gap-2">
                                                     <Sparkles className="w-4 h-4 animate-bounce-subtle" />
-                                                    Embarques Especiales — Junio
+                                                    Embarques Especiales — Julio
                                                 </h3>
                                                 {(
                                                     getCurrentDayData() as SpecialEntry[]
@@ -901,52 +896,23 @@ export default function Dashboard() {
                                                                         0
                                                                     )
                                                                         return null;
-                                                                    const isPhiladelphia =
-                                                                        state ===
-                                                                        "PENSILVANIA";
                                                                     return (
                                                                         <div
                                                                             key={
                                                                                 state
                                                                             }
-                                                                            className={`location-card bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-3 rounded-lg border ${
-                                                                                isPhiladelphia
-                                                                                    ? "border-violet-500/50"
-                                                                                    : "border-gray-700/50"
-                                                                            }`}
+                                                                            className="location-card bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-3 rounded-lg border border-gray-700/50"
                                                                         >
                                                                             <span className="text-yellow-400 font-bold text-xs block mb-2">
                                                                                 {
                                                                                     state
                                                                                 }
-                                                                                {isPhiladelphia && (
-                                                                                    <span className="philadelphia-badge">
-                                                                                        MIÉRC.
-                                                                                        3
-                                                                                        Y
-                                                                                        17
-                                                                                    </span>
-                                                                                )}
                                                                             </span>
                                                                             <span className="text-gray-300 text-[11px] leading-relaxed">
-                                                                                {isPhiladelphia
-                                                                                    ? "PHILADELPHIA"
-                                                                                    : cities.join(
-                                                                                          ", ",
-                                                                                      )}
+                                                                                {cities.join(
+                                                                                    ", ",
+                                                                                )}
                                                                             </span>
-                                                                            {isPhiladelphia && (
-                                                                                <p className="text-violet-300 text-[10px] mt-1 font-semibold">
-                                                                                    ⚡
-                                                                                    Solo
-                                                                                    miércoles
-                                                                                    3
-                                                                                    y
-                                                                                    17
-                                                                                    de
-                                                                                    junio
-                                                                                </p>
-                                                                            )}
                                                                         </div>
                                                                     );
                                                                 },
