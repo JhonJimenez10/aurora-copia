@@ -139,7 +139,7 @@ function SackModal({
     const loadPackages = useCallback(async () => {
         if (!fromCity) {
             setLoadError(
-                "Selecciona primero el 'Trasladar de' en el documento para listar paquetes."
+                "Selecciona primero el 'Trasladar de' en el documento para listar paquetes.",
             );
             return;
         }
@@ -150,8 +150,8 @@ function SackModal({
         try {
             const res = await fetch(
                 `/api/transfers/available-packages?from_city=${encodeURIComponent(
-                    fromCity
-                )}`
+                    fromCity,
+                )}`,
             );
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data: SackPackage[] = await res.json();
@@ -159,7 +159,7 @@ function SackModal({
             setEmittedPkgs(data);
         } catch {
             setLoadError(
-                "No se pudieron cargar los paquetes disponibles. Intenta nuevamente."
+                "No se pudieron cargar los paquetes disponibles. Intenta nuevamente.",
             );
         } finally {
             setLoading(false);
@@ -192,7 +192,7 @@ function SackModal({
             (p) =>
                 p.code.toLowerCase().includes(term) ||
                 p.content.toLowerCase().includes(term) ||
-                p.id.toLowerCase().includes(term)
+                p.id.toLowerCase().includes(term),
         );
     }, [emittedPkgs, searchLeft]);
 
@@ -205,7 +205,7 @@ function SackModal({
             (p) =>
                 p.code.toLowerCase().includes(term) ||
                 p.content.toLowerCase().includes(term) ||
-                p.id.toLowerCase().includes(term)
+                p.id.toLowerCase().includes(term),
         );
     }, [sackPkgs, searchRight]);
 
@@ -229,11 +229,11 @@ function SackModal({
 
     const totalsLeft = useMemo(
         () => calculateTotals(filteredEmitted),
-        [filteredEmitted]
+        [filteredEmitted],
     );
     const totalsRight = useMemo(
         () => calculateTotals(filteredSack),
-        [filteredSack]
+        [filteredSack],
     );
 
     const handleSaveSack = () => {
@@ -317,7 +317,7 @@ function SackModal({
                                             className={cn(
                                                 "border-t border-red-700 cursor-pointer hover:bg-[#1b1b1b]",
                                                 selectedLeftId === pkg.id &&
-                                                    "bg-red-900/60"
+                                                    "bg-red-900/60",
                                             )}
                                         >
                                             <td className="px-3 py-1">
@@ -433,7 +433,7 @@ function SackModal({
                                             className={cn(
                                                 "border-t border-red-700 cursor-pointer hover:bg-[#1b1b1b]",
                                                 selectedRightId === pkg.id &&
-                                                    "bg-red-900/60"
+                                                    "bg-red-900/60",
                                             )}
                                         >
                                             <td className="px-3 py-1">
@@ -581,7 +581,7 @@ function ConfirmTransferModal({
         details && details.sacks.length ? details.sacks[currentIdx] : null;
 
     const [selectedPendingId, setSelectedPendingId] = useState<string | null>(
-        null
+        null,
     );
     const [selectedConfirmedId, setSelectedConfirmedId] = useState<
         string | null
@@ -626,7 +626,7 @@ function ConfirmTransferModal({
             (p) =>
                 p.code.toLowerCase().includes(term) ||
                 p.content.toLowerCase().includes(term) ||
-                p.id.toLowerCase().includes(term)
+                p.id.toLowerCase().includes(term),
         );
     }, [current, searchPending]);
 
@@ -639,7 +639,7 @@ function ConfirmTransferModal({
             (p) =>
                 p.code.toLowerCase().includes(term) ||
                 p.content.toLowerCase().includes(term) ||
-                p.id.toLowerCase().includes(term)
+                p.id.toLowerCase().includes(term),
         );
     }, [current, searchConfirmed]);
 
@@ -660,7 +660,7 @@ function ConfirmTransferModal({
         const pkg = sack.confirmed.find((p) => p.id === selectedConfirmedId);
         if (!pkg) return;
         sack.confirmed = sack.confirmed.filter(
-            (p) => p.id !== selectedConfirmedId
+            (p) => p.id !== selectedConfirmedId,
         );
         sack.pending = [...sack.pending, pkg];
         replaceSack(sack);
@@ -677,18 +677,18 @@ function ConfirmTransferModal({
         if (!details) return;
         const copy = { ...details };
         copy.sacks = copy.sacks.map((s) =>
-            s.number === sack.number ? sack : s
+            s.number === sack.number ? sack : s,
         );
         setDetails(copy);
     };
 
     const totalsPending = useMemo(
         () => calculateTotals(filteredPending),
-        [filteredPending]
+        [filteredPending],
     );
     const totalsConfirmed = useMemo(
         () => calculateTotals(filteredConfirmed),
-        [filteredConfirmed]
+        [filteredConfirmed],
     );
 
     const saveAll = async () => {
@@ -831,14 +831,14 @@ function ConfirmTransferModal({
                                                     key={pkg.id}
                                                     onClick={() =>
                                                         setSelectedPendingId(
-                                                            pkg.id
+                                                            pkg.id,
                                                         )
                                                     }
                                                     className={cn(
                                                         "border-t border-red-700 cursor-pointer hover:bg-[#1b1b1b]",
                                                         selectedPendingId ===
                                                             pkg.id &&
-                                                            "bg-red-900/60"
+                                                            "bg-red-900/60",
                                                     )}
                                                 >
                                                     <td className="px-3 py-1">
@@ -953,14 +953,14 @@ function ConfirmTransferModal({
                                                     key={pkg.id}
                                                     onClick={() =>
                                                         setSelectedConfirmedId(
-                                                            pkg.id
+                                                            pkg.id,
                                                         )
                                                     }
                                                     className={cn(
                                                         "border-t border-red-700 cursor-pointer hover:bg-[#1b1b1b]",
                                                         selectedConfirmedId ===
                                                             pkg.id &&
-                                                            "bg-red-900/60"
+                                                            "bg-red-900/60",
                                                     )}
                                                 >
                                                     <td className="px-3 py-1">
@@ -1019,7 +1019,7 @@ function ConfirmTransferModal({
                                 LIBRAS:{" "}
                                 <span className="text-white font-semibold">
                                     {calculateTotals(
-                                        current?.confirmed ?? []
+                                        current?.confirmed ?? [],
                                     ).pounds.toFixed(2)}
                                 </span>
                             </span>
@@ -1027,7 +1027,7 @@ function ConfirmTransferModal({
                                 KILOS:{" "}
                                 <span className="text-white font-semibold">
                                     {calculateTotals(
-                                        current?.confirmed ?? []
+                                        current?.confirmed ?? [],
                                     ).kilograms.toFixed(2)}
                                 </span>
                             </span>
@@ -1086,7 +1086,9 @@ function ConfirmTransferModal({
 export default function TransfersCreate({
     countries: countriesProp,
     agencies: agenciesProp,
-}: TransfersPageProps) {
+    fromCities,
+    toCities,
+}: TransfersPageProps & { fromCities: string[]; toCities: string[] }) {
     const countries = countriesProp?.length ? countriesProp : ["ECUADOR"];
     const agencies = agenciesProp ?? [];
 
@@ -1108,8 +1110,8 @@ export default function TransfersCreate({
     }>({
         number: "",
         country: countries[0] ?? "ECUADOR",
-        from_city: agencies[0] ?? "",
-        to_city: agencies[0] ?? "",
+        from_city: fromCities[0] ?? "",
+        to_city: toCities[0] ?? "CUENCA",
     });
 
     const [sacks, setSacks] = useState<Sack[]>([]);
@@ -1123,10 +1125,10 @@ export default function TransfersCreate({
             fromCity: "[TODOS]",
             toCity: agencies[0] ?? "",
             onlyPending: false,
-        })
+        }),
     );
     const [searchResults, setSearchResults] = useState<TransferSearchResult[]>(
-        []
+        [],
     );
     const [searchLoading, setSearchLoading] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
@@ -1155,7 +1157,7 @@ export default function TransfersCreate({
             acc.kilograms += t.kilograms;
             return acc;
         },
-        { sacks: 0, pounds: 0, kilograms: 0 }
+        { sacks: 0, pounds: 0, kilograms: 0 },
     );
 
     const canAddSack = Boolean(doc.from_city && doc.to_city);
@@ -1174,7 +1176,7 @@ export default function TransfersCreate({
     const submitTransfer = () => {
         if (!canAddSack || !sacks.length) {
             alert(
-                "Completa la cabecera (origen/destino) y agrega al menos una saca."
+                "Completa la cabecera (origen/destino) y agrega al menos una saca.",
             );
             return;
         }
@@ -1239,11 +1241,11 @@ export default function TransfersCreate({
             setSearchResults(data);
             if (!data.length)
                 setSearchError(
-                    "No se encontraron documentos con esos filtros."
+                    "No se encontraron documentos con esos filtros.",
                 );
         } catch {
             setSearchError(
-                "Ocurrió un error al buscar los traslados. Intenta nuevamente."
+                "Ocurrió un error al buscar los traslados. Intenta nuevamente.",
             );
         } finally {
             setSearchLoading(false);
@@ -1342,9 +1344,10 @@ export default function TransfersCreate({
                                                 from_city: e.target.value,
                                             }))
                                         }
+                                        disabled
                                         className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white"
                                     >
-                                        {agencies.map((a) => (
+                                        {fromCities.map((a) => (
                                             <option key={a} value={a}>
                                                 {a}
                                             </option>
@@ -1364,9 +1367,10 @@ export default function TransfersCreate({
                                                 to_city: e.target.value,
                                             }))
                                         }
+                                        disabled
                                         className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white"
                                     >
-                                        {agencies.map((a) => (
+                                        {toCities.map((a) => (
                                             <option key={a} value={a}>
                                                 {a}
                                             </option>
@@ -1441,7 +1445,7 @@ export default function TransfersCreate({
                                     {sacks.length ? (
                                         sacks.map((sack) => {
                                             const totals = calculateTotals(
-                                                sack.packages
+                                                sack.packages,
                                             );
                                             return (
                                                 <tr
@@ -1459,12 +1463,12 @@ export default function TransfersCreate({
                                                     </td>
                                                     <td className="px-4 py-2 text-right">
                                                         {totals.pounds.toFixed(
-                                                            2
+                                                            2,
                                                         )}
                                                     </td>
                                                     <td className="px-4 py-2 text-right">
                                                         {totals.kilograms.toFixed(
-                                                            2
+                                                            2,
                                                         )}
                                                     </td>
                                                     <td className="px-4 py-2">
@@ -1500,7 +1504,7 @@ export default function TransfersCreate({
                                 className={cn(
                                     "bg-green-600 hover:bg-green-700",
                                     !canAddSack &&
-                                        "opacity-60 cursor-not-allowed"
+                                        "opacity-60 cursor-not-allowed",
                                 )}
                                 onClick={() => setShowSackModal(true)}
                                 disabled={!canAddSack}
@@ -1761,7 +1765,7 @@ export default function TransfersCreate({
                                             className={cn(
                                                 "border-t border-red-700 cursor-pointer hover:bg-[#1b1b1b]",
                                                 selectedResultId === t.id &&
-                                                    "bg-red-900/60"
+                                                    "bg-red-900/60",
                                             )}
                                         >
                                             <td className="px-4 py-2">

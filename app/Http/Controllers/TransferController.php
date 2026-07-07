@@ -19,22 +19,18 @@ class TransferController extends Controller
      */
     public function create()
     {
-        $user = Auth::user();
-        $enterpriseId = $user->enterprise_id ?? null;
+        $user       = auth()->user();
+        $enterprise = \App\Models\Enterprise::find($user->enterprise_id);
 
-        $countries = ['ECUADOR'];
+        // "Trasladar de" → SOLO la ciudad de la empresa del usuario logueado
+        $fromCities = collect([$enterprise?->city])->filter()->values();
 
-        $agencies = Enterprise::query()
-            ->whereNotNull('city')
-            ->orderBy('city')
-            ->pluck('city')
-            ->unique()
-            ->values()
-            ->toArray();
+        // "Trasladar a" → siempre solo CUENCA
+        $toCities = collect(['CUENCA']);
 
         return Inertia::render('Transfers/Create', [
-            'countries' => $countries,
-            'agencies'  => $agencies,
+            'fromCities' => $fromCities,
+            'toCities'   => $toCities,
         ]);
     }
 
