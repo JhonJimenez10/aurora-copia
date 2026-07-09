@@ -19,6 +19,9 @@ import {
     Save,
 } from "lucide-react";
 
+// ─── Constantes ───────────────────────────────────────────────
+const SACK_PREFIX_OPTIONS = ["B", "C", "D", "E", "F", "G", "H"];
+
 interface Shipment {
     id: string;
     date: string;
@@ -78,6 +81,16 @@ const inputCls =
 
 const inputDisabledCls =
     "w-full bg-[#0a0a0a] border border-red-900/20 text-gray-500 rounded-md px-3 py-2 text-sm cursor-not-allowed";
+
+const selectCls =
+    "w-full bg-[#111] border border-red-900/50 text-white rounded-md px-3 py-2 text-sm " +
+    "focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/30 " +
+    "transition-colors cursor-pointer appearance-none " +
+    "bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23f87171%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22></polyline></svg>')] " +
+    "bg-no-repeat bg-[right_0.75rem_center] bg-[length:16px] pr-9";
+
+const selectDisabledCls =
+    "w-full bg-[#0a0a0a] border border-red-900/20 text-gray-500 rounded-md px-3 py-2 text-sm cursor-not-allowed appearance-none";
 
 export default function ShipmentEdit({ shipment }: Props) {
     const isCancelled = shipment.status === "CANCELLED";
@@ -159,6 +172,7 @@ export default function ShipmentEdit({ shipment }: Props) {
     };
 
     const cls = isCancelled ? inputDisabledCls : inputCls;
+    const selCls = isCancelled ? selectDisabledCls : selectCls;
 
     return (
         <AuthenticatedLayout>
@@ -277,25 +291,43 @@ export default function ShipmentEdit({ shipment }: Props) {
                                     disabled={isCancelled}
                                 />
                             </Field>
+
+                            {/* ── Prefijo de Sacas: ahora es un combo box ── */}
                             <Field
                                 label="Prefijo de Sacas"
                                 icon={<Layers className="h-3.5 w-3.5" />}
                                 error={errors.sack_prefix}
                                 required
                             >
-                                <input
-                                    type="text"
+                                <select
                                     value={form.sack_prefix}
                                     onChange={(e) =>
-                                        set(
-                                            "sack_prefix",
-                                            e.target.value.toUpperCase(),
-                                        )
+                                        set("sack_prefix", e.target.value)
                                     }
-                                    className={cls}
+                                    className={selCls}
                                     disabled={isCancelled}
-                                />
+                                >
+                                    <option value="" disabled>
+                                        Selecciona un prefijo
+                                    </option>
+                                    {SACK_PREFIX_OPTIONS.map((prefix) => (
+                                        <option key={prefix} value={prefix}>
+                                            {prefix}
+                                        </option>
+                                    ))}
+                                    {/* Si el valor guardado en BD no está en la lista
+                                        (dato legado), se muestra igual para no perderlo */}
+                                    {form.sack_prefix &&
+                                        !SACK_PREFIX_OPTIONS.includes(
+                                            form.sack_prefix,
+                                        ) && (
+                                            <option value={form.sack_prefix}>
+                                                {form.sack_prefix} (actual)
+                                            </option>
+                                        )}
+                                </select>
                             </Field>
+
                             <Field
                                 label="Ruta"
                                 icon={<Route className="h-3.5 w-3.5" />}

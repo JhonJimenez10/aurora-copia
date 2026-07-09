@@ -25,7 +25,58 @@ import {
     Building2,
     MapPin,
     Route,
+    Lock,
 } from "lucide-react";
+
+// ─── Constantes ───────────────────────────────────────────────
+const SACK_PREFIX_OPTIONS = ["B", "C", "D", "E", "F", "G", "H"];
+
+const AIRLINE_OPTIONS = [
+    "AEROMEXICO",
+    "AVIANCA",
+    "COPA",
+    "LATAM",
+    "DELTA",
+    "DHL",
+];
+
+// Prefijo numérico fijo que corresponde al número de embarque según la aerolínea
+const AIRLINE_NUMBER_PREFIX: Record<string, string> = {
+    AEROMEXICO: "139",
+    AVIANCA: "729",
+    COPA: "230",
+    LATAM: "145",
+    DELTA: "006",
+    DHL: "155",
+};
+
+// País y agencia de origen: siempre fijos, no editables por el usuario
+const FIXED_COUNTRY_ORIGIN = "ECUADOR";
+const FIXED_AGENCY_ORIGIN = "CUENCA";
+
+// Ruta: por ahora un único destino disponible, pre-seleccionado
+const ROUTE_OPTIONS = ["ECUADOR - ESTADOS UNIDOS"];
+const DEFAULT_ROUTE = ROUTE_OPTIONS[0];
+
+const AIRPORT_ORIGIN_OPTIONS = [
+    "GUAYAQUIL - JOSE JOAQUIN DE OLMEDO",
+    "QUITO - MARISCAL SUCRE",
+];
+
+const AIRPORT_DEST_OPTIONS = ["CHICAGO-O'HARE", "JOHN F.KENNEDY"];
+
+const CARGO_AGENCY_OPTIONS = [
+    "CARGO FLEX",
+    "DOLY CARGO",
+    "ECUADOR CARGO GYE",
+    "ECUADOR CARGO QUITO",
+    "FERVA CARGO",
+    "MULTIMODAL",
+    "NAAS LOGISTICS",
+    "TRANSOCEANICA",
+];
+
+const PALLETIZER_OPTIONS = ["EXP AIR", "GENERAL AIR", "NOVACARGO", "PETRALI"];
 
 // ─── Tipos ────────────────────────────────────────────────────
 interface SackPackage {
@@ -105,6 +156,17 @@ const inputCls =
     "w-full bg-[#111] border border-red-900/50 text-white rounded-md px-3 py-2 text-sm " +
     "focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/30 " +
     "placeholder:text-gray-600 transition-colors";
+
+const inputLockedCls =
+    "w-full bg-[#0a0a0a] border border-red-900/20 text-gray-400 rounded-md px-3 py-2 text-sm " +
+    "cursor-not-allowed select-none";
+
+const selectCls =
+    "w-full bg-[#111] border border-red-900/50 text-white rounded-md px-3 py-2 text-sm " +
+    "focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/30 " +
+    "transition-colors cursor-pointer appearance-none " +
+    "bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23f87171%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22></polyline></svg>')] " +
+    "bg-no-repeat bg-[right_0.75rem_center] bg-[length:16px] pr-9";
 
 function Field({
     label,
@@ -188,12 +250,12 @@ function CreateShipmentModal({
     const today = new Date().toISOString().slice(0, 10);
     const [form, setForm] = useState({
         date: today,
-        country_origin: "ECUADOR",
-        agency_origin: enterprise?.agency_origin ?? "",
+        country_origin: FIXED_COUNTRY_ORIGIN,
+        agency_origin: FIXED_AGENCY_ORIGIN,
         sack_prefix: "",
-        route: "",
+        route: DEFAULT_ROUTE,
         airline: "",
-        number: nextNumber,
+        number: "",
         airport_origin: "",
         airport_dest: "",
         cargo_agency: "",
@@ -203,9 +265,36 @@ function CreateShipmentModal({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [saving, setSaving] = useState(false);
 
+    // ── Número de embarque: prefijo bloqueado según aerolínea + resto editable ──
+    const [numberSuffix, setNumberSuffix] = useState("");
+    const numberPrefix = AIRLINE_NUMBER_PREFIX[form.airline] ?? "";
+
+    // Mantiene form.number sincronizado con "prefijo + resto"
+    useEffect(() => {
+        setForm((p) => ({
+            ...p,
+            number: numberPrefix ? `${numberPrefix}${numberSuffix}` : "",
+        }));
+    }, [numberPrefix, numberSuffix]);
+
     const set = (k: string, v: string | boolean) => {
         setForm((p) => ({ ...p, [k]: v }));
         setErrors((p) => ({ ...p, [k]: "" }));
+    };
+
+    // Al cambiar de aerolínea se reinicia el resto del número
+    // (el prefijo nunca es editable manualmente por el usuario)
+    const handleAirlineChange = (value: string) => {
+        setForm((p) => ({ ...p, airline: value }));
+        setNumberSuffix("");
+        setErrors((p) => ({ ...p, airline: "", number: "" }));
+    };
+
+    const handleNumberSuffixChange = (value: string) => {
+        // Solo dígitos para la parte editable del número
+        const digitsOnly = value.replace(/[^0-9]/g, "");
+        setNumberSuffix(digitsOnly);
+        setErrors((p) => ({ ...p, number: "" }));
     };
 
     const validate = () => {
@@ -217,12 +306,19 @@ function CreateShipmentModal({
             "sack_prefix",
             "route",
             "airline",
-            "number",
             "airport_origin",
             "airport_dest",
         ].forEach((k) => {
             if (!String((form as any)[k]).trim()) errs[k] = "Obligatorio.";
         });
+
+        // El número de embarque depende de la aerolínea seleccionada
+        if (!form.airline) {
+            errs.number = "Selecciona primero una aerolínea.";
+        } else if (!numberSuffix.trim()) {
+            errs.number = "Completa el número después del prefijo.";
+        }
+
         setErrors(errs);
         return !Object.keys(errs).length;
     };
@@ -231,6 +327,7 @@ function CreateShipmentModal({
         if (!validate()) return;
         setSaving(true);
         try {
+            const fullNumber = `${numberPrefix}${numberSuffix}`;
             const res = await fetch(route("shipments.store"), {
                 method: "POST",
                 headers: {
@@ -243,7 +340,13 @@ function CreateShipmentModal({
                         )?.content ?? "",
                     Accept: "application/json",
                 },
-                body: JSON.stringify(form),
+                body: JSON.stringify({
+                    ...form,
+                    // Se fuerzan siempre, sin importar lo que haya en el estado
+                    country_origin: FIXED_COUNTRY_ORIGIN,
+                    agency_origin: FIXED_AGENCY_ORIGIN,
+                    number: fullNumber,
+                }),
             });
             const data = await res.json();
             if (!res.ok) {
@@ -269,9 +372,10 @@ function CreateShipmentModal({
             <div className="space-y-5">
                 <div>
                     <p className="text-xs font-semibold text-red-300 uppercase tracking-wider mb-3 border-b border-red-900/30 pb-1">
-                        Datos Generales
+                        Datos del Embarque
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {/* 1. FECHA */}
                         <Field
                             label="Fecha"
                             icon={<Calendar className="h-3.5 w-3.5" />}
@@ -285,169 +389,261 @@ function CreateShipmentModal({
                                 className={inputCls}
                             />
                         </Field>
+
+                        {/* 2. PAIS ORIGEN DEL EMBARQUE — fijo, no editable */}
                         <Field
-                            label="Número"
-                            icon={<Hash className="h-3.5 w-3.5" />}
-                            error={errors.number}
-                            required
-                        >
-                            <input
-                                type="text"
-                                value={form.number}
-                                onChange={(e) => set("number", e.target.value)}
-                                className={inputCls}
-                            />
-                        </Field>
-                        <Field
-                            label="País Origen"
+                            label="País Origen del Embarque"
                             icon={<Globe className="h-3.5 w-3.5" />}
                             error={errors.country_origin}
                             required
                         >
-                            <input
-                                type="text"
-                                value={form.country_origin}
-                                onChange={(e) =>
-                                    set("country_origin", e.target.value)
-                                }
-                                className={inputCls}
-                            />
+                            <div
+                                className={`${inputLockedCls} flex items-center justify-between`}
+                            >
+                                <span>{FIXED_COUNTRY_ORIGIN}</span>
+                                <Lock className="h-3.5 w-3.5 text-gray-600" />
+                            </div>
                         </Field>
+
+                        {/* 3. AGENCIA CREADORA DEL EMBARQUE — fijo, no editable */}
                         <Field
-                            label="Agencia Origen"
+                            label="Agencia Creadora del Embarque"
                             icon={<Building2 className="h-3.5 w-3.5" />}
                             error={errors.agency_origin}
                             required
                         >
-                            <input
-                                type="text"
-                                value={form.agency_origin}
-                                onChange={(e) =>
-                                    set("agency_origin", e.target.value)
-                                }
-                                className={inputCls}
-                            />
+                            <div
+                                className={`${inputLockedCls} flex items-center justify-between`}
+                            >
+                                <span>{FIXED_AGENCY_ORIGIN}</span>
+                                <Lock className="h-3.5 w-3.5 text-gray-600" />
+                            </div>
                         </Field>
+
+                        {/* 4. PREFIJO PARA SACAS */}
                         <Field
-                            label="Prefijo Sacas"
+                            label="Prefijo para Sacas"
                             icon={<Layers className="h-3.5 w-3.5" />}
                             error={errors.sack_prefix}
                             required
                         >
-                            <input
-                                type="text"
+                            <select
                                 value={form.sack_prefix}
                                 onChange={(e) =>
-                                    set(
-                                        "sack_prefix",
-                                        e.target.value.toUpperCase(),
-                                    )
+                                    set("sack_prefix", e.target.value)
                                 }
-                                placeholder="Ej: CUE"
-                                className={`${inputCls} uppercase`}
-                            />
+                                className={selectCls}
+                            >
+                                <option value="" disabled>
+                                    Selecciona un prefijo
+                                </option>
+                                {SACK_PREFIX_OPTIONS.map((prefix) => (
+                                    <option key={prefix} value={prefix}>
+                                        {prefix}
+                                    </option>
+                                ))}
+                            </select>
                         </Field>
+
+                        {/* 5. RUTA — combo box, viene preseleccionada */}
                         <Field
                             label="Ruta"
                             icon={<Route className="h-3.5 w-3.5" />}
                             error={errors.route}
                             required
                         >
-                            <input
-                                type="text"
+                            <select
                                 value={form.route}
                                 onChange={(e) => set("route", e.target.value)}
-                                placeholder="GYE-MIA"
-                                className={inputCls}
-                            />
+                                className={selectCls}
+                            >
+                                {ROUTE_OPTIONS.map((r) => (
+                                    <option key={r} value={r}>
+                                        {r}
+                                    </option>
+                                ))}
+                            </select>
                         </Field>
-                    </div>
-                </div>
-                <div>
-                    <p className="text-xs font-semibold text-red-300 uppercase tracking-wider mb-3 border-b border-red-900/30 pb-1">
-                        Aerolínea y Aeropuertos
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                        {/* 6. AEROLINEA — dispara el prefijo del número */}
                         <Field
                             label="Aerolínea"
                             icon={<Plane className="h-3.5 w-3.5" />}
                             error={errors.airline}
                             required
                         >
-                            <input
-                                type="text"
+                            <select
                                 value={form.airline}
-                                onChange={(e) => set("airline", e.target.value)}
-                                placeholder="AVIANCA"
-                                className={inputCls}
-                            />
+                                onChange={(e) =>
+                                    handleAirlineChange(e.target.value)
+                                }
+                                className={selectCls}
+                            >
+                                <option value="" disabled>
+                                    Selecciona una aerolínea
+                                </option>
+                                {AIRLINE_OPTIONS.map((a) => (
+                                    <option key={a} value={a}>
+                                        {a}
+                                    </option>
+                                ))}
+                            </select>
                         </Field>
+
+                        {/* 7. NO.EMBARQUE — prefijo automático + resto editable */}
+                        <Field
+                            label="No. Embarque"
+                            icon={<Hash className="h-3.5 w-3.5" />}
+                            error={errors.number}
+                            required
+                        >
+                            <div
+                                className={`flex items-stretch rounded-md border overflow-hidden transition-colors ${
+                                    errors.number
+                                        ? "border-red-500"
+                                        : "border-red-900/50 focus-within:border-red-500 focus-within:ring-1 focus-within:ring-red-500/30"
+                                }`}
+                            >
+                                <span
+                                    className={`flex items-center px-3 text-sm font-mono font-semibold whitespace-nowrap select-none ${
+                                        numberPrefix
+                                            ? "bg-red-900/40 text-yellow-400"
+                                            : "bg-[#0a0a0a] text-gray-600"
+                                    }`}
+                                    title="Prefijo asignado automáticamente según la aerolínea"
+                                >
+                                    {numberPrefix || "---"}
+                                </span>
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={numberSuffix}
+                                    onChange={(e) =>
+                                        handleNumberSuffixChange(e.target.value)
+                                    }
+                                    disabled={!numberPrefix}
+                                    placeholder={
+                                        numberPrefix
+                                            ? "Ej: 00001"
+                                            : "Selecciona una aerolínea primero"
+                                    }
+                                    className={`flex-1 min-w-0 bg-[#111] text-white text-sm px-3 py-2 focus:outline-none placeholder:text-gray-600 ${
+                                        !numberPrefix
+                                            ? "cursor-not-allowed opacity-60"
+                                            : ""
+                                    }`}
+                                />
+                            </div>
+                            {numberPrefix && (
+                                <p className="text-[11px] text-gray-500">
+                                    Prefijo{" "}
+                                    <span className="text-yellow-400 font-mono">
+                                        {numberPrefix}
+                                    </span>{" "}
+                                    bloqueado según la aerolínea seleccionada.
+                                </p>
+                            )}
+                        </Field>
+
+                        {/* 8. AEROPUERTO ORIGEN — combo box */}
                         <Field
                             label="Aeropuerto Origen"
                             icon={<MapPin className="h-3.5 w-3.5" />}
                             error={errors.airport_origin}
                             required
                         >
-                            <input
-                                type="text"
+                            <select
                                 value={form.airport_origin}
                                 onChange={(e) =>
                                     set("airport_origin", e.target.value)
                                 }
-                                placeholder="GYE"
-                                className={inputCls}
-                            />
+                                className={selectCls}
+                            >
+                                <option value="" disabled>
+                                    Selecciona un aeropuerto
+                                </option>
+                                {AIRPORT_ORIGIN_OPTIONS.map((a) => (
+                                    <option key={a} value={a}>
+                                        {a}
+                                    </option>
+                                ))}
+                            </select>
                         </Field>
+
+                        {/* 9. AEROPUERTO DESTINO — combo box */}
                         <Field
                             label="Aeropuerto Destino"
                             icon={<MapPin className="h-3.5 w-3.5" />}
                             error={errors.airport_dest}
                             required
                         >
-                            <input
-                                type="text"
+                            <select
                                 value={form.airport_dest}
                                 onChange={(e) =>
                                     set("airport_dest", e.target.value)
                                 }
-                                placeholder="MIA"
-                                className={inputCls}
-                            />
+                                className={selectCls}
+                            >
+                                <option value="" disabled>
+                                    Selecciona un aeropuerto
+                                </option>
+                                {AIRPORT_DEST_OPTIONS.map((a) => (
+                                    <option key={a} value={a}>
+                                        {a}
+                                    </option>
+                                ))}
+                            </select>
                         </Field>
-                    </div>
-                </div>
-                <div>
-                    <p className="text-xs font-semibold text-red-300 uppercase tracking-wider mb-3 border-b border-red-900/30 pb-1">
-                        Logística
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+
+                        {/* 10. AGENCIA DE CARGA — combo box */}
                         <Field
                             label="Agencia de Carga"
                             icon={<Building2 className="h-3.5 w-3.5" />}
                         >
-                            <input
-                                type="text"
+                            <select
                                 value={form.cargo_agency}
                                 onChange={(e) =>
                                     set("cargo_agency", e.target.value)
                                 }
-                                className={inputCls}
-                            />
+                                className={selectCls}
+                            >
+                                <option value="">
+                                    Selecciona una agencia de carga
+                                </option>
+                                {CARGO_AGENCY_OPTIONS.map((a) => (
+                                    <option key={a} value={a}>
+                                        {a}
+                                    </option>
+                                ))}
+                            </select>
                         </Field>
+
+                        {/* 11. PALETIZADORA — combo box */}
                         <Field
                             label="Paletizadora"
                             icon={<Layers className="h-3.5 w-3.5" />}
                         >
-                            <input
-                                type="text"
+                            <select
                                 value={form.palletizer}
                                 onChange={(e) =>
                                     set("palletizer", e.target.value)
                                 }
-                                className={inputCls}
-                            />
+                                className={selectCls}
+                            >
+                                <option value="">
+                                    Selecciona una paletizadora
+                                </option>
+                                {PALLETIZER_OPTIONS.map((p) => (
+                                    <option key={p} value={p}>
+                                        {p}
+                                    </option>
+                                ))}
+                            </select>
                         </Field>
                     </div>
+                </div>
+
+                <div>
                     <button
                         type="button"
                         onClick={() => set("open", !form.open)}

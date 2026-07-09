@@ -22,6 +22,9 @@ import {
     Trash2,
 } from "lucide-react";
 
+// ─── Constantes ───────────────────────────────────────────────
+const SACK_PREFIX_OPTIONS = ["B", "C", "D", "E", "F", "G", "H"];
+
 // ─── Tipos ────────────────────────────────────────────────────
 interface Props {
     nextNumber: string;
@@ -106,6 +109,13 @@ const inputCls =
     "w-full bg-[#111] border border-red-900/50 text-white rounded-md px-3 py-2 text-sm " +
     "focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/30 " +
     "placeholder:text-gray-600 transition-colors";
+
+const selectCls =
+    "w-full bg-[#111] border border-red-900/50 text-white rounded-md px-3 py-2 text-sm " +
+    "focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/30 " +
+    "transition-colors cursor-pointer appearance-none " +
+    "bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23f87171%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22></polyline></svg>')] " +
+    "bg-no-repeat bg-[right_0.75rem_center] bg-[length:16px] pr-9";
 
 // ─── Modal de Sacas ───────────────────────────────────────────
 function SacksModal({
@@ -879,25 +889,32 @@ export default function ShipmentCreate({ nextNumber, enterprise }: Props) {
                                     className={inputCls}
                                 />
                             </Field>
+
+                            {/* ── Prefijo de Sacas: ahora es un combo box ── */}
                             <Field
                                 label="Prefijo de Sacas"
                                 icon={<Layers className="h-3.5 w-3.5" />}
                                 error={errors.sack_prefix}
                                 required
                             >
-                                <input
-                                    type="text"
+                                <select
                                     value={form.sack_prefix}
                                     onChange={(e) =>
-                                        set(
-                                            "sack_prefix",
-                                            e.target.value.toUpperCase(),
-                                        )
+                                        set("sack_prefix", e.target.value)
                                     }
-                                    placeholder="Ej: CUE, GYE"
-                                    className={`${inputCls} uppercase`}
-                                />
+                                    className={selectCls}
+                                >
+                                    <option value="" disabled>
+                                        Selecciona un prefijo
+                                    </option>
+                                    {SACK_PREFIX_OPTIONS.map((prefix) => (
+                                        <option key={prefix} value={prefix}>
+                                            {prefix}
+                                        </option>
+                                    ))}
+                                </select>
                             </Field>
+
                             <Field
                                 label="Ruta"
                                 icon={<Route className="h-3.5 w-3.5" />}
