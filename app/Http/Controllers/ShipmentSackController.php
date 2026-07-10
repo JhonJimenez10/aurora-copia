@@ -33,12 +33,27 @@ class ShipmentSackController extends Controller
                 'transfer:id,number,from_city,to_city',
                 'sackPackages' => function ($q) {
                     $q->where('confirmed', true)
-                      ->with(['package:id,barcode,content,service_type,pounds,kilograms']);
+                      ->with([
+                          // Traemos el paquete...
+                          'package:id,reception_id,barcode,content,service_type,pounds,kilograms',
+                          // ...y desde el paquete, su recepción (solo lo necesario)...
+                          'package.reception:id,agency_dest',
+                          // ...y desde la recepción, la agencia destino real
+                          'package.reception.agencyDest:id,name',
+                      ]);
                 },
             ])
             ->get()
             ->map(function ($sack) {
                 $confirmedPkgs = $sack->sackPackages;
+
+                // Agencias destino reales de los paquetes de esta saca (sin duplicados)
+                $destinationAgencies = $confirmedPkgs
+                    ->map(fn($sp) => $sp->package?->reception?->agencyDest?->name)
+                    ->filter()
+                    ->unique()
+                    ->values();
+
                 return [
                     'id'              => $sack->id,
                     'sack_number'     => $sack->sack_number, // número original del traslado (referencia)
@@ -51,13 +66,18 @@ class ShipmentSackController extends Controller
                     'packages_count'  => $confirmedPkgs->count(),
                     'pounds_total'    => $confirmedPkgs->sum('pounds'),
                     'kilograms_total' => $confirmedPkgs->sum('kilograms'),
+                    // Lista ya agregada y separada por comas, lista para pintar en la tabla
+                    'destination_agencies' => $destinationAgencies->implode(', '),
                     'packages'        => $confirmedPkgs->map(fn($sp) => [
-                        'id'           => $sp->package->id ?? $sp->package_id,
-                        'barcode'      => $sp->package->barcode ?? '—',
-                        'content'      => $sp->package->content ?? '—',
-                        'service_type' => $sp->package->service_type ?? '—',
-                        'pounds'       => $sp->pounds,
-                        'kilograms'    => $sp->kilograms,
+                        'id'                 => $sp->package->id ?? $sp->package_id,
+                        'barcode'            => $sp->package->barcode ?? '—',
+                        'content'            => $sp->package->content ?? '—',
+                        'service_type'       => $sp->package->service_type ?? '—',
+                        'pounds'             => $sp->pounds,
+                        'kilograms'          => $sp->kilograms,
+                        // Agencia destino de este paquete puntual (por si se necesita en detalle)
+                        'destination_agency'    => $sp->package?->reception?->agencyDest?->name,
+                        'destination_agency_id' => $sp->package?->reception?->agencyDest?->id,
                     ])->values(),
                 ];
             });
@@ -81,7 +101,11 @@ class ShipmentSackController extends Controller
                 'transferSack.transfer:id,number,from_city,to_city',
                 'transferSack.sackPackages' => function ($q) {
                     $q->where('confirmed', true)
-                      ->with(['package:id,barcode,content,service_type,pounds,kilograms']);
+                      ->with([
+                          'package:id,reception_id,barcode,content,service_type,pounds,kilograms',
+                          'package.reception:id,agency_dest',
+                          'package.reception.agencyDest:id,name',
+                      ]);
                 },
             ])
             ->orderBy('sack_number')
@@ -89,6 +113,14 @@ class ShipmentSackController extends Controller
             ->map(function ($ss) {
                 $sack = $ss->transferSack;
                 $pkgs = $sack->sackPackages;
+
+                // Agencias destino reales de los paquetes de esta saca (sin duplicados)
+                $destinationAgencies = $pkgs
+                    ->map(fn($sp) => $sp->package?->reception?->agencyDest?->name)
+                    ->filter()
+                    ->unique()
+                    ->values();
+
                 return [
                     'shipment_sack_id' => $ss->id,
                     'id'               => $sack->id,
@@ -102,13 +134,17 @@ class ShipmentSackController extends Controller
                     'packages_count'   => $ss->packages_count,
                     'pounds_total'     => $ss->pounds_total,
                     'kilograms_total'  => $ss->kilograms_total,
+                    // Lista ya agregada y separada por comas, lista para pintar en la tabla
+                    'destination_agencies' => $destinationAgencies->implode(', '),
                     'packages'         => $pkgs->map(fn($sp) => [
-                        'id'           => $sp->package->id ?? $sp->package_id,
-                        'barcode'      => $sp->package->barcode ?? '—',
-                        'content'      => $sp->package->content ?? '—',
-                        'service_type' => $sp->package->service_type ?? '—',
-                        'pounds'       => $sp->pounds,
-                        'kilograms'    => $sp->kilograms,
+                        'id'                 => $sp->package->id ?? $sp->package_id,
+                        'barcode'            => $sp->package->barcode ?? '—',
+                        'content'            => $sp->package->content ?? '—',
+                        'service_type'       => $sp->package->service_type ?? '—',
+                        'pounds'             => $sp->pounds,
+                        'kilograms'          => $sp->kilograms,
+                        'destination_agency'    => $sp->package?->reception?->agencyDest?->name,
+                        'destination_agency_id' => $sp->package?->reception?->agencyDest?->id,
                     ])->values(),
                 ];
             });

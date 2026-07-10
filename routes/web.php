@@ -28,6 +28,7 @@ use App\Http\Controllers\{
     TransferConfirmController,
     ShipmentController,
     ShipmentSackController,
+    ShipmentSackReportController,
 };
 
 use App\Http\Middleware\EnsureSudo;
@@ -278,4 +279,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->name('shipments.sacks.assign');
     Route::delete('/api/shipments/{shipment}/sacks/{shipmentSack}', [ShipmentSackController::class, 'removeSack'])
         ->name('shipments.sacks.remove');
+    
+    Route::get('/shipments/{shipment}/sacks/{shipmentSack}/report/pdf', [ShipmentSackReportController::class, 'pdf'])
+        ->name('shipments.sacks.report.pdf');
+    Route::get('/shipments/{shipment}/sacks/{shipmentSack}/report/excel', [ShipmentSackReportController::class, 'excel'])
+        ->name('shipments.sacks.report.excel');
 });
