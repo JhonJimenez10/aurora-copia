@@ -13,6 +13,7 @@ import {
     Sparkles,
     TrendingUp,
     CheckCircle,
+    ShieldAlert,
 } from "lucide-react";
 import { Tabs, TabsContent } from "@/Components/ui/tabs";
 
@@ -181,9 +182,7 @@ export default function Dashboard() {
     type DaySchedule = Record<string, string[]>;
 
     const getCurrentDayData = (): DaySchedule | SpecialEntry[] => {
-        if (selectedDay === "especiales") {
-            return currentSchedule.especiales;
-        }
+        if (selectedDay === "especiales") return currentSchedule.especiales;
         return currentSchedule[
             selectedDay as keyof Omit<typeof currentSchedule, "especiales">
         ] as DaySchedule;
@@ -203,32 +202,16 @@ export default function Dashboard() {
             to { opacity: 1; transform: translateX(0); }
           }
           @keyframes pulse-alert {
-            0%, 100% { 
-              transform: scale(1);
-              box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
-            }
-            50% { 
-              transform: scale(1.02);
-              box-shadow: 0 8px 30px rgba(239, 68, 68, 0.6), 0 0 40px rgba(239, 68, 68, 0.3);
-            }
+            0%, 100% { transform: scale(1); box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4); }
+            50% { transform: scale(1.02); box-shadow: 0 8px 30px rgba(239, 68, 68, 0.6), 0 0 40px rgba(239, 68, 68, 0.3); }
           }
           @keyframes pulse-warning {
-            0%, 100% { 
-              transform: scale(1);
-              box-shadow: 0 4px 20px rgba(234, 179, 8, 0.4);
-            }
-            50% { 
-              transform: scale(1.02);
-              box-shadow: 0 8px 30px rgba(234, 179, 8, 0.6), 0 0 40px rgba(234, 179, 8, 0.3);
-            }
+            0%, 100% { transform: scale(1); box-shadow: 0 4px 20px rgba(234, 179, 8, 0.4); }
+            50% { transform: scale(1.02); box-shadow: 0 8px 30px rgba(234, 179, 8, 0.6), 0 0 40px rgba(234, 179, 8, 0.3); }
           }
-          @keyframes pulse-green {
-            0%, 100% { 
-              box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
-            }
-            50% { 
-              box-shadow: 0 8px 30px rgba(34, 197, 94, 0.6), 0 0 40px rgba(34, 197, 94, 0.3);
-            }
+          @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5), 0 0 60px rgba(239, 68, 68, 0.2); }
+            50% { box-shadow: 0 0 40px rgba(239, 68, 68, 0.9), 0 0 100px rgba(239, 68, 68, 0.4); }
           }
           @keyframes shimmer {
             0% { background-position: -1000px 0; }
@@ -251,26 +234,31 @@ export default function Dashboard() {
             25% { transform: translateX(-10px); }
             75% { transform: translateX(10px); }
           }
+          @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+          }
+          @keyframes zoom-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+          }
           .animate-fadeInUp { animation: fadeInUp 0.5s ease-out forwards; }
           .animate-slideIn { animation: slideIn 0.3s ease-out forwards; }
           .animate-pulse-alert { animation: pulse-alert 2.5s ease-in-out infinite; }
           .animate-pulse-warning { animation: pulse-warning 2.5s ease-in-out infinite; }
-          .animate-pulse-green { animation: pulse-green 2.5s ease-in-out infinite; }
+          .animate-pulse-red { animation: pulse-red 1.8s ease-in-out infinite; }
           .animate-float { animation: float 3s ease-in-out infinite; }
           .animate-bounce-subtle { animation: bounce-subtle 2s ease-in-out infinite; }
           .animate-modal { animation: modalFadeIn 0.3s ease-out forwards; }
           .animate-shake { animation: shake 0.5s ease-in-out; }
-          .shimmer-effect {
-            position: relative;
-            overflow: hidden;
-          }
+          .animate-flicker { animation: flicker 1.5s ease-in-out infinite; }
+          .animate-zoom-pulse { animation: zoom-pulse 2s ease-in-out infinite; }
+          .shimmer-effect { position: relative; overflow: hidden; }
           .shimmer-effect::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
             animation: shimmer 3s infinite;
           }
@@ -287,32 +275,21 @@ export default function Dashboard() {
             transform: translateY(-12px) scale(1.05) rotate(-2deg);
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
           }
-          .stat-card:hover .stat-icon {
-            transform: scale(1.3) rotate(360deg);
-          }
+          .stat-card:hover .stat-icon { transform: scale(1.3) rotate(360deg); }
           .stat-icon { transition: transform 0.6s ease; }
-          .day-button {
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-          }
+          .day-button { transition: all 0.3s ease; position: relative; overflow: hidden; }
           .day-button::before {
             content: '';
             position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
+            top: 50%; left: 50%;
+            width: 0; height: 0;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.15);
             transform: translate(-50%, -50%);
             transition: width 0.6s, height 0.6s;
           }
           .day-button:hover::before { width: 300px; height: 300px; }
-          .alert-card {
-            transition: all 0.4s ease;
-            cursor: pointer;
-          }
+          .alert-card { transition: all 0.4s ease; cursor: pointer; }
           .alert-card:hover {
             transform: translateY(-8px) scale(1.03);
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
@@ -327,238 +304,187 @@ export default function Dashboard() {
           .notice-block:hover { transform: translateY(-2px); }
           .modal-scroll::-webkit-scrollbar { width: 4px; }
           .modal-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
-          .modal-scroll::-webkit-scrollbar-thumb { background: rgba(34,197,94,0.5); border-radius: 4px; }
-          .modal-scroll::-webkit-scrollbar-thumb:hover { background: rgba(34,197,94,0.8); }
-          .philadelphia-badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #7c3aed, #4f46e5);
-            color: white;
-            font-size: 9px;
-            font-weight: 700;
-            padding: 2px 6px;
-            border-radius: 9999px;
-            margin-left: 4px;
-            vertical-align: middle;
-            white-space: nowrap;
+          .modal-scroll::-webkit-scrollbar-thumb { background: rgba(239,68,68,0.5); border-radius: 4px; }
+          .modal-scroll::-webkit-scrollbar-thumb:hover { background: rgba(239,68,68,0.8); }
+          .article-card {
+            transition: all 0.3s ease;
+            cursor: default;
+          }
+          .article-card:hover {
+            transform: translateY(-4px) scale(1.03);
           }
         `}
             </style>
 
             {/* ── MODAL DE AVISOS ─────────────────────────────────────────────── */}
             {showEmergencyAlert && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeInUp">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-fadeInUp">
                     <div
-                        className="relative max-w-xl w-full animate-modal flex flex-col"
+                        className="relative max-w-lg w-full animate-modal flex flex-col"
                         style={{ maxHeight: "90vh" }}
                     >
-                        <div className="absolute inset-0 bg-gradient-to-br from-green-600 via-green-700 to-emerald-900 rounded-2xl blur-xl opacity-40 animate-pulse-green"></div>
+                        {/* Glow rojo exterior */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-red-700 via-red-800 to-red-900 rounded-2xl blur-2xl opacity-60 animate-pulse-red"></div>
 
                         <div
-                            className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl shadow-2xl border-2 border-green-500/40 overflow-hidden flex flex-col"
+                            className="relative bg-gradient-to-br from-gray-950 via-gray-900 to-black rounded-2xl shadow-2xl border-2 border-red-500/70 overflow-hidden flex flex-col animate-pulse-red"
                             style={{ maxHeight: "90vh" }}
                         >
                             <div className="shimmer-effect absolute inset-0 pointer-events-none"></div>
 
-                            {/* Header */}
-                            <div className="relative bg-gradient-to-r from-green-700/90 to-emerald-700/90 p-5 border-b-2 border-green-400/40 flex-shrink-0">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-white/20 rounded-full animate-bounce-subtle">
-                                        <CheckCircle className="w-9 h-9 text-white" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h2 className="text-2xl font-black text-white uppercase tracking-wide flex items-center gap-2">
-                                            <span>✅</span>
-                                            AVISOS A AGENTES
-                                            <span>✅</span>
+                            {/* Header rojo intenso */}
+                            <div className="relative bg-gradient-to-r from-red-700 via-red-600 to-red-700 p-5 border-b-2 border-red-400/50 flex-shrink-0">
+                                <div className="flex items-center justify-center gap-3">
+                                    <ShieldAlert className="w-8 h-8 text-white animate-flicker" />
+                                    <div className="text-center">
+                                        <h2 className="text-2xl font-black text-white uppercase tracking-widest flex items-center gap-2 justify-center">
+                                            <span className="animate-bounce-subtle">
+                                                🚨
+                                            </span>
+                                            AVISO URGENTE
+                                            <span className="animate-bounce-subtle">
+                                                🚨
+                                            </span>
                                         </h2>
-                                        <p className="text-green-100 text-sm font-semibold mt-1">
-                                            Lea detenidamente antes de continuar
+                                        <p className="text-red-100 text-xs font-bold mt-1 tracking-wide uppercase">
+                                            Lea antes de continuar — Vigente
+                                            hasta nuevo aviso
                                         </p>
                                     </div>
+                                    <ShieldAlert className="w-8 h-8 text-white animate-flicker" />
                                 </div>
                             </div>
 
                             {/* Cuerpo */}
-                            <div className="relative p-6 space-y-4 overflow-y-auto modal-scroll flex-1">
-                                {/* Bloque 1 — Productos prohibidos */}
-                                <div className="notice-block bg-gradient-to-r from-red-900/60 to-rose-900/60 border-2 border-red-500/60 rounded-xl p-5 flex items-start gap-4">
+                            <div className="relative p-6 space-y-5 overflow-y-auto modal-scroll flex-1">
+                                {/* Mensaje principal */}
+                                <div className="text-center space-y-2">
+                                    <p className="text-red-300 text-sm font-black uppercase tracking-widest animate-flicker">
+                                        ⛔ RESTRICCIÓN INMEDIATA ⛔
+                                    </p>
+                                    <p className="text-white text-lg font-black leading-snug">
+                                        A partir de ahora,{" "}
+                                        <span className="text-red-400 underline decoration-wavy decoration-red-500">
+                                            SOLO se podrán enviar
+                                        </span>{" "}
+                                        los siguientes{" "}
+                                        <span className="text-yellow-300 font-black text-2xl">
+                                            3 artículos
+                                        </span>
+                                        :
+                                    </p>
+                                    <p className="text-gray-300 text-sm font-semibold">
+                                        Ningún otro artículo será aceptado.
+                                    </p>
+                                </div>
+
+                                {/* Los 3 artículos permitidos */}
+                                <div className="grid grid-cols-3 gap-3">
+                                    {/* Adornos */}
+                                    <div className="article-card bg-gradient-to-br from-yellow-500/20 via-yellow-600/10 to-yellow-700/20 border-2 border-yellow-400/60 rounded-2xl p-4 flex flex-col items-center gap-2 shadow-lg shadow-yellow-900/30">
+                                        <span className="text-4xl animate-bounce-subtle">
+                                            🎄
+                                        </span>
+                                        <p className="text-yellow-300 font-black text-base uppercase tracking-wide text-center">
+                                            Adornos
+                                        </p>
+                                        <div className="w-full h-0.5 bg-yellow-400/40 rounded"></div>
+                                        <p className="text-yellow-200/70 text-[10px] text-center font-semibold">
+                                            Artículo ✅ PERMITIDO
+                                        </p>
+                                    </div>
+
+                                    {/* Ropas */}
+                                    <div className="article-card bg-gradient-to-br from-blue-500/20 via-blue-600/10 to-blue-700/20 border-2 border-blue-400/60 rounded-2xl p-4 flex flex-col items-center gap-2 shadow-lg shadow-blue-900/30">
+                                        <span
+                                            className="text-4xl animate-bounce-subtle"
+                                            style={{ animationDelay: "0.3s" }}
+                                        >
+                                            👕
+                                        </span>
+                                        <p className="text-blue-300 font-black text-base uppercase tracking-wide text-center">
+                                            Ropas
+                                        </p>
+                                        <div className="w-full h-0.5 bg-blue-400/40 rounded"></div>
+                                        <p className="text-blue-200/70 text-[10px] text-center font-semibold">
+                                            Artículo ✅ PERMITIDO
+                                        </p>
+                                    </div>
+
+                                    {/* Artesanías */}
+                                    <div className="article-card bg-gradient-to-br from-emerald-500/20 via-emerald-600/10 to-emerald-700/20 border-2 border-emerald-400/60 rounded-2xl p-4 flex flex-col items-center gap-2 shadow-lg shadow-emerald-900/30">
+                                        <span
+                                            className="text-4xl animate-bounce-subtle"
+                                            style={{ animationDelay: "0.6s" }}
+                                        >
+                                            🏺
+                                        </span>
+                                        <p className="text-emerald-300 font-black text-base uppercase tracking-wide text-center">
+                                            Artesanías
+                                        </p>
+                                        <div className="w-full h-0.5 bg-emerald-400/40 rounded"></div>
+                                        <p className="text-emerald-200/70 text-[10px] text-center font-semibold">
+                                            Artículo ✅ PERMITIDO
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Advertencia de prohibición */}
+                                <div className="bg-gradient-to-r from-red-900/70 to-rose-900/70 border-2 border-red-500/70 rounded-xl p-4 flex items-start gap-3 animate-zoom-pulse">
                                     <span className="text-3xl flex-shrink-0">
                                         🚫
                                     </span>
-                                    <div className="text-white space-y-2">
-                                        <p className="font-black text-base uppercase tracking-wide text-red-300 mb-2">
-                                            Productos PROHIBIDOS — Inspección
-                                            Aduanera al 100%
-                                        </p>
-                                        <p className="text-sm leading-relaxed font-semibold">
-                                            Queda{" "}
-                                            <span className="text-red-300 font-black underline">
-                                                completamente prohibido
-                                            </span>{" "}
-                                            enviar:{" "}
-                                            <span className="text-yellow-300 font-black">
-                                                frutas, embutidos, carnes
-                                                frescas, huevos, pollo, conejo y
-                                                tubérculos.
-                                            </span>{" "}
-                                            La aduana realizará inspecciones al{" "}
-                                            <span className="text-red-300 font-black">
-                                                100%
-                                            </span>
-                                            .
-                                        </p>
-                                        <p className="text-xs leading-relaxed text-red-200 bg-red-900/40 rounded-lg px-3 py-2 border border-red-500/30">
-                                            ⚠️ Ya existen antecedentes de envíos
-                                            con productos prohibidos y{" "}
-                                            <span className="text-yellow-300 font-semibold">
-                                                se identificarán las agencias
-                                                responsables.
-                                            </span>{" "}
-                                            Es mejor enviar menos carga pero
-                                            segura para evitar pérdidas.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Bloque 2 — Envíos lunes solo Baltimore */}
-                                <div className="notice-block bg-gradient-to-r from-blue-900/50 to-indigo-900/50 border-2 border-blue-500/50 rounded-xl p-5 flex items-start gap-4">
-                                    <span className="text-3xl flex-shrink-0">
-                                        📋
-                                    </span>
                                     <div className="text-white space-y-1">
-                                        <p className="font-black text-base uppercase tracking-wide text-blue-300 mb-2">
-                                            Envíos del día LUNES
+                                        <p className="font-black text-base text-red-300 uppercase tracking-wide">
+                                            CUALQUIER OTRO ARTÍCULO: PROHIBIDO
                                         </p>
-                                        <p className="text-sm leading-relaxed font-semibold">
-                                            Estimados usuarios, los envíos los
-                                            días{" "}
-                                            <span className="text-blue-300 font-black underline">
-                                                lunes
-                                            </span>{" "}
-                                            son únicamente con los días de envío
-                                            para la ciudad de{" "}
+                                        <p className="text-sm font-semibold leading-relaxed text-red-100">
+                                            No se aceptará ningún envío que
+                                            contenga artículos distintos a los{" "}
                                             <span className="text-yellow-300 font-black">
-                                                BALTIMORE.
+                                                3 listados arriba
                                             </span>
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Bloque 3 — ROCHESTER JULIO (nuevo aviso) */}
-                                <div className="notice-block bg-gradient-to-r from-orange-900/60 to-amber-900/60 border-2 border-orange-500/60 rounded-xl p-5 flex items-start gap-4">
-                                    <span className="text-3xl flex-shrink-0">
-                                        ⚠️
-                                    </span>
-                                    <div className="text-white space-y-2">
-                                        <p className="font-black text-base uppercase tracking-wide text-orange-300 mb-2">
-                                            Aviso importante — Rochester
-                                        </p>
-                                        <p className="text-sm leading-relaxed font-semibold">
-                                            De{" "}
-                                            <span className="text-yellow-300 font-black">
-                                                ROCHESTER
-                                            </span>{" "}
-                                            puede ser{" "}
-                                            <span className="text-orange-300 font-black underline">
-                                                solo cosas secas
-                                            </span>
-                                            , ya que la señora este mes{" "}
-                                            <span className="text-red-300 font-black">
-                                                no va a salir
-                                            </span>{" "}
-                                            por problemas con migración.
-                                        </p>
-                                        <p className="text-xs leading-relaxed text-orange-200 bg-orange-900/40 rounded-lg px-3 py-2 border border-orange-500/30">
-                                            🏛️ Migración se llevó todo del local
-                                            y{" "}
-                                            <span className="text-yellow-300 font-semibold">
-                                                no tiene cómo trabajar por el
-                                                momento.
-                                            </span>{" "}
-                                            Solo se receptará carga seca hasta
-                                            nuevo aviso.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Bloque 4 — Perfumería */}
-                                <div className="notice-block bg-gradient-to-r from-pink-900/50 to-rose-900/50 border-2 border-pink-500/50 rounded-xl p-5 flex items-start gap-4">
-                                    <span className="text-3xl flex-shrink-0">
-                                        🌸
-                                    </span>
-                                    <div className="text-white space-y-2">
-                                        <p className="font-black text-base uppercase tracking-wide text-pink-300 mb-2">
-                                            Envío de Perfumería
-                                        </p>
-                                        <p className="text-sm leading-relaxed font-semibold">
-                                            Los perfumes se embarcan{" "}
-                                            <span className="text-pink-300 font-black underline">
-                                                todas las semanas
-                                            </span>
-                                            . Se receptan de{" "}
-                                            <span className="text-yellow-300 font-black">
-                                                lunes a jueves
-                                            </span>{" "}
-                                            y se envían esa misma semana.
-                                        </p>
-                                        <p className="text-xs leading-relaxed text-pink-200 bg-pink-900/40 rounded-lg px-3 py-2 border border-pink-500/30">
-                                            📦 Para que la carga llegue el{" "}
-                                            <span className="text-yellow-300 font-semibold">
-                                                viernes
-                                            </span>
-                                            , debe enviarse el{" "}
-                                            <span className="text-yellow-300 font-semibold">
-                                                jueves hasta las 5 pm o en la
-                                                noche
+                                            . Esta restricción está vigente{" "}
+                                            <span className="text-red-300 font-black underline">
+                                                hasta nuevo aviso
                                             </span>
                                             .
-                                        </p>
-                                        <p className="text-xs leading-relaxed text-pink-200 bg-pink-900/40 rounded-lg px-3 py-2 border border-pink-500/30">
-                                            🎀 Todos los perfumes deben ir
-                                            empacados en una{" "}
-                                            <span className="text-yellow-300 font-semibold">
-                                                funda de color distinto
-                                            </span>{" "}
-                                            (cualquier color, excepto{" "}
-                                            <span className="text-yellow-300 font-semibold">
-                                                negro o blanco
-                                            </span>
-                                            ).
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Indicador */}
-                                <div className="flex items-center gap-2 text-gray-400 text-xs pt-1">
-                                    <div className="w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
-                                    <div className="w-2 h-2 bg-green-400 rounded-full absolute"></div>
-                                    <span className="ml-2">
+                                <div className="flex items-center justify-center gap-2 text-gray-400 text-xs pt-1">
+                                    <div className="w-2 h-2 bg-red-400 rounded-full animate-ping"></div>
+                                    <div className="w-2 h-2 bg-red-400 rounded-full absolute"></div>
+                                    <span className="ml-2 font-semibold">
                                         Por favor, informe a sus clientes sobre
-                                        estos avisos
+                                        esta restricción
                                     </span>
                                 </div>
                             </div>
 
                             {/* Footer */}
-                            <div className="relative p-5 bg-gray-900/60 border-t border-gray-700/50 flex-shrink-0">
+                            <div className="relative p-5 bg-gray-950/80 border-t-2 border-red-500/40 flex-shrink-0">
                                 <button
                                     onClick={() => setShowEmergencyAlert(false)}
-                                    className="w-full bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 text-white font-black text-lg py-4 px-8 rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 uppercase tracking-wider flex items-center justify-center gap-3 group"
+                                    className="w-full bg-gradient-to-r from-red-600 via-red-500 to-red-600 hover:from-red-700 hover:via-red-600 hover:to-red-700 text-white font-black text-lg py-4 px-8 rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 uppercase tracking-wider flex items-center justify-center gap-3 group border border-red-400/40"
                                 >
-                                    <span>He leído y entendido los avisos</span>
+                                    <span>Entendido — Solo 3 artículos</span>
                                     <span className="text-2xl group-hover:animate-bounce-subtle">
                                         ✓
                                     </span>
                                 </button>
                             </div>
 
+                            {/* Detalles decorativos */}
                             <div className="absolute top-4 right-4">
-                                <div className="w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
-                                <div className="absolute top-0 right-0 w-3 h-3 bg-green-400 rounded-full"></div>
+                                <div className="w-3 h-3 bg-red-400 rounded-full animate-ping"></div>
+                                <div className="absolute top-0 right-0 w-3 h-3 bg-red-400 rounded-full"></div>
                             </div>
                             <div className="absolute bottom-20 left-4">
-                                <div className="w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
-                                <div className="absolute top-0 left-0 w-3 h-3 bg-green-400 rounded-full"></div>
+                                <div className="w-3 h-3 bg-red-400 rounded-full animate-ping"></div>
+                                <div className="absolute top-0 left-0 w-3 h-3 bg-red-400 rounded-full"></div>
                             </div>
                         </div>
                     </div>
@@ -582,35 +508,19 @@ export default function Dashboard() {
                                 >
                                     <div className="shimmer-effect absolute inset-0"></div>
                                     <div
-                                        className={`absolute inset-0 rounded-xl ${
-                                            n.type === "danger"
-                                                ? "border-2 border-red-300/60"
-                                                : "border-2 border-yellow-200/60"
-                                        }`}
+                                        className={`absolute inset-0 rounded-xl ${n.type === "danger" ? "border-2 border-red-300/60" : "border-2 border-yellow-200/60"}`}
                                     ></div>
                                     <div className="relative p-4 flex items-start gap-3">
                                         <div
-                                            className={`p-2 rounded-lg animate-float ${
-                                                n.type === "danger"
-                                                    ? "bg-red-900/60 ring-2 ring-red-300/30"
-                                                    : "bg-orange-900/60 ring-2 ring-yellow-300/30"
-                                            }`}
+                                            className={`p-2 rounded-lg animate-float ${n.type === "danger" ? "bg-red-900/60 ring-2 ring-red-300/30" : "bg-orange-900/60 ring-2 ring-yellow-300/30"}`}
                                         >
                                             <IconComponent
-                                                className={`w-6 h-6 ${
-                                                    n.type === "danger"
-                                                        ? "text-red-50"
-                                                        : "text-yellow-50"
-                                                }`}
+                                                className={`w-6 h-6 ${n.type === "danger" ? "text-red-50" : "text-yellow-50"}`}
                                             />
                                         </div>
                                         <div className="flex-1">
                                             <h3
-                                                className={`font-bold text-sm mb-1 flex items-center gap-2 ${
-                                                    n.type === "danger"
-                                                        ? "text-white"
-                                                        : "text-gray-900"
-                                                }`}
+                                                className={`font-bold text-sm mb-1 flex items-center gap-2 ${n.type === "danger" ? "text-white" : "text-gray-900"}`}
                                             >
                                                 <span className="animate-bounce-subtle">
                                                     ⚠️
@@ -618,29 +528,17 @@ export default function Dashboard() {
                                                 {n.title}
                                             </h3>
                                             <p
-                                                className={`text-xs leading-relaxed ${
-                                                    n.type === "danger"
-                                                        ? "text-red-50"
-                                                        : "text-gray-900"
-                                                }`}
+                                                className={`text-xs leading-relaxed ${n.type === "danger" ? "text-red-50" : "text-gray-900"}`}
                                             >
                                                 {n.message}
                                             </p>
                                         </div>
                                         <div className="absolute top-3 right-3">
                                             <div
-                                                className={`w-3 h-3 rounded-full ${
-                                                    n.type === "danger"
-                                                        ? "bg-red-200 animate-ping"
-                                                        : "bg-yellow-200 animate-ping"
-                                                }`}
+                                                className={`w-3 h-3 rounded-full ${n.type === "danger" ? "bg-red-200 animate-ping" : "bg-yellow-200 animate-ping"}`}
                                             ></div>
                                             <div
-                                                className={`absolute top-0 right-0 w-3 h-3 rounded-full ${
-                                                    n.type === "danger"
-                                                        ? "bg-red-200"
-                                                        : "bg-yellow-200"
-                                                }`}
+                                                className={`absolute top-0 right-0 w-3 h-3 rounded-full ${n.type === "danger" ? "bg-red-200" : "bg-yellow-200"}`}
                                             ></div>
                                         </div>
                                     </div>
@@ -771,7 +669,6 @@ export default function Dashboard() {
 
                             <div className="relative overflow-hidden rounded-xl glass-effect p-4 shadow-2xl animate-fadeInUp md:col-span-4 group hover:shadow-red-900/30 transition-all duration-300">
                                 <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 via-transparent to-blue-600/10 group-hover:from-red-600/20 group-hover:to-blue-600/20 transition-all"></div>
-
                                 <div className="relative">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-2">
@@ -780,7 +677,6 @@ export default function Dashboard() {
                                                 Cronograma de Envíos
                                             </h3>
                                         </div>
-                                        {/* Mes actual: Julio */}
                                         <div className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-900/50">
                                             Julio 🌞
                                         </div>
