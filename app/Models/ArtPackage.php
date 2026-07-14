@@ -14,12 +14,12 @@ class ArtPackage extends Model
     protected $keyType = 'string';
 
     protected $casts = [
-        'id' => 'string',
-        'canceled' => 'boolean',
-        'active' => 'boolean',
+        'id'         => 'string',
+        'canceled'   => 'boolean',
+        'active'     => 'boolean',
         'unit_price' => 'decimal:2',
-        'agent_val' => 'decimal:2',
-        'arancel' => 'decimal:2',
+        'agent_val'  => 'decimal:2',
+        'arancel'    => 'decimal:2',
     ];
 
     protected $fillable = [
@@ -27,6 +27,8 @@ class ArtPackage extends Model
         'name',
         'translation',
         'codigo_hs',
+        'categoria',   
+        'codigo_fda',
         'unit_type',
         'unit_price',
         'agent_val',
@@ -54,7 +56,7 @@ class ArtPackage extends Model
     {
         return $this->hasMany(Package::class, 'art_package_id');
     }
-    // ✅ Scopes
+
     public function scopeActive($query)
     {
         return $query->where('active', true);
@@ -65,10 +67,8 @@ class ArtPackage extends Model
         return $query->where('active', false);
     }
 
-    // Scope para obtener artículos activos y no cancelados
     public function scopeAvailable($query)
     {
-        return $query->where('active', true)
-            ->where('canceled', false);
+        return $query->where('active', true)->where('canceled', false);
     }
 }

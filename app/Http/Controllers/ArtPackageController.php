@@ -15,20 +15,19 @@ class ArtPackageController extends Controller
 
         $paginated = ArtPackage::where('enterprise_id', $enterpriseId)
             ->orderBy('name')
-            ->paginate(10); // Puedes ajustar la cantidad por página
+            ->paginate(10);
 
         return Inertia::render('ArtPackage/Index', [
-            'art_packages' => $paginated->items(), // Solo los ítems
+            'art_packages' => $paginated->items(),
             'pagination' => [
                 'current_page' => $paginated->currentPage(),
                 'last_page' => $paginated->lastPage(),
                 'per_page' => $paginated->perPage(),
                 'total' => $paginated->total(),
-                'links' => $paginated->linkCollection(), // Para generar los botones como "1", "2", "Siguiente"
+                'links' => $paginated->linkCollection(),
             ],
         ]);
     }
-
 
     public function create()
     {
@@ -41,6 +40,8 @@ class ArtPackageController extends Controller
             'name' => 'required|string|max:100',
             'translation' => 'nullable|string|max:100',
             'codigo_hs' => 'nullable|string|max:50',
+            'categoria' => 'nullable|string|max:100',
+            'codigo_fda' => 'nullable|alpha_num|max:50',
             'unit_type' => 'nullable|string|max:50',
             'unit_price' => 'required|numeric',
             'agent_val' => 'required|numeric',
@@ -62,7 +63,6 @@ class ArtPackageController extends Controller
         $artPackage = ArtPackage::where('enterprise_id', Auth::user()->enterprise_id)
             ->findOrFail($id);
 
-
         return Inertia::render('ArtPackage/Edit', [
             'art_package' => $artPackage,
         ]);
@@ -73,11 +73,12 @@ class ArtPackageController extends Controller
         $artPackage = ArtPackage::where('enterprise_id', Auth::user()->enterprise_id)
             ->findOrFail($id);
 
-
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:100',
             'translation' => 'nullable|string|max:100',
             'codigo_hs' => 'nullable|string|max:50',
+            'categoria' => 'nullable|string|max:100',
+            'codigo_fda' => 'nullable|alpha_num|max:50',
             'unit_type' => 'nullable|string|max:50',
             'unit_price' => 'sometimes|required|numeric',
             'agent_val' => 'sometimes|required|numeric',
@@ -109,14 +110,11 @@ class ArtPackageController extends Controller
             ->where('active', true)
             ->where('canceled', false)
             ->orderBy('name')
-            ->get(['id', 'name', 'translation', 'codigo_hs', 'unit_type', 'unit_price', 'arancel']);
+            ->get(['id', 'name', 'translation', 'codigo_hs', 'categoria', 'codigo_fda', 'unit_type', 'unit_price', 'arancel']);
 
         return response()->json($artPackages);
     }
 
-    /**
-     * ✅ Método nuevo: Alternar el estado activo/inactivo de un artículo
-     */
     public function toggleActive($id)
     {
         $artPackage = ArtPackage::where('enterprise_id', Auth::user()->enterprise_id)

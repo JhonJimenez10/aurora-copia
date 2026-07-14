@@ -5,6 +5,15 @@ import { Button } from "@/Components/ui/button";
 import { Card, CardContent } from "@/Components/ui/card";
 import { Switch } from "@/Components/ui/switch";
 
+const CATEGORIAS = [
+    "Alimentos",
+    "Cosméticos",
+    "Medicamentos",
+    "Dispositivos Médicos",
+    "Suplementos",
+    "Otros",
+];
+
 export default function ArtPackageForm({
     art_package = null,
 }: {
@@ -14,6 +23,8 @@ export default function ArtPackageForm({
         name: art_package?.name || "",
         translation: art_package?.translation || "",
         codigo_hs: art_package?.codigo_hs || "",
+        categoria: art_package?.categoria || "",
+        codigo_fda: art_package?.codigo_fda || "",
         unit_type: art_package?.unit_type || "",
         unit_price: art_package?.unit_price || "",
         agent_val: art_package?.agent_val || "",
@@ -29,6 +40,12 @@ export default function ArtPackageForm({
         } else {
             post("/art_packages", { preserveScroll: true });
         }
+    };
+
+    const handleCodigoFda = (value: string) => {
+        // Solo letras y números, sin espacios
+        const cleaned = value.replace(/[^a-zA-Z0-9]/g, "");
+        setData("codigo_fda", cleaned);
     };
 
     return (
@@ -62,6 +79,7 @@ export default function ArtPackageForm({
                                 className="bg-[#1b1b1b] border border-red-700 text-white"
                             />
                         </div>
+
                         <div>
                             <Label>Código HS</Label>
                             <Input
@@ -74,6 +92,48 @@ export default function ArtPackageForm({
                             {errors.codigo_hs && (
                                 <p className="text-red-500 text-xs mt-1">
                                     {errors.codigo_hs}
+                                </p>
+                            )}
+                        </div>
+
+                        <div>
+                            <Label>Categoría</Label>
+                            <select
+                                value={data.categoria}
+                                onChange={(e) =>
+                                    setData("categoria", e.target.value)
+                                }
+                                className="w-full h-10 rounded-md bg-[#1b1b1b] border border-red-700 text-white px-3 text-sm"
+                            >
+                                <option value="">
+                                    Seleccione una categoría
+                                </option>
+                                {CATEGORIAS.map((cat) => (
+                                    <option key={cat} value={cat}>
+                                        {cat}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.categoria && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.categoria}
+                                </p>
+                            )}
+                        </div>
+
+                        <div>
+                            <Label>Código FDA</Label>
+                            <Input
+                                value={data.codigo_fda}
+                                onChange={(e) =>
+                                    handleCodigoFda(e.target.value)
+                                }
+                                placeholder="Ej: K123456"
+                                className="bg-[#1b1b1b] border border-red-700 text-white"
+                            />
+                            {errors.codigo_fda && (
+                                <p className="text-red-500 text-xs mt-1">
+                                    {errors.codigo_fda}
                                 </p>
                             )}
                         </div>
@@ -114,6 +174,7 @@ export default function ArtPackageForm({
                                 className="bg-[#1b1b1b] border border-red-700 text-white"
                             />
                         </div>
+
                         <div>
                             <Label>Arancel</Label>
                             <Input

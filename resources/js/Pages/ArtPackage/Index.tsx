@@ -10,6 +10,8 @@ interface ArtPackage {
     name: string;
     translation: string;
     codigo_hs: string;
+    categoria: string;
+    codigo_fda: string;
     unit_type: string;
     unit_price: string;
     agent_val: string;
@@ -59,6 +61,12 @@ export default function ArtPackagesIndex({
                                         Traducción
                                     </th>
                                     <th className="px-4 py-2 text-left">
+                                        Categoría
+                                    </th>
+                                    <th className="px-4 py-2 text-left">
+                                        Código FDA
+                                    </th>
+                                    <th className="px-4 py-2 text-left">
                                         Unidad
                                     </th>
                                     <th className="px-4 py-2 text-left">
@@ -91,6 +99,12 @@ export default function ArtPackagesIndex({
                                             {item.translation}
                                         </td>
                                         <td className="px-4 py-2">
+                                            {item.categoria || "-"}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {item.codigo_fda || "-"}
+                                        </td>
+                                        <td className="px-4 py-2">
                                             {item.unit_type}
                                         </td>
                                         <td className="px-4 py-2">
@@ -120,15 +134,14 @@ export default function ArtPackagesIndex({
                                                     onClick={() => {
                                                         if (
                                                             confirm(
-                                                                "¿Estás seguro de que deseas eliminar este artículo?"
+                                                                "¿Estás seguro de que deseas eliminar este artículo?",
                                                             )
                                                         ) {
                                                             router.delete(
                                                                 `/art_packages/${item.id}`,
                                                                 {
-                                                                    preserveScroll:
-                                                                        true,
-                                                                }
+                                                                    preserveScroll: true,
+                                                                },
                                                             );
                                                         }
                                                     }}
@@ -143,7 +156,7 @@ export default function ArtPackagesIndex({
                                 {!art_packages.length && (
                                     <tr>
                                         <td
-                                            colSpan={7}
+                                            colSpan={10}
                                             className="text-center py-4 text-slate-400"
                                         >
                                             No hay artículos registrados.
