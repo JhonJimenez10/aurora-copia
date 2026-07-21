@@ -10,7 +10,7 @@ import {
     ChevronUp,
     ChevronDown,
     CheckCircle2,
-    CheckCircle, // ✅ NUEVO
+    CheckCircle,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
@@ -19,9 +19,17 @@ import { cn } from "@/lib/utils";
 /** ---------------------
  * Tipos generales
  * --------------------- */
+type EnterpriseOption = {
+    id: string;
+    name: string;
+    city: string;
+};
+
 type TransfersConfirmPageProps = PageProps<{
     countries: string[];
     agencies: string[];
+    isAdmin: boolean;
+    enterprises: EnterpriseOption[];
 }>;
 
 type ModalProps = {
@@ -57,7 +65,7 @@ function Modal({ title, isOpen, onClose, children }: ModalProps) {
 }
 
 /** ---------------------
- * ✅ NUEVO: MODAL DE ÉXITO
+ * MODAL DE ÉXITO
  * --------------------- */
 type SuccessModalProps = {
     isOpen: boolean;
@@ -80,20 +88,16 @@ function SuccessModal({
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70">
             <div className="bg-black border border-green-600 rounded-lg w-full max-w-md shadow-2xl animate-in fade-in duration-200">
                 <div className="px-6 py-8 text-center">
-                    {/* Icono animado */}
                     <div className="mx-auto w-16 h-16 bg-green-600/20 rounded-full flex items-center justify-center mb-4">
                         <CheckCircle className="h-10 w-10 text-green-500 animate-in zoom-in duration-300" />
                     </div>
 
-                    {/* Título */}
                     <h3 className="text-xl font-bold text-white mb-2">
                         {title}
                     </h3>
 
-                    {/* Mensaje */}
                     <p className="text-gray-300 text-sm mb-6">{message}</p>
 
-                    {/* Badge de estado */}
                     {isFullyConfirmed && (
                         <div className="mb-4">
                             <span className="inline-block px-4 py-2 bg-green-900/30 border border-green-600 rounded-full text-green-400 text-xs font-semibold">
@@ -102,7 +106,6 @@ function SuccessModal({
                         </div>
                     )}
 
-                    {/* Botón */}
                     <Button
                         onClick={onClose}
                         className="bg-green-600 hover:bg-green-700 text-white w-full"
@@ -144,6 +147,7 @@ type TransferSearchFilters = {
     fromCity: string;
     toCity: string;
     onlyPending: boolean;
+    enterpriseId: string;
 };
 
 type TransferSearchResult = {
@@ -153,6 +157,7 @@ type TransferSearchResult = {
     from_city: string;
     to_city: string;
     status: string;
+    enterprise_name?: string | null;
 };
 
 /** ---------------------
@@ -163,6 +168,7 @@ type ConfirmTransferDetails = {
     number: string;
     from_city: string;
     to_city: string;
+    enterprise_name?: string | null;
     sacks: Array<{
         id: string;
         number: number;
@@ -195,7 +201,6 @@ function ConfirmTransferModal({
     const [currentIdx, setCurrentIdx] = useState(0);
     const [saving, setSaving] = useState(false);
 
-    // ✅ NUEVO: Estados para modal de éxito
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [successData, setSuccessData] = useState<{
         title: string;
@@ -211,14 +216,13 @@ function ConfirmTransferModal({
         details && details.sacks.length ? details.sacks[currentIdx] : null;
 
     const [selectedPendingId, setSelectedPendingId] = useState<string | null>(
-        null
+        null,
     );
 
     const [selectedConfirmedId, setSelectedConfirmedId] = useState<
         string | null
     >(null);
 
-    // Estados de búsqueda
     const [searchPending, setSearchPending] = useState("");
     const [searchConfirmed, setSearchConfirmed] = useState("");
 
@@ -244,7 +248,7 @@ function ConfirmTransferModal({
                 setDetails(data);
             } catch (e: any) {
                 setError(
-                    e.message || "No se pudo cargar el traslado seleccionado."
+                    e.message || "No se pudo cargar el traslado seleccionado.",
                 );
             } finally {
                 setLoading(false);
@@ -253,7 +257,6 @@ function ConfirmTransferModal({
         load();
     }, [isOpen, transferId]);
 
-    // Filtros
     const filteredPending = useMemo(() => {
         if (!current || !searchPending.trim()) return current?.pending ?? [];
 
@@ -262,7 +265,7 @@ function ConfirmTransferModal({
             (p) =>
                 p.code.toLowerCase().includes(term) ||
                 p.content.toLowerCase().includes(term) ||
-                p.id.toLowerCase().includes(term)
+                p.id.toLowerCase().includes(term),
         );
     }, [current, searchPending]);
 
@@ -275,7 +278,7 @@ function ConfirmTransferModal({
             (p) =>
                 p.code.toLowerCase().includes(term) ||
                 p.content.toLowerCase().includes(term) ||
-                p.id.toLowerCase().includes(term)
+                p.id.toLowerCase().includes(term),
         );
     }, [current, searchConfirmed]);
 
@@ -296,7 +299,7 @@ function ConfirmTransferModal({
         const pkg = sack.confirmed.find((p) => p.id === selectedConfirmedId);
         if (!pkg) return;
         sack.confirmed = sack.confirmed.filter(
-            (p) => p.id !== selectedConfirmedId
+            (p) => p.id !== selectedConfirmedId,
         );
         sack.pending = [...sack.pending, pkg];
         replaceSack(sack);
@@ -314,21 +317,20 @@ function ConfirmTransferModal({
         if (!details) return;
         const copy = { ...details };
         copy.sacks = copy.sacks.map((s) =>
-            s.number === sack.number ? sack : s
+            s.number === sack.number ? sack : s,
         );
         setDetails(copy);
     };
 
     const totalsPending = useMemo(
         () => calculateTotals(filteredPending),
-        [filteredPending]
+        [filteredPending],
     );
     const totalsConfirmed = useMemo(
         () => calculateTotals(filteredConfirmed),
-        [filteredConfirmed]
+        [filteredConfirmed],
     );
 
-    // ✅ MODIFICADO: saveAll con modal personalizado
     const saveAll = async () => {
         if (!details) return;
         const payload = {
@@ -376,7 +378,6 @@ function ConfirmTransferModal({
 
             const result = await res.json();
 
-            // ✅ NUEVO: Mostrar modal personalizado en lugar de alert
             if (result.status === "CONFIRMED") {
                 setSuccessData({
                     title: "¡Traslado Confirmado!",
@@ -401,7 +402,7 @@ function ConfirmTransferModal({
             console.error("Error al guardar:", e);
             setError(
                 e.message ||
-                    "No se pudo guardar la confirmación. Intenta nuevamente."
+                    "No se pudo guardar la confirmación. Intenta nuevamente.",
             );
         } finally {
             setSaving(false);
@@ -455,7 +456,7 @@ function ConfirmTransferModal({
                 )}
                 {!loading && !error && details && (
                     <>
-                        <div className="mb-4 flex items-center justify-between">
+                        <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
                             <div className="text-sm">
                                 <span className="text-gray-300">
                                     Traslado No.:{" "}
@@ -463,6 +464,14 @@ function ConfirmTransferModal({
                                 <span className="text-white font-semibold">
                                     {details.number}
                                 </span>
+                                {details.enterprise_name && (
+                                    <span className="text-gray-300 ml-4">
+                                        Empresa:{" "}
+                                        <span className="text-white font-semibold">
+                                            {details.enterprise_name}
+                                        </span>
+                                    </span>
+                                )}
                                 <span className="text-gray-300 ml-4">
                                     De: {details.from_city} → A:{" "}
                                     {details.to_city}
@@ -546,14 +555,14 @@ function ConfirmTransferModal({
                                                         key={pkg.id}
                                                         onClick={() =>
                                                             setSelectedPendingId(
-                                                                pkg.id
+                                                                pkg.id,
                                                             )
                                                         }
                                                         className={cn(
                                                             "border-t border-red-700 cursor-pointer hover:bg-[#1b1b1b]",
                                                             selectedPendingId ===
                                                                 pkg.id &&
-                                                                "bg-red-900/60"
+                                                                "bg-red-900/60",
                                                         )}
                                                     >
                                                         <td className="px-3 py-1">
@@ -668,14 +677,14 @@ function ConfirmTransferModal({
                                                         key={pkg.id}
                                                         onClick={() =>
                                                             setSelectedConfirmedId(
-                                                                pkg.id
+                                                                pkg.id,
                                                             )
                                                         }
                                                         className={cn(
                                                             "border-t border-red-700 cursor-pointer hover:bg-[#1b1b1b]",
                                                             selectedConfirmedId ===
                                                                 pkg.id &&
-                                                                "bg-red-900/60"
+                                                                "bg-red-900/60",
                                                         )}
                                                     >
                                                         <td className="px-3 py-1">
@@ -721,7 +730,7 @@ function ConfirmTransferModal({
                                         KGS:{" "}
                                         <span className="text-white font-semibold">
                                             {totalsConfirmed.kilograms.toFixed(
-                                                2
+                                                2,
                                             )}
                                         </span>
                                     </span>
@@ -736,7 +745,7 @@ function ConfirmTransferModal({
                                     LIBRAS:{" "}
                                     <span className="text-white font-semibold">
                                         {calculateTotals(
-                                            current?.confirmed ?? []
+                                            current?.confirmed ?? [],
                                         ).pounds.toFixed(2)}
                                     </span>
                                 </span>
@@ -744,7 +753,7 @@ function ConfirmTransferModal({
                                     KILOS:{" "}
                                     <span className="text-white font-semibold">
                                         {calculateTotals(
-                                            current?.confirmed ?? []
+                                            current?.confirmed ?? [],
                                         ).kilograms.toFixed(2)}
                                     </span>
                                 </span>
@@ -796,7 +805,6 @@ function ConfirmTransferModal({
                 )}
             </Modal>
 
-            {/* ✅ NUEVO: Modal de éxito */}
             <SuccessModal
                 isOpen={showSuccessModal}
                 onClose={() => setShowSuccessModal(false)}
@@ -814,9 +822,12 @@ function ConfirmTransferModal({
 export default function TransfersConfirm({
     countries: countriesProp,
     agencies: agenciesProp,
+    isAdmin,
+    enterprises,
 }: TransfersConfirmPageProps) {
     const countries = countriesProp?.length ? countriesProp : ["ECUADOR"];
     const agencies = agenciesProp ?? [];
+    const enterpriseOptions = enterprises ?? [];
 
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -833,10 +844,11 @@ export default function TransfersConfirm({
             fromCity: "[TODOS]",
             toCity: "",
             onlyPending: true,
-        })
+            enterpriseId: "",
+        }),
     );
     const [searchResults, setSearchResults] = useState<TransferSearchResult[]>(
-        []
+        [],
     );
     const [searchLoading, setSearchLoading] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
@@ -877,6 +889,9 @@ export default function TransfersConfirm({
             if (searchFilters.toCity)
                 params.append("to_city", searchFilters.toCity);
             if (searchFilters.onlyPending) params.append("only_pending", "1");
+            if (isAdmin && searchFilters.enterpriseId) {
+                params.append("enterprise_id", searchFilters.enterpriseId);
+            }
 
             const url = params.toString()
                 ? `/api/transfers/search?${params.toString()}`
@@ -888,11 +903,11 @@ export default function TransfersConfirm({
             setSearchResults(data);
             if (!data.length)
                 setSearchError(
-                    "No se encontraron traslados pendientes con esos filtros."
+                    "No se encontraron traslados pendientes con esos filtros.",
                 );
         } catch {
             setSearchError(
-                "Ocurrió un error al buscar los traslados. Intenta nuevamente."
+                "Ocurrió un error al buscar los traslados. Intenta nuevamente.",
             );
         } finally {
             setSearchLoading(false);
@@ -922,7 +937,9 @@ export default function TransfersConfirm({
                         Confirmar Llegada Traslado
                     </h1>
                     <p className="text-white text-sm">
-                        Confirma los paquetes recibidos de traslados pendientes
+                        {isAdmin
+                            ? "Confirma los paquetes recibidos de traslados pendientes de todas las empresas"
+                            : "Confirma los paquetes recibidos de traslados pendientes"}
                     </p>
                 </div>
 
@@ -1059,6 +1076,34 @@ export default function TransfersConfirm({
                             </select>
                         </div>
 
+                        {/* Filtro de empresa — solo visible para Admin/Sudo */}
+                        {isAdmin && (
+                            <div className="flex flex-col">
+                                <label className="text-sm text-gray-300 mb-1">
+                                    Empresa
+                                </label>
+                                <select
+                                    value={searchFilters.enterpriseId}
+                                    onChange={(e) =>
+                                        setSearchFilters((f) => ({
+                                            ...f,
+                                            enterpriseId: e.target.value,
+                                        }))
+                                    }
+                                    className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white"
+                                >
+                                    <option value="">
+                                        [TODAS LAS EMPRESAS]
+                                    </option>
+                                    {enterpriseOptions.map((ent) => (
+                                        <option key={ent.id} value={ent.id}>
+                                            {ent.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
                         <div className="flex items-center mt-6">
                             <input
                                 id="onlyPending"
@@ -1108,6 +1153,11 @@ export default function TransfersConfirm({
                                     <th className="px-4 py-2 text-left">
                                         No. documento
                                     </th>
+                                    {isAdmin && (
+                                        <th className="px-4 py-2 text-left">
+                                            Empresa
+                                        </th>
+                                    )}
                                     <th className="px-4 py-2 text-left">
                                         País
                                     </th>
@@ -1126,7 +1176,7 @@ export default function TransfersConfirm({
                                 {searchLoading ? (
                                     <tr>
                                         <td
-                                            colSpan={5}
+                                            colSpan={isAdmin ? 6 : 5}
                                             className="text-center py-4 text-gray-300 italic"
                                         >
                                             Buscando documentos...
@@ -1146,12 +1196,17 @@ export default function TransfersConfirm({
                                             className={cn(
                                                 "border-t border-red-700 cursor-pointer hover:bg-[#1b1b1b]",
                                                 selectedResultId === t.id &&
-                                                    "bg-red-900/60"
+                                                    "bg-red-900/60",
                                             )}
                                         >
                                             <td className="px-4 py-2">
                                                 {t.number}
                                             </td>
+                                            {isAdmin && (
+                                                <td className="px-4 py-2">
+                                                    {t.enterprise_name || "—"}
+                                                </td>
+                                            )}
                                             <td className="px-4 py-2">
                                                 {t.country}
                                             </td>
@@ -1167,7 +1222,7 @@ export default function TransfersConfirm({
                                                         "px-2 py-1 rounded text-xs font-semibold",
                                                         t.status === "PENDING"
                                                             ? "bg-yellow-900/30 text-yellow-400"
-                                                            : "bg-green-900/30 text-green-400"
+                                                            : "bg-green-900/30 text-green-400",
                                                     )}
                                                 >
                                                     {t.status === "PENDING"
@@ -1180,7 +1235,7 @@ export default function TransfersConfirm({
                                 ) : (
                                     <tr>
                                         <td
-                                            colSpan={5}
+                                            colSpan={isAdmin ? 6 : 5}
                                             className="text-center py-4 text-red-400"
                                         >
                                             No se encontraron traslados

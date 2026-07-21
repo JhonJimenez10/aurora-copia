@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Enterprise;
 use App\Models\Shipment;
 use App\Models\ShipmentSack;
 use App\Models\TransferSack;
@@ -12,61 +13,102 @@ use Illuminate\Support\Facades\Log;
 class ShipmentSackController extends Controller
 {
     /**
+     * ✅ Mismo criterio de admin usado en los otros controladores.
+     */
+    private function canViewAllEnterprises($user): bool
+    {
+        $roleName = $user->role->name ?? null;
+        return in_array($roleName, ['Admin', 'Sudo'], true);
+    }
+
+    /**
+     * ✅ GET /api/enterprises/list-filter (reutilizable, solo admin)
+     */
+    public function enterprisesList()
+    {
+        $user = auth()->user();
+
+        if (!$this->canViewAllEnterprises($user)) {
+            return response()->json([]);
+        }
+
+        return response()->json(
+            Enterprise::orderBy('name')->get(['id', 'name', 'city'])
+        );
+    }
+
+    /**
      * Obtener sacas confirmadas disponibles para asignar a un embarque.
      * "Confirmadas" = transfer_sack_packages.confirmed = true
      * "Disponibles" = no están ya asignadas a otro embarque
      */
     public function availableSacks(Request $request)
     {
-        $enterpriseId = auth()->user()->enterprise_id;
+        $user = auth()->user();
+        $isAdmin = $this->canViewAllEnterprises($user);
+        $enterpriseId = $user->enterprise_id;
+
+        // ✅ Filtro opcional de empresa (solo aplica si es admin)
+        $filterEnterpriseId = $request->input('enterprise_id');
 
         $assignedSackIds = ShipmentSack::pluck('transfer_sack_id')->toArray();
 
-        $sacks = TransferSack::whereHas('transfer', function ($q) use ($enterpriseId) {
-                $q->where('enterprise_id', $enterpriseId);
+        $sacks = TransferSack::whereHas('transfer', function ($q) use ($isAdmin, $enterpriseId, $filterEnterpriseId) {
+                if (!$isAdmin) {
+                    // Customer: solo su propia empresa (comportamiento original)
+                    $q->where('enterprise_id', $enterpriseId);
+                } elseif (!empty($filterEnterpriseId)) {
+                    // Admin filtrando una empresa específica
+                    $q->where('enterprise_id', $filterEnterpriseId);
+                }
+                // Admin sin filtro → ve sacas confirmadas de TODAS las empresas
             })
             ->whereHas('sackPackages', function ($q) {
                 $q->where('confirmed', true);
             })
             ->whereNotIn('id', $assignedSackIds)
             ->with([
-                'transfer:id,number,from_city,to_city',
+                'transfer:id,number,from_city,to_city,enterprise_id',
                 'sackPackages' => function ($q) {
                     $q->where('confirmed', true)
                       ->with([
-                          // Traemos el paquete...
                           'package:id,reception_id,barcode,content,service_type,pounds,kilograms',
-                          // ...y desde el paquete, su recepción (solo lo necesario)...
                           'package.reception:id,agency_dest',
-                          // ...y desde la recepción, la agencia destino real
                           'package.reception.agencyDest:id,name',
                       ]);
                 },
             ])
-            ->get()
-            ->map(function ($sack) {
+            ->get();
+
+        // ✅ Nombres de empresa resueltos en una sola consulta
+        $enterpriseIds = $sacks->pluck('transfer.enterprise_id')->filter()->unique();
+        $enterpriseNames = Enterprise::whereIn('id', $enterpriseIds)->pluck('name', 'id');
+
+        $result = $sacks->map(function ($sack) use ($enterpriseNames) {
                 $confirmedPkgs = $sack->sackPackages;
 
-                // Agencias destino reales de los paquetes de esta saca (sin duplicados)
                 $destinationAgencies = $confirmedPkgs
                     ->map(fn($sp) => $sp->package?->reception?->agencyDest?->name)
                     ->filter()
                     ->unique()
                     ->values();
 
+                $enterpriseId = $sack->transfer->enterprise_id ?? null;
+
                 return [
                     'id'              => $sack->id,
-                    'sack_number'     => $sack->sack_number, // número original del traslado (referencia)
+                    'sack_number'     => $sack->sack_number,
                     'seal'            => $sack->seal,
                     'refrigerated'    => $sack->refrigerated,
                     'transfer_id'     => $sack->transfer_id,
                     'transfer_number' => $sack->transfer->number ?? '—',
                     'from_city'       => $sack->transfer->from_city ?? '—',
                     'to_city'         => $sack->transfer->to_city ?? '—',
+                    'enterprise_id'   => $enterpriseId, // ✅ NUEVO
+                    'enterprise_name' => $enterpriseNames[$enterpriseId] ?? null, // ✅ NUEVO
                     'packages_count'  => $confirmedPkgs->count(),
                     'pounds_total'    => $confirmedPkgs->sum('pounds'),
                     'kilograms_total' => $confirmedPkgs->sum('kilograms'),
-                    // Lista ya agregada y separada por comas, lista para pintar en la tabla
                     'destination_agencies' => $destinationAgencies->implode(', '),
                     'packages'        => $confirmedPkgs->map(fn($sp) => [
                         'id'                 => $sp->package->id ?? $sp->package_id,
@@ -75,30 +117,32 @@ class ShipmentSackController extends Controller
                         'service_type'       => $sp->package->service_type ?? '—',
                         'pounds'             => $sp->pounds,
                         'kilograms'          => $sp->kilograms,
-                        // Agencia destino de este paquete puntual (por si se necesita en detalle)
                         'destination_agency'    => $sp->package?->reception?->agencyDest?->name,
                         'destination_agency_id' => $sp->package?->reception?->agencyDest?->id,
                     ])->values(),
                 ];
             });
 
-        return response()->json($sacks);
+        return response()->json($result);
     }
 
     /**
      * Obtener sacas ya asignadas a un embarque específico.
-     * Usa el sack_number MANUAL guardado en shipment_sacks (no el del traslado).
      */
     public function sacksForShipment($shipmentId)
     {
-        $enterpriseId = auth()->user()->enterprise_id;
+        $user = auth()->user();
+        $isAdmin = $this->canViewAllEnterprises($user);
 
-        $shipment = Shipment::where('enterprise_id', $enterpriseId)
-            ->findOrFail($shipmentId);
+        $shipmentQuery = Shipment::query();
+        if (!$isAdmin) {
+            $shipmentQuery->where('enterprise_id', $user->enterprise_id);
+        }
+        $shipment = $shipmentQuery->findOrFail($shipmentId);
 
         $sacks = ShipmentSack::where('shipment_id', $shipmentId)
             ->with([
-                'transferSack.transfer:id,number,from_city,to_city',
+                'transferSack.transfer:id,number,from_city,to_city,enterprise_id',
                 'transferSack.sackPackages' => function ($q) {
                     $q->where('confirmed', true)
                       ->with([
@@ -109,32 +153,37 @@ class ShipmentSackController extends Controller
                 },
             ])
             ->orderBy('sack_number')
-            ->get()
-            ->map(function ($ss) {
+            ->get();
+
+        $enterpriseIds = $sacks->pluck('transferSack.transfer.enterprise_id')->filter()->unique();
+        $enterpriseNames = Enterprise::whereIn('id', $enterpriseIds)->pluck('name', 'id');
+
+        $mapped = $sacks->map(function ($ss) use ($enterpriseNames) {
                 $sack = $ss->transferSack;
                 $pkgs = $sack->sackPackages;
 
-                // Agencias destino reales de los paquetes de esta saca (sin duplicados)
                 $destinationAgencies = $pkgs
                     ->map(fn($sp) => $sp->package?->reception?->agencyDest?->name)
                     ->filter()
                     ->unique()
                     ->values();
 
+                $enterpriseId = $sack->transfer->enterprise_id ?? null;
+
                 return [
                     'shipment_sack_id' => $ss->id,
                     'id'               => $sack->id,
-                    // ✅ Número manual ingresado por el operador, NO el del traslado
                     'sack_number'      => $ss->sack_number ?? $sack->sack_number,
                     'seal'             => $sack->seal,
                     'refrigerated'     => $sack->refrigerated,
                     'transfer_number'  => $sack->transfer->number ?? '—',
                     'from_city'        => $sack->transfer->from_city ?? '—',
                     'to_city'          => $sack->transfer->to_city ?? '—',
+                    'enterprise_id'    => $enterpriseId, // ✅ NUEVO
+                    'enterprise_name'  => $enterpriseNames[$enterpriseId] ?? null, // ✅ NUEVO
                     'packages_count'   => $ss->packages_count,
                     'pounds_total'     => $ss->pounds_total,
                     'kilograms_total'  => $ss->kilograms_total,
-                    // Lista ya agregada y separada por comas, lista para pintar en la tabla
                     'destination_agencies' => $destinationAgencies->implode(', '),
                     'packages'         => $pkgs->map(fn($sp) => [
                         'id'                 => $sp->package->id ?? $sp->package_id,
@@ -155,7 +204,7 @@ class ShipmentSackController extends Controller
                 'number' => $shipment->number,
                 'route'  => $shipment->route,
             ],
-            'sacks' => $sacks,
+            'sacks' => $mapped,
         ]);
     }
 
@@ -164,10 +213,14 @@ class ShipmentSackController extends Controller
      */
     public function assignSacks(Request $request, $shipmentId)
     {
-        $enterpriseId = auth()->user()->enterprise_id;
+        $user = auth()->user();
+        $isAdmin = $this->canViewAllEnterprises($user);
 
-        $shipment = Shipment::where('enterprise_id', $enterpriseId)
-            ->findOrFail($shipmentId);
+        $shipmentQuery = Shipment::query();
+        if (!$isAdmin) {
+            $shipmentQuery->where('enterprise_id', $user->enterprise_id);
+        }
+        $shipment = $shipmentQuery->findOrFail($shipmentId);
 
         if ($shipment->status === 'CANCELLED') {
             return response()->json(['error' => 'No se puede modificar un embarque cancelado.'], 409);
@@ -187,6 +240,8 @@ class ShipmentSackController extends Controller
                     continue;
                 }
 
+                // ✅ No se restringe por empresa aquí — si el admin ya vio
+                // la saca en availableSacks (de cualquier empresa), puede asignarla.
                 $sack = TransferSack::with(['sackPackages' => function ($q) {
                     $q->where('confirmed', true);
                 }])->findOrFail($sackId);
@@ -196,7 +251,7 @@ class ShipmentSackController extends Controller
                 ShipmentSack::create([
                     'shipment_id'      => $shipmentId,
                     'transfer_sack_id' => $sackId,
-                    'sack_number'      => $request->sack_number, // ✅ número manual del operador
+                    'sack_number'      => $request->sack_number,
                     'packages_count'   => $confirmedPkgs->count(),
                     'pounds_total'     => $confirmedPkgs->sum('pounds'),
                     'kilograms_total'  => $confirmedPkgs->sum('kilograms'),
@@ -217,10 +272,14 @@ class ShipmentSackController extends Controller
      */
     public function removeSack($shipmentId, $shipmentSackId)
     {
-        $enterpriseId = auth()->user()->enterprise_id;
+        $user = auth()->user();
+        $isAdmin = $this->canViewAllEnterprises($user);
 
-        $shipment = Shipment::where('enterprise_id', $enterpriseId)
-            ->findOrFail($shipmentId);
+        $shipmentQuery = Shipment::query();
+        if (!$isAdmin) {
+            $shipmentQuery->where('enterprise_id', $user->enterprise_id);
+        }
+        $shipment = $shipmentQuery->findOrFail($shipmentId);
 
         if ($shipment->status === 'CANCELLED') {
             return response()->json(['error' => 'No se puede modificar un embarque cancelado.'], 409);
