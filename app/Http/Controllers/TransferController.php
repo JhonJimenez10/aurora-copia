@@ -3,20 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Enterprise;
+use App\Models\Package;
 use App\Models\Transfer;
 use App\Models\TransferSack;
-use App\Models\Package;
+use App\Models\TransferSackPackage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
-class TransferConfirmController extends Controller
+class TransferController extends Controller
 {
     /**
-     * ✅ Admin/Sudo pueden ver y confirmar traslados de TODAS las empresas.
-     * Customer sigue viendo solo la suya.
+     * ✅ Mismo criterio que en TransferConfirmController.
      */
     private function canViewAllEnterprises($user): bool
     {
@@ -25,247 +24,257 @@ class TransferConfirmController extends Controller
     }
 
     /**
-     * GET /classification/transfers/confirm
+     * GET /transfers/create
      */
-    public function index()
+    public function create()
     {
-        $user = Auth::user();
-        $isAdmin = $this->canViewAllEnterprises($user);
+        $user       = auth()->user();
+        $enterprise = \App\Models\Enterprise::find($user->enterprise_id);
 
-        $countries = ['ECUADOR'];
+        $fromCities = collect([$enterprise?->city])->filter()->values();
+        $toCities = collect(['CUENCA']);
 
-        // Las ciudades de agencias se mantienen igual (ya eran globales)
-        $agencies = Enterprise::query()
-            ->whereNotNull('city')
-            ->orderBy('city')
-            ->pluck('city')
-            ->unique()
-            ->values()
-            ->toArray();
-
-        // ✅ Lista de empresas para el filtro, solo si es admin/sudo
-        $enterprises = $isAdmin
-            ? Enterprise::query()->orderBy('name')->get(['id', 'name', 'city'])
-            : collect();
-
-        return Inertia::render('Classification/TransfersConfirm', [
-            'countries'   => $countries,
-            'agencies'    => $agencies,
-            'isAdmin'     => $isAdmin,     // ✅ NUEVO — necesario para el front
-            'enterprises' => $enterprises, // ✅ NUEVO — necesario para el combo
+        return Inertia::render('Transfers/Create', [
+            'fromCities' => $fromCities,
+            'toCities'   => $toCities,
         ]);
     }
 
     /**
-     * ✅ GET /api/enterprises/list-filter
-     * Lista de empresas para combos de filtro (solo admin/sudo).
+     * GET /api/transfers/available-packages
      */
-    public function enterprisesList()
+    public function availablePackages(Request $request)
     {
         $user = Auth::user();
-
-        if (!$this->canViewAllEnterprises($user)) {
-            return response()->json([], 200, ['Content-Type' => 'application/json']);
-        }
-
-        $enterprises = Enterprise::query()->orderBy('name')->get(['id', 'name', 'city']);
-
-        return response()->json($enterprises, 200, ['Content-Type' => 'application/json']);
-    }
-
-    /**
-     * GET /api/transfers/{transfer}/details
-     */
-    public function show(Transfer $transfer)
-    {
-        $user = Auth::user();
-        $isAdmin = $this->canViewAllEnterprises($user);
-
-        // ✅ Solo se restringe por empresa si NO es admin/sudo
-        if (!$isAdmin && $transfer->enterprise_id !== $user->enterprise_id) {
-            return response()->json([
-                'error' => 'No tienes permiso para ver este traslado.'
-            ], 403, ['Content-Type' => 'application/json']);
-        }
-
-        if ($transfer->status !== 'PENDING') {
-            return response()->json([
-                'error' => 'Este traslado ya fue confirmado o cancelado.',
-                'status' => $transfer->status
-            ], 422, ['Content-Type' => 'application/json']);
-        }
-
-        $transfer->load(['sacks.packages']);
-
-        // ✅ Nombre de la empresa dueña del traslado (útil para el admin)
-        $enterpriseName = Enterprise::where('id', $transfer->enterprise_id)->value('name');
-
-        $sacks = $transfer->sacks->map(function (TransferSack $sack) {
-            $pending = $sack->packages->filter(fn($p) => !$p->pivot->confirmed)->values();
-            $confirmed = $sack->packages->filter(fn($p) => $p->pivot->confirmed)->values();
-
-            $mapPackage = function (Package $p) {
-                return [
-                    'id'          => (string) $p->id,
-                    'code'        => $p->barcode ?? $p->id,
-                    'content'     => $p->content ?? '',
-                    'serviceType' => $p->service_type ?? '',
-                    'pounds'      => (float) ($p->pivot->pounds ?? 0),
-                    'kilograms'   => (float) ($p->pivot->kilograms ?? 0),
-                ];
-            };
-
-            return [
-                'id'           => $sack->id,
-                'number'       => $sack->sack_number,
-                'seal'         => $sack->seal,
-                'refrigerated' => (bool) $sack->refrigerated,
-                'pending'      => $pending->map($mapPackage)->all(),
-                'confirmed'    => $confirmed->map($mapPackage)->all(),
-            ];
-        })->values();
-
-        return response()->json([
-            'id'              => $transfer->id,
-            'number'          => $transfer->number,
-            'from_city'       => $transfer->from_city,
-            'to_city'         => $transfer->to_city,
-            'enterprise_name' => $enterpriseName, // ✅ NUEVO
-            'sacks'           => $sacks,
-        ], 200, ['Content-Type' => 'application/json']);
-    }
-
-    /**
-     * PUT /api/transfers/{transfer}/sacks
-     */
-    public function updateSacks(Request $request, Transfer $transfer)
-    {
-        $user = Auth::user();
-        $isAdmin = $this->canViewAllEnterprises($user);
-
-        // ✅ Solo se restringe por empresa si NO es admin/sudo
-        if (!$isAdmin && $transfer->enterprise_id !== $user->enterprise_id) {
-            return response()->json([
-                'error' => 'No tienes permiso para modificar este traslado.'
-            ], 403, ['Content-Type' => 'application/json']);
-        }
-
-        if ($transfer->status !== 'PENDING') {
-            throw ValidationException::withMessages([
-                'transfer' => 'Este traslado ya fue confirmado o cancelado.'
-            ]);
-        }
+        $enterpriseId = $user->enterprise_id;
 
         $data = $request->validate([
-            'sacks'                           => ['required', 'array', 'min:1'],
-            'sacks.*.number'                  => ['required', 'integer', 'min:1'],
-            'sacks.*.seal'                     => ['nullable', 'string', 'max:100'],
-            'sacks.*.refrigerated'            => ['required', 'boolean'],
-            'sacks.*.confirmedPackageIds'     => ['required', 'array'],
-            'sacks.*.confirmedPackageIds.*'   => ['required', 'uuid'],
+            'from_city' => 'required|string|max:100',
+            'search' => 'nullable|string|max:255',
         ]);
+
+        $fromCity = $data['from_city'];
+        $search = $data['search'] ?? null;
+
+        $query = Package::query()
+            ->select(
+                'packages.id',
+                'packages.barcode',
+                'packages.content',
+                'packages.service_type',
+                'packages.pounds',
+                'packages.kilograms'
+            )
+            ->join('receptions', 'receptions.id', '=', 'packages.reception_id')
+            ->where('receptions.enterprise_id', $enterpriseId)
+            ->where('receptions.agency_origin', $fromCity)
+            ->whereDoesntHave('transferSackItems', function ($q) {
+                $q->whereHas('sack.transfer', function ($tq) {
+                    $tq->where('status', 'PENDING');
+                });
+            });
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('packages.barcode', 'LIKE', "%{$search}%")
+                    ->orWhere('packages.content', 'LIKE', "%{$search}%")
+                    ->orWhere('packages.id', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $packages = $query
+            ->orderBy('packages.created_at', 'desc')
+            ->limit(100)
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id'          => $p->id,
+                    'code'        => $p->barcode ?? $p->id,
+                    'content'     => $p->content,
+                    'serviceType' => $p->service_type,
+                    'pounds'      => (float) $p->pounds,
+                    'kilograms'   => (float) $p->kilograms,
+                ];
+            });
+
+        return response()->json($packages, 200, [
+            'Content-Type' => 'application/json'
+        ]);
+    }
+
+    /**
+     * GET /api/transfers/search
+     */
+    public function search(Request $request)
+    {
+        $user = Auth::user();
+        $isAdmin = $this->canViewAllEnterprises($user);
+
+        $data = $request->validate([
+            'start_date'    => 'nullable|date',
+            'end_date'      => 'nullable|date',
+            'country'       => 'nullable|string|max:100',
+            'from_city'     => 'nullable|string|max:100',
+            'to_city'       => 'nullable|string|max:100',
+            'only_pending'  => 'nullable|boolean',
+            'enterprise_id' => 'nullable|uuid', // ✅ solo lo usa el admin
+        ]);
+
+        $query = Transfer::query()
+            ->select('id', 'number', 'country', 'from_city', 'to_city', 'status', 'enterprise_id', 'created_at');
+
+        if ($isAdmin) {
+            // ✅ El admin ve TODAS las empresas, salvo que filtre una específica
+            if (!empty($data['enterprise_id'])) {
+                $query->where('enterprise_id', $data['enterprise_id']);
+            }
+        } else {
+            // Customer: solo su propia empresa (comportamiento original)
+            $query->where('enterprise_id', $user->enterprise_id);
+        }
+
+        if (!empty($data['start_date'])) {
+            $query->whereDate('created_at', '>=', $data['start_date']);
+        }
+
+        if (!empty($data['end_date'])) {
+            $query->whereDate('created_at', '<=', $data['end_date']);
+        }
+
+        if (!empty($data['country'])) {
+            $query->where('country', $data['country']);
+        }
+
+        if (!empty($data['from_city'])) {
+            $query->where('from_city', $data['from_city']);
+        }
+
+        if (!empty($data['to_city'])) {
+            $query->where('to_city', $data['to_city']);
+        }
+
+        if (!empty($data['only_pending']) && $data['only_pending']) {
+            $query->where('status', 'PENDING');
+        }
+
+        $results = $query
+            ->orderByDesc('created_at')
+            ->limit(200)
+            ->get();
+
+        // ✅ Nombres de empresa resueltos en una sola consulta (sin depender de relación Eloquent)
+        $enterpriseNames = Enterprise::whereIn('id', $results->pluck('enterprise_id')->unique())
+            ->pluck('name', 'id');
+
+        $mapped = $results->map(function (Transfer $t) use ($enterpriseNames) {
+            return [
+                'id'              => $t->id,
+                'number'          => $t->number,
+                'country'         => $t->country,
+                'from_city'       => $t->from_city,
+                'to_city'         => $t->to_city,
+                'status'          => $t->status,
+                'enterprise_name' => $enterpriseNames[$t->enterprise_id] ?? null, // ✅ NUEVO
+            ];
+        });
+
+        return response()->json($mapped, 200, [
+            'Content-Type' => 'application/json'
+        ]);
+    }
+
+    /**
+     * POST /transfers
+     */
+    public function store(Request $request)
+    {
+        $user = Auth::user();
+        $enterpriseId = $user->enterprise_id;
+
+        $data = $request->validate([
+            'number'     => 'nullable|string|max:30',
+            'country'    => 'required|string|max:100',
+            'from_city'  => 'required|string|max:100',
+            'to_city'    => 'required|string|max:100',
+            'sacks'      => 'required|array|min:1',
+            'sacks.*.number'       => 'required|integer|min:1',
+            'sacks.*.refrigerated' => 'required|boolean',
+            'sacks.*.seal'         => 'nullable|string|max:100',
+            'sacks.*.packages'     => 'required|array|min:1',
+            'sacks.*.packages.*.id'        => 'required|uuid|exists:packages,id',
+            'sacks.*.packages.*.pounds'    => 'required|numeric|min:0',
+            'sacks.*.packages.*.kilograms' => 'required|numeric|min:0',
+        ]);
+
+        $number = $data['number'] ?: $this->generateNextNumber($enterpriseId);
 
         DB::beginTransaction();
 
         try {
-            $allSacksFullyConfirmed = true;
+            $transfer = Transfer::create([
+                'enterprise_id' => $enterpriseId,
+                'number'        => $number,
+                'country'       => $data['country'],
+                'from_city'     => $data['from_city'],
+                'to_city'       => $data['to_city'],
+                'status'        => 'PENDING',
+                'created_by'    => $user->id,
+            ]);
 
             foreach ($data['sacks'] as $sackData) {
-                $sack = $transfer->sacks()
-                    ->where('sack_number', $sackData['number'])
-                    ->firstOrFail();
+                $packagesCount = count($sackData['packages']);
+                $poundsTotal = collect($sackData['packages'])->sum('pounds');
+                $kilogramsTotal = collect($sackData['packages'])->sum('kilograms');
 
-                $sack->update([
-                    'seal'         => $sackData['seal'] ?? null,
-                    'refrigerated' => $sackData['refrigerated'],
+                $sack = TransferSack::create([
+                    'transfer_id'     => $transfer->id,
+                    'sack_number'     => $sackData['number'],
+                    'refrigerated'    => $sackData['refrigerated'],
+                    'seal'            => $sackData['seal'] ?? null,
+                    'packages_count'  => $packagesCount,
+                    'pounds_total'    => $poundsTotal,
+                    'kilograms_total' => $kilogramsTotal,
                 ]);
 
-                $allPackageIds = $sack->packages()->pluck('packages.id')->toArray();
-                $confirmedIds = $sackData['confirmedPackageIds'];
-
-                foreach ($allPackageIds as $packageId) {
-                    $isConfirmed = in_array($packageId, $confirmedIds);
-
-                    $sack->packages()->updateExistingPivot($packageId, [
-                        'confirmed' => $isConfirmed,
+                foreach ($sackData['packages'] as $pkg) {
+                    TransferSackPackage::create([
+                        'transfer_sack_id' => $sack->id,
+                        'package_id'       => $pkg['id'],
+                        'pounds'           => $pkg['pounds'],
+                        'kilograms'        => $pkg['kilograms'],
+                        'confirmed'        => false,
                     ]);
-
-                    if (!$isConfirmed) {
-                        $allSacksFullyConfirmed = false;
-                    }
                 }
             }
 
-            if ($allSacksFullyConfirmed) {
-                $transfer->update([
-                    'status'       => 'CONFIRMED',
-                    'confirmed_by' => $user->id,
-                    'confirmed_at' => now(),
-                ]);
-            }
-
             DB::commit();
 
-            return response()->json([
-                'ok'     => true,
-                'status' => $transfer->status,
-                'message' => $allSacksFullyConfirmed
-                    ? 'Traslado confirmado completamente.'
-                    : 'Progreso de confirmación guardado.',
-            ], 200, ['Content-Type' => 'application/json']);
+            return redirect()
+                ->route('transfers.create')
+                ->with('success', "Traslado {$transfer->number} creado correctamente.");
         } catch (\Throwable $e) {
             DB::rollBack();
             report($e);
 
-            return response()->json([
-                'error' => 'Error al guardar la confirmación: ' . $e->getMessage()
-            ], 500, ['Content-Type' => 'application/json']);
+            return back()->withErrors([
+                'transfer' => 'Error al guardar el traslado: ' . $e->getMessage(),
+            ]);
         }
     }
 
-    /**
-     * DELETE /api/transfers/{transfer}/cancel
-     */
-    public function cancel(Transfer $transfer)
+    protected function generateNextNumber(string $enterpriseId): string
     {
-        $user = Auth::user();
-        $isAdmin = $this->canViewAllEnterprises($user);
+        $last = Transfer::where('enterprise_id', $enterpriseId)
+            ->orderByDesc('created_at')
+            ->value('number');
 
-        // ✅ Solo se restringe por empresa si NO es admin/sudo
-        if (!$isAdmin && $transfer->enterprise_id !== $user->enterprise_id) {
-            return response()->json([
-                'error' => 'No tienes permiso para cancelar este traslado.'
-            ], 403, ['Content-Type' => 'application/json']);
+        if (!$last) {
+            return '000001';
         }
 
-        if ($transfer->status !== 'PENDING') {
-            throw ValidationException::withMessages([
-                'transfer' => 'Solo puedes cancelar traslados pendientes.'
-            ]);
-        }
+        $num = (int) preg_replace('/\D/', '', $last);
+        $next = $num + 1;
 
-        DB::beginTransaction();
-
-        try {
-            $transfer->update([
-                'status'       => 'CANCELLED',
-                'confirmed_by' => $user->id,
-                'confirmed_at' => now(),
-            ]);
-
-            DB::commit();
-
-            return response()->json([
-                'ok'      => true,
-                'message' => 'Traslado cancelado correctamente.'
-            ], 200, ['Content-Type' => 'application/json']);
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            report($e);
-
-            return response()->json([
-                'error' => 'Error al cancelar el traslado: ' . $e->getMessage()
-            ], 500, ['Content-Type' => 'application/json']);
-        }
+        return str_pad((string) $next, 6, '0', STR_PAD_LEFT);
     }
 }
