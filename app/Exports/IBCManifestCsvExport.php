@@ -23,91 +23,46 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
         $this->enterpriseId = $enterpriseId;
     }
 
-    /**
-     * Normaliza cadenas reemplazando ñ/Ñ por n/N
-     */
     protected function normalizeString(?string $value): string
     {
         if (!$value) return '';
         return str_replace(['ñ', 'Ñ'], ['n', 'N'], $value);
     }
 
-    /**
-     * Normaliza + recorta a 30 caracteres de forma segura (UTF-8)
-     */
     protected function clip30(?string $value): string
     {
         $t = trim($this->normalizeString($value ?? ''));
         return $t === '' ? '' : mb_substr($t, 0, self::MAX_LEN, 'UTF-8');
     }
 
+    /** Genera las columnas vacías necesarias para completar la fila hasta 54 columnas */
+    private function emptyCols(int $count): array
+    {
+        return array_fill(0, $count, '');
+    }
+
     public function collection(): Collection
     {
         $rows = [];
 
-        // 🔹 Cabeceras idénticas a Excel
         $rows[] = ['#'];
         $rows[] = ['#'];
         $rows[] = ['email', '1', 'all', 'gerenica@cuencanitoexpress.com'];
         $rows[] = ['mawb', '1', '72991023376', now()->format('Ymd'), 'GYE', 'JFK', 'AV7394', '72991023376'];
         $rows[] = ['#'];
         $rows[] = [
-            '# record_type',
-            'record_version',
-            'profile_key',
-            'hawb',
-            'reference',
-            'internal_reference',
-            'vend_ref_num',
-            'origin',
-            'final_destination',
-            'outlying',
-            'service_provider',
-            'dsl_station',
-            'dls_final_destination',
-            'num_pieces',
-            'weight',
-            'weight_units',
-            'contents',
-            'currency_code',
-            'declared_value',
-            'insurance_amount',
-            'description',
-            'hs_code',
-            'fda_prior_notice',
-            'terms',
-            'packaging',
-            'service_type',
-            'collect_amount',
-            'cust_key',
-            'acct_num',
-            'dls_acct_num',
-            'ext_cust_acct',
-            'shipper_name',
-            'shipper_address1',
-            'shipper_address2',
-            'shipper_city',
-            'shipper_state',
-            'shipper_zip',
-            'shipper_country',
-            'shipper_phone',
-            'consignee_person',
-            'consignee_company',
-            'consignee_street_1',
-            'consignee_street_2',
-            'consignee_city',
-            'consignee_state',
-            'consignee_postal_code',
-            'consignee_country',
-            'consignee_phone',
-            'consignee_email',
-            'consignee_tax_id',
-            'comments',
-            'goods_country_of_origin',
-            'container_id',
+            '# record_type','record_version','profile_key','hawb','reference','internal_reference',
+            'vend_ref_num','origin','final_destination','outlying','service_provider','dsl_station',
+            'dls_final_destination','num_pieces','weight','weight_units','contents','currency_code',
+            'declared_value','insurance_amount','description','hs_code','fda_prior_notice','terms',
+            'packaging','service_type','collect_amount','cust_key','acct_num','dls_acct_num',
+            'ext_cust_acct','shipper_name','shipper_address1','shipper_address2','shipper_city',
+            'shipper_state','shipper_zip','shipper_country','shipper_phone','consignee_person',
+            'consignee_company','consignee_street_1','consignee_street_2','consignee_city',
+            'consignee_state','consignee_postal_code','consignee_country','consignee_phone',
+            'consignee_email','consignee_tax_id','comments','goods_country_of_origin','container_id',
         ];
 
-        // 🔹 Query con soporte 'all' (excluye COAVPRO) y ordenado por empresa + fecha desc
         $query = Reception::with(['sender', 'recipient', 'packages.items.artPackage'])
             ->whereBetween('date_time', [$this->startDate, $this->endDate])
             ->where('annulled', false);
@@ -130,156 +85,87 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
             foreach ($reception->packages as $package) {
                 $barcodeBase = explode('.', (string)($package->barcode ?? ''))[0] ?? '';
 
-                // Concatenar descripción de los artículos
                 $description = $package->items
                     ->map(fn($item) => $this->normalizeString($item->artPackage?->translation ?? ''))
                     ->filter()
                     ->implode(' ');
 
-                // Primer codigo_hs para hs_code en HAWB
                 $firstHsCode = $package->items->first()?->artPackage?->codigo_hs ?? '';
 
-                // 🔹 Calcular declared_value sumando items_declrd * decl_val
                 $declaredValue = 0;
                 foreach ($package->items as $item) {
-                    $declaredValue += (float) (($item->items_declrd ?? 0) * ($item->decl_val ?? 0));
+                    $declaredValue += (float)(($item->items_declrd ?? 0) * ($item->decl_val ?? 0));
                 }
 
-                // ✅ Fila HAWB (con recorte de 30 chars en nombres y direcciones)
+                // Fila HAWB
                 $rows[] = [
-                    'hawb',
-                    '14',
-                    '',
+                    'hawb','14','',
                     $barcodeBase,
-                    '',
-                    '', // internal_reference vacío en HAWB
-                    '',
-                    'GYE',
-                    'USA',
-                    '',
-                    '',
-                    '',
-                    '',
+                    '','','',
+                    'GYE','USA','','','','',
                     1,
                     $package->kilograms ?? '',
-                    'KG',
-                    'APX',
-                    'USD',
+                    'KG','APX','USD',
                     $declaredValue,
                     '',
                     $description,
                     $firstHsCode,
-                    '',
-                    '',
-                    'O',
-                    '',
-                    '',
-                    '6264',
-                    '',
-                    '',
-                    $this->clip30(optional($reception->sender)->full_name),   // <= 30
-                    $this->clip30(optional($reception->sender)->address),     // <= 30
+                    '','','O','','',
+                    '6264','','','',
+                    $this->clip30(optional($reception->sender)->full_name),
+                    $this->clip30(optional($reception->sender)->address),
                     '',
                     $this->normalizeString(optional($reception->sender)->city),
                     '',
                     $this->normalizeString(optional($reception->sender)->postal_code),
                     'EC',
                     $this->normalizeString(optional($reception->sender)->phone),
-                    $this->clip30(optional($reception->recipient)->full_name), // <= 30
+                    $this->clip30(optional($reception->recipient)->full_name),
                     '',
-                    $this->clip30(optional($reception->recipient)->address),   // <= 30
+                    $this->clip30(optional($reception->recipient)->address),
                     '',
                     $this->normalizeString(optional($reception->recipient)->city),
                     $this->normalizeString(optional($reception->recipient)->state),
                     $this->normalizeString(optional($reception->recipient)->postal_code),
                     'US',
                     $this->normalizeString(optional($reception->recipient)->phone),
-                    '',
-                    '',
-                    '',
-                    'EC',
-                    '',
+                    '','','',
+                    'EC','',
                 ];
 
-                // ✅ Filas commodity (solo datos propios, resto vacío)
+                // Filas commodity + FDA
                 foreach ($package->items as $item) {
-                    $rows[] = [
-                        'commodity',
-                        '4',
+                    $artTranslation = $this->normalizeString($item->artPackage?->translation ?? '');
+                    $artHsCode      = $item->artPackage?->codigo_hs ?? '';
+                    $artCategoria   = strtoupper(trim($item->artPackage?->categoria ?? ''));
+                    $artCodigoFda   = $item->artPackage?->codigo_fda ?? '';
+
+                    // Fila commodity
+                    $rows[] = array_merge([
+                        'commodity','4',
                         $item->items_declrd ?? '',
-                        $this->normalizeString($item->artPackage?->translation ?? ''),
+                        $artTranslation,
                         '',
-                        $item->artPackage?->codigo_hs ?? '', // internal_reference
+                        $artHsCode,
                         'EC',
                         $item->decl_val ?? '',
                         'USD',
                         $item->kilograms ?? '',
                         'K',
-                        // columnas restantes vacías
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                        '',
-                    ];
+                    ], $this->emptyCols(43));
+
+                    // Fila FDA: solo si categoria es COMIDA o COSMETICOS y tiene codigo_fda
+                    if (
+                        in_array($artCategoria, ['COMIDA', 'COSMETICOS'], true)
+                        && $artCodigoFda !== ''
+                    ) {
+                        $rows[] = array_merge([
+                            'fda','1',
+                            $artCodigoFda,
+                            'FOO','PRO','100','FOO','######',
+                            $artTranslation,
+                        ], $this->emptyCols(45));
+                    }
                 }
             }
         }
@@ -287,9 +173,6 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
         return collect($rows);
     }
 
-    /**
-     * Configuración CSV (sin comillas)
-     */
     public function getCsvSettings(): array
     {
         return [
