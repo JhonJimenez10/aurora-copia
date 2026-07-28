@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Head, router } from "@inertiajs/react";
+import axios from "axios";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Button } from "@/Components/ui/button";
 import {
@@ -138,27 +139,16 @@ function SacksModal({
     );
     const [expandedSack, setExpandedSack] = useState<string | null>(null);
 
-    // ✅ CAMBIO: ahora lee el token de la cookie XSRF-TOKEN (igual que el
-    // resto del sistema/Inertia), en vez del <meta name="csrf-token"> estático
-    // que queda desactualizado si la sesión se refresca mientras la página
-    // sigue abierta.
-    const csrfToken = () => {
-        const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
-        return match ? decodeURIComponent(match[1]) : "";
-    };
-
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
             const [availRes, assignedRes] = await Promise.all([
-                fetch("/api/shipments/available-sacks"),
-                fetch(`/api/shipments/${shipmentId}/sacks`),
+                axios.get("/api/shipments/available-sacks"),
+                axios.get(`/api/shipments/${shipmentId}/sacks`),
             ]);
-            if (!availRes.ok || !assignedRes.ok)
-                throw new Error("Error cargando datos");
-            const availData: AvailableSack[] = await availRes.json();
-            const assignedData = await assignedRes.json();
+            const availData: AvailableSack[] = availRes.data;
+            const assignedData = assignedRes.data;
 
             // Filtrar disponibles: quitar las ya asignadas
             const assignedIds = (assignedData.sacks as AssignedSack[]).map(
@@ -212,27 +202,19 @@ function SacksModal({
                 .map((s) => s.id);
 
             if (newSackIds.length > 0) {
-                const res = await fetch(`/api/shipments/${shipmentId}/sacks`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        // ✅ CAMBIO: header X-XSRF-TOKEN (cookie) en vez de
-                        // X-CSRF-TOKEN (meta tag estático)
-                        "X-XSRF-TOKEN": csrfToken(),
-                        Accept: "application/json",
-                    },
-                    body: JSON.stringify({ sack_ids: newSackIds }),
+                // ✅ CAMBIO: axios maneja el CSRF automáticamente (lee la
+                // cookie XSRF-TOKEN y arma el header X-XSRF-TOKEN solo),
+                // igual que el resto del sistema — ya no hace falta leer
+                // el token a mano.
+                await axios.post(`/api/shipments/${shipmentId}/sacks`, {
+                    sack_ids: newSackIds,
                 });
-                if (!res.ok) {
-                    const d = await res.json();
-                    throw new Error(d.error ?? "Error al guardar");
-                }
             }
 
             // Recargar para sincronizar shipment_sack_ids
             await load();
         } catch (e: any) {
-            setError(e.message ?? "Error al guardar las sacas.");
+            setError(e.response?.data?.error ?? "Error al guardar las sacas.");
         } finally {
             setSaving(false);
         }
