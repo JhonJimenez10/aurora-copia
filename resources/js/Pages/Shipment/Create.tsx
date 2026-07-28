@@ -202,10 +202,9 @@ function SacksModal({
                 .map((s) => s.id);
 
             if (newSackIds.length > 0) {
-                // ✅ CAMBIO: axios maneja el CSRF automáticamente (lee la
-                // cookie XSRF-TOKEN y arma el header X-XSRF-TOKEN solo),
-                // igual que el resto del sistema — ya no hace falta leer
-                // el token a mano.
+                // axios maneja el CSRF automáticamente (lee la cookie
+                // XSRF-TOKEN y arma el header X-XSRF-TOKEN solo), igual
+                // que el resto del sistema.
                 await axios.post(`/api/shipments/${shipmentId}/sacks`, {
                     sack_ids: newSackIds,
                 });
@@ -718,11 +717,13 @@ export default function ShipmentCreate({ nextNumber, enterprise }: Props) {
 
     const validate = (): boolean => {
         const errs: Partial<Record<keyof FormData, string>> = {};
+        // ✅ CAMBIO: "sack_prefix" ya NO es obligatorio — el usuario puede
+        // elegir la opción "Sin prefijo" (valor vacío) y la saca queda
+        // sin prefijo, sin que esto bloquee el envío del formulario.
         const req: (keyof FormData)[] = [
             "date",
             "country_origin",
             "agency_origin",
-            "sack_prefix",
             "route",
             "airline",
             "number",
@@ -879,12 +880,11 @@ export default function ShipmentCreate({ nextNumber, enterprise }: Props) {
                                 />
                             </Field>
 
-                            {/* ── Prefijo de Sacas: ahora es un combo box ── */}
+                            {/* ── Prefijo de Sacas: combo box + opción "Sin prefijo" ── */}
                             <Field
                                 label="Prefijo de Sacas"
                                 icon={<Layers className="h-3.5 w-3.5" />}
                                 error={errors.sack_prefix}
-                                required
                             >
                                 <select
                                     value={form.sack_prefix}
@@ -893,9 +893,8 @@ export default function ShipmentCreate({ nextNumber, enterprise }: Props) {
                                     }
                                     className={selectCls}
                                 >
-                                    <option value="" disabled>
-                                        Selecciona un prefijo
-                                    </option>
+                                    {/* ✅ NUEVO: opción para dejar la saca sin prefijo */}
+                                    <option value="">Sin prefijo</option>
                                     {SACK_PREFIX_OPTIONS.map((prefix) => (
                                         <option key={prefix} value={prefix}>
                                             {prefix}

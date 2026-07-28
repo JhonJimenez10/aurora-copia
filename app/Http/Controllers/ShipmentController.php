@@ -88,7 +88,7 @@ class ShipmentController extends Controller
             'date'           => 'required|date',
             'country_origin' => 'required|string|max:100',
             'agency_origin'  => 'required|string|max:100',
-            'sack_prefix'    => 'required|string|max:20',
+            'sack_prefix'    => 'nullable|string|max:20',
             'route'          => 'required|string|max:255',
             'airline'        => 'required|string|max:100',
             'number'         => [
