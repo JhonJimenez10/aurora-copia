@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Enterprise;
 use App\Models\Package;
+use App\Models\Reception;
 use App\Models\Transfer;
 use App\Models\TransferSack;
 use App\Models\TransferSackPackage;
@@ -28,14 +29,35 @@ class TransferController extends Controller
      */
     public function create()
     {
-        $user       = auth()->user();
-        $enterprise = \App\Models\Enterprise::find($user->enterprise_id);
+        $user         = auth()->user();
+        $enterpriseId = $user->enterprise_id;
+        $enterprise   = \App\Models\Enterprise::find($enterpriseId);
 
-        $fromCities = collect([$enterprise?->city])->filter()->values();
+        // ✅ CORRECCIÓN: antes solo se usaba enterprise->city, pero ese valor
+        // no siempre coincide exactamente con el agency_origin que quedó
+        // guardado en las recepciones (mayúsculas, nombre distinto, etc.).
+        // Como availablePackages() filtra por receptions.agency_origin,
+        // si no coinciden, el combo "Trasladar de" manda un valor que no
+        // encuentra ningún paquete — la oficina ve la lista vacía aunque sí
+        // tenga paquetes emitidos. Usamos los agency_origin REALES que
+        // existen en las recepciones de esta empresa, así siempre calzan.
+        $fromCities = Reception::where('enterprise_id', $enterpriseId)
+            ->whereNotNull('agency_origin')
+            ->where('agency_origin', '!=', '')
+            ->distinct()
+            ->orderBy('agency_origin')
+            ->pluck('agency_origin');
+
+        // Respaldo: si esta empresa aún no tiene ninguna recepción registrada,
+        // usamos la ciudad de la empresa para no dejar el combo vacío.
+        if ($fromCities->isEmpty() && $enterprise?->city) {
+            $fromCities = collect([$enterprise->city]);
+        }
+
         $toCities = collect(['CUENCA']);
 
         return Inertia::render('Transfers/Create', [
-            'fromCities' => $fromCities,
+            'fromCities' => $fromCities->values(),
             'toCities'   => $toCities,
         ]);
     }
