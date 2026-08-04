@@ -62,24 +62,78 @@ class NYManifestExport implements FromCollection, ShouldAutoSize, WithStyles, Wi
     public function headings(): array
     {
         return [
-            'Arrival Airport', 'Airline Prefix', 'AWB Serial Number', 'House AWB',
-            'Origin Airport', 'Pieces', 'Weight', 'Description', 'Importing Carrier',
-            'Shipper Name', 'Shipper Street Address', 'Shipper City', 'Shipper Country',
-            'Consignee Name', 'Consignee Street Address', 'Consignee City', 'Consignee State',
-            'Consignee Postal Code', 'Consignee Country', 'Customs Value', 'Currency Code',
-            'HTS Code', 'Barcode', 'Barcode Transit Party', 'ABV', 'Quantity', 'Height',
-            'Width', 'Length', 'Shipper EORI', 'Consignee Email', 'Consignee Phone',
-            'LMP Service', 'Customer Transit Party', 'Over Label Transit Party',
-            'Over Label Service', 'Over Label Dynamic', 'ITEM NAME', 'Item Hscode',
-            'Item Country', 'Item Pieces', 'Item Value', 'Item Currency', 'Item Weight',
-            'Consignee Company Name', 'Selling MID', 'Incoterms',
-            'FDAPNCNUMBER', 'FDAPRODUCTCODE', 'FDAPROGRAMCODE', 'FDAPROCESSINGCODE',
-            'FDAINTENDEDUSECODE', 'FDABRANDNAME', 'FDAARRIVALTIME', 'FDANAME',
-            'FDAADDRESS', 'FDACITY', 'FDACOUNTRY', 'FDAREGISTRATIONNUMBERTYPE',
-            'FDAREGISTRATIONNUMBER', 'FdaEntityName', 'FdaEntityAddress', 'FdaEntityCity',
-            'FdaEntityState', 'FdaEntityPostalCode', 'FdaEntityCountry',
-            'FdaEntityContactName', 'FdaEntityContactEmail', 'FdaEntityContactPhone',
-            'FdaEntityType', 'FdaEntityIdType', 'FdaEntityIdNo',
+            'Arrival Airport',          // 1  A
+            'Airline Prefix',           // 2  B
+            'AWB Serial Number',        // 3  C
+            'House AWB',                // 4  D
+            'Origin Airport',           // 5  E
+            'Pieces',                   // 6  F
+            'Weight',                   // 7  G
+            'Description',              // 8  H
+            'Importing Carrier',        // 9  I
+            'Shipper Name',             // 10 J
+            'Shipper Street Address',   // 11 K
+            'Shipper City',             // 12 L
+            'Shipper Country',          // 13 M
+            'Consignee Name',           // 14 N
+            'Consignee Street Address', // 15 O
+            'Consignee City',           // 16 P
+            'Consignee State',          // 17 Q
+            'Consignee Postal Code',    // 18 R
+            'Consignee Country',        // 19 S
+            'Customs Value',            // 20 T
+            'Currency Code',            // 21 U
+            'HTS Code',                 // 22 V
+            'Barcode',                  // 23 W
+            'Barcode Transit Party',    // 24 X
+            'ABV',                      // 25 Y
+            'Quantity',                 // 26 Z
+            'Height',                   // 27 AA
+            'Width',                    // 28 AB
+            'Length',                   // 29 AC
+            'Shipper EORI',             // 30 AD
+            'Consignee Email',          // 31 AE
+            'Consignee Phone',          // 32 AF
+            'LMP Service',              // 33 AG
+            'Customer Transit Party',   // 34 AH
+            'Over Label Transit Party', // 35 AI
+            'Over Label Service',       // 36 AJ
+            'Over Label Dynamic',       // 37 AK
+            'ITEM NAME',                // 38 AL
+            'Item Hscode',              // 39 AM
+            'Item Country',             // 40 AN
+            'Item Pieces',              // 41 AO
+            'Item Value',               // 42 AP
+            'Item Currency',            // 43 AQ
+            'Item Weight',              // 44 AR
+            'Consignee Company Name',   // 45 AS
+            'Selling MID',              // 46 AT
+            'Incoterms',                // 47 AU
+            'FDAPNCNUMBER',             // 48 AV
+            'FDAPRODUCTCODE',           // 49 AW
+            'FDAPROGRAMCODE',           // 50 AX
+            'FDAPROCESSINGCODE',        // 51 AY
+            'FDAINTENDEDUSECODE',       // 52 AZ
+            'FDABRANDNAME',             // 53 BA
+            'FDAARRIVALTIME',           // 54 BB
+            'FDANAME',                  // 55 BC
+            'FDAADDRESS',               // 56 BD
+            'FDACITY',                  // 57 BE
+            'FDACOUNTRY',               // 58 BF
+            'FDAREGISTRATIONNUMBERTYPE',// 59 BG
+            'FDAREGISTRATIONNUMBER',    // 60 BH
+            'FdaEntityName',            // 61 BI
+            'FdaEntityAddress',         // 62 BJ
+            'FdaEntityCity',            // 63 BK
+            'FdaEntityState',           // 64 BL
+            'FdaEntityPostalCode',      // 65 BM
+            'FdaEntityCountry',         // 66 BN
+            'FdaEntityContactName',     // 67 BO
+            'FdaEntityContactEmail',    // 68 BP
+            'FdaEntityContactPhone',    // 69 BQ
+            'FdaEntityType',            // 70 BR
+            'FdaEntityIdType',          // 71 BS
+            'FdaEntityIdNo',            // 72 BT
         ];
     }
 
@@ -112,21 +166,17 @@ class NYManifestExport implements FromCollection, ShouldAutoSize, WithStyles, Wi
             foreach ($reception->packages as $package) {
                 $barcodeBase = explode('.', $package->barcode ?? '')[0] ?? '';
 
-                // Descripción completa del paquete (todas las traducciones)
                 $description = $package->items
                     ->map(fn($i) => $this->normalizeString($i->artPackage?->translation ?? ''))
                     ->filter()
                     ->unique()
                     ->implode(' ');
 
-                // Valor declarado total del paquete
                 $declaredValue = $package->items
                     ->sum(fn($i) => ($i->items_declrd ?? 0) * ($i->decl_val ?? 0));
 
-                // HS Code principal (primer artículo)
                 $firstHsCode = $package->items->first()?->artPackage?->codigo_hs ?? '';
 
-                // Una fila por artículo
                 foreach ($package->items as $item) {
                     $art          = $item->artPackage;
                     $translation  = $this->normalizeString($art?->translation ?? '');
@@ -135,7 +185,6 @@ class NYManifestExport implements FromCollection, ShouldAutoSize, WithStyles, Wi
                     $codigoFda    = $art?->codigo_fda ?? '';
                     $hasFda       = in_array($categoria, ['COMIDA', 'COSMETICOS'], true) && $codigoFda !== '';
 
-                    // Determinar datos FDA según categoría
                     if ($hasFda && $categoria === 'COMIDA') {
                         $fdaProductCode    = 'FOO';
                         $fdaProgramCode    = 'PRO';
@@ -208,78 +257,88 @@ class NYManifestExport implements FromCollection, ShouldAutoSize, WithStyles, Wi
                     }
 
                     $rows[] = [
-                        // Cols 1-9: datos vuelo/paquete
-                        'JFK',
-                        729,
-                        '9121 3673',
-                        $barcodeBase,
-                        'GYE',
-                        1,
-                        $package->kilograms ?? 0,
-                        $description,
-                        'AV',
-                        // Cols 10-13: shipper
-                        $this->clip(optional($sender)->full_name),
-                        $this->clip(optional($sender)->address),
-                        $this->normalizeString(optional($sender)->city),
-                        'EC',
-                        // Cols 14-19: consignee
-                        $this->clip(optional($recipient)->full_name),
-                        $this->clip(optional($recipient)->address),
-                        $this->normalizeString(optional($recipient)->city),
-                        $this->normalizeString(optional($recipient)->state),
-                        $this->normalizeString(optional($recipient)->postal_code),
-                        'US',
-                        // Cols 20-22: valores
-                        $declaredValue,
-                        'USD',
-                        $firstHsCode,
-                        // Cols 23-29: vacíos
-                        null, null, null, null, null, null, null,
-                        // Cols 30-32: contacto consignee
-                        self::COMPANY_EMAIL,
-                        $this->normalizeString(optional($recipient)->phone),
-                        null,
-                        // Cols 33-37: vacíos
-                        null, null, null, null, null,
-                        // Cols 38-44: datos del ítem
-                        $translation,
-                        $hsCode,
-                        'EC',
-                        $item->items_declrd ?? '',
-                        $item->decl_val ?? '',
-                        'USD',
-                        $item->kilograms ?? '',
-                        // Cols 45-47: empresa
-                        self::COMPANY_NAME,
-                        self::COMPANY_ADDRESS,
-                        null,
-                        // Cols 48-72: FDA
-                        $hasFda ? $codigoFda : null,
-                        $fdaProductCode,
-                        $fdaProgramCode,
-                        $fdaProcessingCode,
-                        $fdaIntendedUse,
-                        null, // FDABRANDNAME
-                        null, // FDAARRIVALTIME
-                        $fdaName,
-                        $fdaAddress,
-                        $fdaCity,
-                        $fdaCountry,
-                        $fdaRegType,
-                        $fdaRegNumber,
-                        $entityName,
-                        $entityAddress,
-                        $entityCity,
-                        $entityState,
-                        $entityZip,
-                        $entityCountry,
-                        $entityContact,
-                        $entityEmail,
-                        $entityPhone,
-                        $entityType,
-                        $entityIdType,
-                        $entityIdNo,
+                        // 1-9: datos vuelo/paquete
+                        'JFK',                                              // 1  A  Arrival Airport
+                        729,                                                // 2  B  Airline Prefix
+                        '9121 3673',                                        // 3  C  AWB Serial Number
+                        $barcodeBase,                                       // 4  D  House AWB
+                        'GYE',                                              // 5  E  Origin Airport
+                        1,                                                  // 6  F  Pieces
+                        $package->kilograms ?? 0,                          // 7  G  Weight
+                        $description,                                       // 8  H  Description
+                        'AV',                                               // 9  I  Importing Carrier
+                        // 10-13: shipper
+                        $this->clip(optional($sender)->full_name),         // 10 J  Shipper Name
+                        $this->clip(optional($sender)->address),           // 11 K  Shipper Street Address
+                        $this->normalizeString(optional($sender)->city),   // 12 L  Shipper City
+                        'EC',                                               // 13 M  Shipper Country
+                        // 14-19: consignee
+                        $this->clip(optional($recipient)->full_name),      // 14 N  Consignee Name
+                        $this->clip(optional($recipient)->address),        // 15 O  Consignee Street Address
+                        $this->normalizeString(optional($recipient)->city),// 16 P  Consignee City
+                        $this->normalizeString(optional($recipient)->state),// 17 Q Consignee State
+                        $this->normalizeString(optional($recipient)->postal_code), // 18 R Consignee Postal Code
+                        'US',                                               // 19 S  Consignee Country
+                        // 20-22: valores
+                        $declaredValue,                                     // 20 T  Customs Value
+                        'USD',                                              // 21 U  Currency Code
+                        $firstHsCode,                                       // 22 V  HTS Code
+                        // 23-29: vacíos
+                        null,                                               // 23 W  Barcode
+                        null,                                               // 24 X  Barcode Transit Party
+                        null,                                               // 25 Y  ABV
+                        null,                                               // 26 Z  Quantity
+                        null,                                               // 27 AA Height
+                        null,                                               // 28 AB Width
+                        null,                                               // 29 AC Length
+                        // 30-32: email y teléfono del consignee
+                        null,                                               // 30 AD Shipper EORI  ← vacío
+                        self::COMPANY_EMAIL,                               // 31 AE Consignee Email ← CORRECTO
+                        $this->normalizeString(optional($recipient)->phone), // 32 AF Consignee Phone ← CORRECTO
+                        // 33-37: vacíos
+                        null,                                               // 33 AG LMP Service
+                        null,                                               // 34 AH Customer Transit Party
+                        null,                                               // 35 AI Over Label Transit Party
+                        null,                                               // 36 AJ Over Label Service
+                        null,                                               // 37 AK Over Label Dynamic
+                        // 38-44: datos del ítem
+                        $translation,                                       // 38 AL ITEM NAME
+                        $hsCode,                                            // 39 AM Item Hscode
+                        'EC',                                               // 40 AN Item Country
+                        $item->items_declrd ?? '',                         // 41 AO Item Pieces
+                        $item->decl_val ?? '',                             // 42 AP Item Value
+                        'USD',                                              // 43 AQ Item Currency
+                        $item->kilograms ?? '',                            // 44 AR Item Weight
+                        // 45-47: empresa
+                        self::COMPANY_NAME,                                // 45 AS Consignee Company Name
+                        self::COMPANY_ADDRESS,                             // 46 AT Selling MID
+                        null,                                               // 47 AU Incoterms
+                        // 48-72: FDA
+                        $hasFda ? $codigoFda : null,                       // 48 AV FDAPNCNUMBER
+                        $fdaProductCode,                                    // 49 AW FDAPRODUCTCODE
+                        $fdaProgramCode,                                    // 50 AX FDAPROGRAMCODE
+                        $fdaProcessingCode,                                 // 51 AY FDAPROCESSINGCODE
+                        $fdaIntendedUse,                                    // 52 AZ FDAINTENDEDUSECODE
+                        null,                                               // 53 BA FDABRANDNAME
+                        null,                                               // 54 BB FDAARRIVALTIME
+                        $fdaName,                                           // 55 BC FDANAME
+                        $fdaAddress,                                        // 56 BD FDAADDRESS
+                        $fdaCity,                                           // 57 BE FDACITY
+                        $fdaCountry,                                        // 58 BF FDACOUNTRY
+                        $fdaRegType,                                        // 59 BG FDAREGISTRATIONNUMBERTYPE
+                        $fdaRegNumber,                                      // 60 BH FDAREGISTRATIONNUMBER
+                        $entityName,                                        // 61 BI FdaEntityName
+                        $entityAddress,                                     // 62 BJ FdaEntityAddress
+                        $entityCity,                                        // 63 BK FdaEntityCity
+                        $entityState,                                       // 64 BL FdaEntityState
+                        $entityZip,                                         // 65 BM FdaEntityPostalCode
+                        $entityCountry,                                     // 66 BN FdaEntityCountry
+                        $entityContact,                                     // 67 BO FdaEntityContactName
+                        $entityEmail,                                       // 68 BP FdaEntityContactEmail
+                        $entityPhone,                                       // 69 BQ FdaEntityContactPhone
+                        $entityType,                                        // 70 BR FdaEntityType
+                        $entityIdType,                                      // 71 BS FdaEntityIdType
+                        $entityIdNo,                                        // 72 BT FdaEntityIdNo
                     ];
                 }
             }
