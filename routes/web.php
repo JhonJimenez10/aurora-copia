@@ -284,4 +284,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->name('shipments.sacks.report.pdf');
     Route::get('/shipments/{shipment}/sacks/{shipmentSack}/report/excel', [ShipmentSackReportController::class, 'excel'])
         ->name('shipments.sacks.report.excel');
+    // Manifiesto NY
+    Route::get('/reports/ny-manifest', [ReportController::class, 'nyManifestIndex'])->name('reports.ny.index');
+    Route::get('/reports/ny-manifest/export', [ReportController::class, 'nyManifestExport'])->name('reports.ny.export');
 });

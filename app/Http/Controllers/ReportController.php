@@ -12,6 +12,7 @@ use App\Exports\InvoiceReportExport;
 use App\Exports\IBCManifestExport;
 use App\Exports\AirlineManifestExport;
 use App\Exports\ACASAviancaManifestExport;
+use App\Exports\NYManifestExport;
 use Carbon\Carbon;
 
 class ReportController extends Controller
@@ -46,7 +47,7 @@ class ReportController extends Controller
     {
         $start        = $request->query('start_date');
         $end          = $request->query('end_date');
-        $enterpriseId = $request->query('enterprise_id'); // 'all' o id
+        $enterpriseId = $request->query('enterprise_id');
 
         $enterprises = $this->getVisibleEnterprises();
         $receptions  = [];
@@ -206,7 +207,7 @@ class ReportController extends Controller
     {
         $start        = $request->query('start_date');
         $end          = $request->query('end_date');
-        $enterpriseId = $request->query('enterprise_id'); // 'all' o id
+        $enterpriseId = $request->query('enterprise_id');
         $enterprises  = $this->getVisibleEnterprises();
 
         $rows = [];
@@ -318,16 +319,15 @@ class ReportController extends Controller
     }
 
     /* =======================
-       Airline (ARREGLADO)
+       Airline
        ======================= */
     public function airlineManifestIndex(Request $request)
     {
         $enterprises  = $this->getVisibleEnterprises();
         $start        = $request->query('start_date');
         $end          = $request->query('end_date');
-        $enterpriseId = $request->query('enterprise_id'); // puede ser 'all' o id
+        $enterpriseId = $request->query('enterprise_id');
 
-        // Si el usuario no puede elegir, forzar su empresa
         if (!$this->canChooseAnyEnterprise()) {
             $enterpriseId = (string) auth()->user()->enterprise_id;
         }
@@ -406,18 +406,17 @@ class ReportController extends Controller
     }
 
     /* =======================
-       ACAS (sin cambios)
+       ACAS
        ======================= */
     public function acasAviancaManifestIndex(Request $request)
     {
         $start        = $request->query('start_date');
         $end          = $request->query('end_date');
-        $enterpriseId = $request->query('enterprise_id'); // puede ser 'all' o id
+        $enterpriseId = $request->query('enterprise_id');
 
         $enterprises = $this->getVisibleEnterprises();
         $rows = [];
 
-        // Si el usuario NO puede elegir empresa, forzar la suya
         if (!$this->canChooseAnyEnterprise()) {
             $enterpriseId = (string) auth()->user()->enterprise_id;
         }
@@ -443,12 +442,10 @@ class ReportController extends Controller
 
             $receptions = $query->orderBy('enterprise_id')->orderByDesc('date_time')->get();
 
-            // Agrupar como el export: por HAWB base
             $grouped = [];
             foreach ($receptions as $reception) {
                 foreach ($reception->packages as $package) {
                     $baseCode = \Illuminate\Support\Str::before((string) ($package->barcode ?? ''), '.');
-
                     if (!isset($grouped[$baseCode])) {
                         $grouped[$baseCode] = [
                             'hawb'        => $baseCode,
@@ -495,13 +492,65 @@ class ReportController extends Controller
 
         $fileName = sprintf(
             'acas_avianca_manifest_%s_%s_emp%s.xlsx',
-            \Carbon\Carbon::parse($start)->format('Ymd'),
-            \Carbon\Carbon::parse($end)->format('Ymd'),
+            Carbon::parse($start)->format('Ymd'),
+            Carbon::parse($end)->format('Ymd'),
             $enterpriseId === 'all' ? 'TODAS' : $enterpriseId
         );
 
-        return \Maatwebsite\Excel\Facades\Excel::download(
+        return Excel::download(
             new ACASAviancaManifestExport($start, $end, $enterpriseId),
+            $fileName
+        );
+    }
+
+    /* =======================
+       Manifiesto NY
+       ======================= */
+    public function nyManifestIndex(Request $request)
+    {
+        $start        = $request->query('start_date');
+        $end          = $request->query('end_date');
+        $enterpriseId = $request->query('enterprise_id');
+        $enterprises  = $this->getVisibleEnterprises();
+
+        if (!$this->canChooseAnyEnterprise()) {
+            $enterpriseId = (string) auth()->user()->enterprise_id;
+        }
+
+        return Inertia::render('Reports/NYManifestReport', [
+            'startDate'    => $start,
+            'endDate'      => $end,
+            'enterpriseId' => $enterpriseId,
+            'enterprises'  => $enterprises,
+        ]);
+    }
+
+    public function nyManifestExport(Request $request)
+    {
+        $start = $request->query('start_date');
+        $end   = $request->query('end_date');
+
+        validator(['start_date' => $start, 'end_date' => $end], [
+            'start_date' => ['required', 'date'],
+            'end_date'   => ['required', 'date', 'after_or_equal:start_date'],
+        ])->validate();
+
+        $enterpriseId = $request->query('enterprise_id')
+            ?? (string) auth()->user()->enterprise_id;
+
+        if (!$this->canChooseAnyEnterprise()) {
+            $enterpriseId = (string) auth()->user()->enterprise_id;
+        }
+
+        $fileName = sprintf(
+            'manifiesto_ny_%s_%s_emp%s.xlsx',
+            Carbon::parse($start)->format('Ymd'),
+            Carbon::parse($end)->format('Ymd'),
+            $enterpriseId === 'all' ? 'TODAS' : $enterpriseId
+        );
+
+        return Excel::download(
+            new NYManifestExport($start . ' 00:00:00', $end . ' 23:59:59', $enterpriseId),
             $fileName
         );
     }

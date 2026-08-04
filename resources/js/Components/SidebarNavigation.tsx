@@ -172,6 +172,12 @@ export default function SidebarNavigation() {
                         href: "/reports/acas-avianca-manifest",
                         icon: <FileSpreadsheet className="h-4 w-4" />,
                     },
+                    // ✅ NUEVO: Manifiesto NY
+                    {
+                        title: "Manifiesto NY",
+                        href: "/reports/ny-manifest",
+                        icon: <FileSpreadsheet className="h-4 w-4" />,
+                    },
                     {
                         title: "Reporte de Pesos por Agencia",
                         href: "/reports/weights",
