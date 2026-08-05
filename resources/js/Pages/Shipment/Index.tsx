@@ -349,11 +349,12 @@ function CreateShipmentModal({
 
     const validate = () => {
         const errs: Record<string, string> = {};
+        // ✅ CAMBIO: "sack_prefix" ya NO es obligatorio — el usuario puede
+        // elegir "Sin prefijo" (valor vacío) sin que esto bloquee el envío.
         [
             "date",
             "country_origin",
             "agency_origin",
-            "sack_prefix",
             "route",
             "airline",
             "airport_origin",
@@ -470,12 +471,11 @@ function CreateShipmentModal({
                             </div>
                         </Field>
 
-                        {/* 4. PREFIJO PARA SACAS */}
+                        {/* 4. PREFIJO PARA SACAS — con opción "Sin prefijo" */}
                         <Field
                             label="Prefijo para Sacas"
                             icon={<Layers className="h-3.5 w-3.5" />}
                             error={errors.sack_prefix}
-                            required
                         >
                             <select
                                 value={form.sack_prefix}
@@ -484,9 +484,8 @@ function CreateShipmentModal({
                                 }
                                 className={selectCls}
                             >
-                                <option value="" disabled>
-                                    Selecciona un prefijo
-                                </option>
+                                {/* ✅ NUEVO: opción para dejar la saca sin prefijo */}
+                                <option value="">Sin prefijo</option>
                                 {SACK_PREFIX_OPTIONS.map((prefix) => (
                                     <option key={prefix} value={prefix}>
                                         {prefix}
@@ -844,11 +843,11 @@ function EditShipmentModal({
 
     const validate = () => {
         const errs: Record<string, string> = {};
+        // ✅ CAMBIO: "sack_prefix" ya NO es obligatorio — permite "Sin prefijo".
         [
             "date",
             "country_origin",
             "agency_origin",
-            "sack_prefix",
             "route",
             "airline",
             "airport_origin",
@@ -985,12 +984,11 @@ function EditShipmentModal({
                             </div>
                         </Field>
 
-                        {/* 4. PREFIJO PARA SACAS */}
+                        {/* 4. PREFIJO PARA SACAS — con opción "Sin prefijo" */}
                         <Field
                             label="Prefijo para Sacas"
                             icon={<Layers className="h-3.5 w-3.5" />}
                             error={errors.sack_prefix}
-                            required
                         >
                             <select
                                 value={form.sack_prefix}
@@ -1000,9 +998,8 @@ function EditShipmentModal({
                                 disabled={isCancelled}
                                 className={selCls}
                             >
-                                <option value="" disabled>
-                                    Selecciona un prefijo
-                                </option>
+                                {/* ✅ NUEVO: opción para dejar la saca sin prefijo */}
+                                <option value="">Sin prefijo</option>
                                 {sackPrefixOptions.map((prefix) => (
                                     <option key={prefix} value={prefix}>
                                         {prefix}

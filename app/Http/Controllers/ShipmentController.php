@@ -88,6 +88,7 @@ class ShipmentController extends Controller
             'date'           => 'required|date',
             'country_origin' => 'required|string|max:100',
             'agency_origin'  => 'required|string|max:100',
+            // ✅ "Sin prefijo" está permitido: nullable
             'sack_prefix'    => 'nullable|string|max:20',
             'route'          => 'required|string|max:255',
             'airline'        => 'required|string|max:100',
@@ -112,7 +113,9 @@ class ShipmentController extends Controller
                 'date'           => $request->date,
                 'country_origin' => $request->country_origin,
                 'agency_origin'  => $request->agency_origin,
-                'sack_prefix'    => strtoupper($request->sack_prefix),
+                // ✅ strtoupper protegido: si viene vacío/null (Sin prefijo),
+                // no truena y guarda null en vez de forzar un string vacío raro
+                'sack_prefix'    => $request->sack_prefix ? strtoupper($request->sack_prefix) : null,
                 'route'          => $request->route,
                 'airline'        => $request->airline,
                 'number'         => $request->number,
@@ -181,7 +184,9 @@ class ShipmentController extends Controller
             'date'           => 'sometimes|required|date',
             'country_origin' => 'sometimes|required|string|max:100',
             'agency_origin'  => 'sometimes|required|string|max:100',
-            'sack_prefix'    => 'sometimes|required|string|max:20',
+            // ✅ CAMBIO: antes era "sometimes|required", bloqueaba "Sin prefijo".
+            // Ahora es nullable, igual que en store().
+            'sack_prefix'    => 'nullable|string|max:20',
             'route'          => 'sometimes|required|string|max:255',
             'airline'        => 'sometimes|required|string|max:100',
             'number'         => [
@@ -204,7 +209,8 @@ class ShipmentController extends Controller
         ]);
 
         if (array_key_exists('sack_prefix', $data)) {
-            $data['sack_prefix'] = strtoupper($data['sack_prefix']);
+            // ✅ strtoupper protegido igual que en store()
+            $data['sack_prefix'] = $data['sack_prefix'] ? strtoupper($data['sack_prefix']) : null;
         }
 
         if (array_key_exists('open', $data)) {
