@@ -57,8 +57,8 @@ export default function Dashboard() {
         };
     }, [showEmergencyAlert]);
 
-    // ─── CALENDARIO JULIO ──────────────────────────────────────────────────────
-    const scheduleJulio = {
+    // ─── CALENDARIO AGOSTO ─────────────────────────────────────────────────────
+    const scheduleAgosto = {
         lunes: {
             "NEW YORK": [
                 "QUEENS",
@@ -137,13 +137,13 @@ export default function Dashboard() {
             CONNECTICUT: ["DAMBURY"],
         },
         especiales: [
-            { ciudad: "BALTIMORE", fechas: "13 Y 27 DE JULIO" },
-            { ciudad: "PHILADELPHIA", fechas: "01, 15 Y 29 DE JULIO" },
+            { ciudad: "BALTIMORE", fechas: "3, 17 Y 24 DE AGOSTO" },
+            { ciudad: "PHILADELPHIA", fechas: "12 Y 26 DE AGOSTO" },
             { ciudad: "ROCHESTER", fechas: "POR CONFIRMAR" },
         ],
     };
 
-    const currentSchedule = scheduleJulio;
+    const currentSchedule = scheduleAgosto;
 
     const daysOfWeek = [
         {
@@ -306,13 +306,8 @@ export default function Dashboard() {
           .modal-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
           .modal-scroll::-webkit-scrollbar-thumb { background: rgba(239,68,68,0.5); border-radius: 4px; }
           .modal-scroll::-webkit-scrollbar-thumb:hover { background: rgba(239,68,68,0.8); }
-          .article-card {
-            transition: all 0.3s ease;
-            cursor: default;
-          }
-          .article-card:hover {
-            transform: translateY(-4px) scale(1.03);
-          }
+          .article-card { transition: all 0.3s ease; cursor: default; }
+          .article-card:hover { transform: translateY(-4px) scale(1.03); }
         `}
             </style>
 
@@ -323,7 +318,6 @@ export default function Dashboard() {
                         className="relative max-w-lg w-full animate-modal flex flex-col"
                         style={{ maxHeight: "90vh" }}
                     >
-                        {/* Glow rojo exterior */}
                         <div className="absolute inset-0 bg-gradient-to-br from-red-700 via-red-800 to-red-900 rounded-2xl blur-2xl opacity-60 animate-pulse-red"></div>
 
                         <div
@@ -332,7 +326,7 @@ export default function Dashboard() {
                         >
                             <div className="shimmer-effect absolute inset-0 pointer-events-none"></div>
 
-                            {/* Header rojo intenso */}
+                            {/* Header */}
                             <div className="relative bg-gradient-to-r from-red-700 via-red-600 to-red-700 p-5 border-b-2 border-red-400/50 flex-shrink-0">
                                 <div className="flex items-center justify-center gap-3">
                                     <ShieldAlert className="w-8 h-8 text-white animate-flicker" />
@@ -357,7 +351,6 @@ export default function Dashboard() {
 
                             {/* Cuerpo */}
                             <div className="relative p-6 space-y-5 overflow-y-auto modal-scroll flex-1">
-                                {/* Mensaje principal */}
                                 <div className="text-center space-y-2">
                                     <p className="text-red-300 text-sm font-black uppercase tracking-widest animate-flicker">
                                         ⛔ RESTRICCIÓN INMEDIATA ⛔
@@ -380,7 +373,6 @@ export default function Dashboard() {
 
                                 {/* Los 3 artículos permitidos */}
                                 <div className="grid grid-cols-3 gap-3">
-                                    {/* Adornos */}
                                     <div className="article-card bg-gradient-to-br from-yellow-500/20 via-yellow-600/10 to-yellow-700/20 border-2 border-yellow-400/60 rounded-2xl p-4 flex flex-col items-center gap-2 shadow-lg shadow-yellow-900/30">
                                         <span className="text-4xl animate-bounce-subtle">
                                             🎄
@@ -393,8 +385,6 @@ export default function Dashboard() {
                                             Artículo ✅ PERMITIDO
                                         </p>
                                     </div>
-
-                                    {/* Ropas */}
                                     <div className="article-card bg-gradient-to-br from-blue-500/20 via-blue-600/10 to-blue-700/20 border-2 border-blue-400/60 rounded-2xl p-4 flex flex-col items-center gap-2 shadow-lg shadow-blue-900/30">
                                         <span
                                             className="text-4xl animate-bounce-subtle"
@@ -410,8 +400,6 @@ export default function Dashboard() {
                                             Artículo ✅ PERMITIDO
                                         </p>
                                     </div>
-
-                                    {/* Artesanías */}
                                     <div className="article-card bg-gradient-to-br from-emerald-500/20 via-emerald-600/10 to-emerald-700/20 border-2 border-emerald-400/60 rounded-2xl p-4 flex flex-col items-center gap-2 shadow-lg shadow-emerald-900/30">
                                         <span
                                             className="text-4xl animate-bounce-subtle"
@@ -429,7 +417,7 @@ export default function Dashboard() {
                                     </div>
                                 </div>
 
-                                {/* Advertencia de prohibición */}
+                                {/* Advertencia */}
                                 <div className="bg-gradient-to-r from-red-900/70 to-rose-900/70 border-2 border-red-500/70 rounded-xl p-4 flex items-start gap-3 animate-zoom-pulse">
                                     <span className="text-3xl flex-shrink-0">
                                         🚫
@@ -453,7 +441,6 @@ export default function Dashboard() {
                                     </div>
                                 </div>
 
-                                {/* Indicador */}
                                 <div className="flex items-center justify-center gap-2 text-gray-400 text-xs pt-1">
                                     <div className="w-2 h-2 bg-red-400 rounded-full animate-ping"></div>
                                     <div className="w-2 h-2 bg-red-400 rounded-full absolute"></div>
@@ -477,7 +464,6 @@ export default function Dashboard() {
                                 </button>
                             </div>
 
-                            {/* Detalles decorativos */}
                             <div className="absolute top-4 right-4">
                                 <div className="w-3 h-3 bg-red-400 rounded-full animate-ping"></div>
                                 <div className="absolute top-0 right-0 w-3 h-3 bg-red-400 rounded-full"></div>
@@ -677,8 +663,9 @@ export default function Dashboard() {
                                                 Cronograma de Envíos
                                             </h3>
                                         </div>
+                                        {/* Mes actual: Agosto */}
                                         <div className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-900/50">
-                                            Julio 🌞
+                                            Agosto 🌴
                                         </div>
                                     </div>
 
@@ -717,7 +704,8 @@ export default function Dashboard() {
                                             <div className="space-y-3 animate-slideIn">
                                                 <h3 className="text-orange-400 font-bold text-sm uppercase mb-3 flex items-center gap-2">
                                                     <Sparkles className="w-4 h-4 animate-bounce-subtle" />
-                                                    Embarques Especiales — Julio
+                                                    Embarques Especiales —
+                                                    Agosto
                                                 </h3>
                                                 {(
                                                     getCurrentDayData() as SpecialEntry[]
