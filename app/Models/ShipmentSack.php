@@ -38,4 +38,10 @@ class ShipmentSack extends Model
     {
         return $this->belongsTo(TransferSack::class, 'transfer_sack_id');
     }
+
+    // ✅ NUEVO: paquetes individuales desglosados que componen esta saca de embarque
+    public function packages()
+    {
+        return $this->hasMany(ShipmentSackPackage::class);
+    }
 }

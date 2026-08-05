@@ -261,22 +261,25 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->name('agencies_dest.toggle-active');
 
     // ─── EMBARQUES ───────────────────────────────────────────
-    // ✅ 1. Rutas ESTÁTICAS primero (sin parámetros variables)
+    // 1. Rutas ESTÁTICAS primero (sin parámetros variables)
     Route::get('/api/shipments/available-sacks', [ShipmentSackController::class, 'availableSacks'])
         ->name('shipments.sacks.available');
     Route::get('/api/shipments/next-number', [ShipmentController::class, 'nextNumber'])
         ->name('shipments.nextNumber');
 
-    // ✅ 2. Resource (genera rutas con {shipment})
+    // 2. Resource (genera rutas con {shipment})
     Route::resource('shipments', ShipmentController::class);
 
-    // ✅ 3. Rutas CON parámetro {shipment} después del resource
+    // 3. Rutas CON parámetro {shipment} después del resource
     Route::patch('/shipments/{shipment}/cancel', [ShipmentController::class, 'cancel'])
         ->name('shipments.cancel');
     Route::get('/api/shipments/{shipment}/sacks', [ShipmentSackController::class, 'sacksForShipment'])
         ->name('shipments.sacks.index');
     Route::post('/api/shipments/{shipment}/sacks', [ShipmentSackController::class, 'assignSacks'])
         ->name('shipments.sacks.assign');
+    // editar paquetes de una saca de embarque ya creada
+    Route::put('/api/shipments/{shipment}/sacks/{shipmentSack}', [ShipmentSackController::class, 'updateSackPackages'])
+        ->name('shipments.sacks.update');
     Route::delete('/api/shipments/{shipment}/sacks/{shipmentSack}', [ShipmentSackController::class, 'removeSack'])
         ->name('shipments.sacks.remove');
     
