@@ -123,7 +123,8 @@ export default function CreateShipmentModal({
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": csrfToken(),
+                    // ✅ CORREGIDO: X-XSRF-TOKEN (cookie), no X-CSRF-TOKEN (meta tag)
+                    "X-XSRF-TOKEN": csrfToken(),
                     Accept: "application/json",
                 },
                 body: JSON.stringify({

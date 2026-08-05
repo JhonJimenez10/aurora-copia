@@ -31,11 +31,13 @@ export function getDestinationAgencies(sack: AssignedSack): string {
     return sack.to_city ?? "—";
 }
 
+// ✅ CORREGIDO: lee el token de la cookie XSRF-TOKEN (igual que el resto
+// del sistema/Inertia), en vez del <meta name="csrf-token"> estático que
+// queda desactualizado si la sesión se refresca mientras la página sigue
+// abierta. Úsala SIEMPRE junto al header "X-XSRF-TOKEN" (no "X-CSRF-TOKEN").
 export function csrfToken(): string {
-    return (
-        (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)
-            ?.content ?? ""
-    );
+    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : "";
 }
 
 // ─── StatusBadge ─────────────────────────────────────────────────
