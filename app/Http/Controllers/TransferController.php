@@ -33,14 +33,9 @@ class TransferController extends Controller
         $enterpriseId = $user->enterprise_id;
         $enterprise   = \App\Models\Enterprise::find($enterpriseId);
 
-        // ✅ CORRECCIÓN: antes solo se usaba enterprise->city, pero ese valor
-        // no siempre coincide exactamente con el agency_origin que quedó
-        // guardado en las recepciones (mayúsculas, nombre distinto, etc.).
-        // Como availablePackages() filtra por receptions.agency_origin,
-        // si no coinciden, el combo "Trasladar de" manda un valor que no
-        // encuentra ningún paquete — la oficina ve la lista vacía aunque sí
-        // tenga paquetes emitidos. Usamos los agency_origin REALES que
-        // existen en las recepciones de esta empresa, así siempre calzan.
+        // Se mantiene solo como referencia/valor a guardar en el traslado
+        // (from_city), YA NO se usa para filtrar qué paquetes se muestran
+        // — ver availablePackages() más abajo.
         $fromCities = Reception::where('enterprise_id', $enterpriseId)
             ->whereNotNull('agency_origin')
             ->where('agency_origin', '!=', '')
@@ -48,8 +43,6 @@ class TransferController extends Controller
             ->orderBy('agency_origin')
             ->pluck('agency_origin');
 
-        // Respaldo: si esta empresa aún no tiene ninguna recepción registrada,
-        // usamos la ciudad de la empresa para no dejar el combo vacío.
         if ($fromCities->isEmpty() && $enterprise?->city) {
             $fromCities = collect([$enterprise->city]);
         }
@@ -71,11 +64,15 @@ class TransferController extends Controller
         $enterpriseId = $user->enterprise_id;
 
         $data = $request->validate([
-            'from_city' => 'required|string|max:100',
-            'search' => 'nullable|string|max:255',
+            // ✅ CAMBIO: ya no es obligatorio ni se usa para filtrar. Cada
+            // cuenta/empresa YA representa una sola agencia — filtrar
+            // además por receptions.agency_origin exacto hacía que
+            // paquetes reales quedaran ocultos cuando ese texto no
+            // coincidía letra por letra (mayúsculas, variaciones, etc.).
+            'from_city' => 'nullable|string|max:100',
+            'search'    => 'nullable|string|max:255',
         ]);
 
-        $fromCity = $data['from_city'];
         $search = $data['search'] ?? null;
 
         $query = Package::query()
@@ -88,8 +85,11 @@ class TransferController extends Controller
                 'packages.kilograms'
             )
             ->join('receptions', 'receptions.id', '=', 'packages.reception_id')
+            // ✅ CAMBIO: solo se filtra por la empresa del usuario logueado.
+            // Ya no se exige que receptions.agency_origin calce exactamente
+            // con el "Trasladar de" — así aparecen TODOS los paquetes de
+            // la agencia, sin importar cómo haya quedado guardado ese texto.
             ->where('receptions.enterprise_id', $enterpriseId)
-            ->where('receptions.agency_origin', $fromCity)
             ->whereDoesntHave('transferSackItems', function ($q) {
                 $q->whereHas('sack.transfer', function ($tq) {
                     $tq->where('status', 'PENDING');
@@ -106,7 +106,7 @@ class TransferController extends Controller
 
         $packages = $query
             ->orderBy('packages.created_at', 'desc')
-            ->limit(100)
+            ->limit(500)
             ->get()
             ->map(function ($p) {
                 return [
