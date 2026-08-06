@@ -202,6 +202,9 @@ Route::middleware(['auth'])->group(function () {
         ->name('transfers.available-packages');
     Route::get('/api/transfers/search', [TransferController::class, 'search'])
         ->name('transfers.search');
+    // "Trasladar de" de otra empresa, solo admin/sudo (se autovalida dentro del método)
+    Route::get('/api/transfers/from-cities', [TransferController::class, 'fromCitiesForEnterprise'])
+        ->name('transfers.from-cities');
 });
 // -----------------------------
 // RUTAS PARA ADMIN Y SUDO
