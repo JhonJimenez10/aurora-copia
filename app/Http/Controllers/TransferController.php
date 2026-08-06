@@ -361,16 +361,16 @@ class TransferController extends Controller
 
     protected function generateNextNumber(string $enterpriseId): string
     {
-        $last = Transfer::where('enterprise_id', $enterpriseId)
-            ->orderByDesc('created_at')
-            ->value('number');
+        // ✅ CORREGIDO: antes tomaba el ÚLTIMO traslado por fecha de creación
+        // (orderByDesc('created_at')) y le sumaba 1 — pero ese no siempre es
+        // el número más alto realmente usado, causando colisiones con el
+        // unique(enterprise_id, number). Ahora se calcula el MÁXIMO número
+        // numérico ya usado por esa empresa y se suma 1 desde ahí.
+        $maxNumber = Transfer::where('enterprise_id', $enterpriseId)
+            ->selectRaw("MAX(NULLIF(regexp_replace(number, '[^0-9]', '', 'g'), '')::integer) as max_num")
+            ->value('max_num');
 
-        if (!$last) {
-            return '000001';
-        }
-
-        $num = (int) preg_replace('/\D/', '', $last);
-        $next = $num + 1;
+        $next = ((int) $maxNumber) + 1;
 
         return str_pad((string) $next, 6, '0', STR_PAD_LEFT);
     }
