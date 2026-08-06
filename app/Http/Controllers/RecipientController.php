@@ -9,13 +9,38 @@ use Illuminate\Support\Facades\Auth;
 
 class RecipientController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $enterpriseId = Auth::user()->enterprise_id;
 
-        $paginated = Recipient::where('enterprise_id', $enterpriseId)
-            ->orderBy('full_name')
-            ->paginate(10);
+        $search = trim((string) $request->query('search', ''));
+        $city   = trim((string) $request->query('city', ''));
+        $status = $request->query('status', ''); // '', 'blocked', 'alert'
+
+        $query = Recipient::where('enterprise_id', $enterpriseId);
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%")
+                    ->orWhere('identification', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        if ($city !== '') {
+            $query->where('city', 'like', "%{$city}%");
+        }
+
+        if ($status === 'blocked') {
+            $query->where('blocked', true);
+        } elseif ($status === 'alert') {
+            $query->where('alert', true);
+        }
+
+        $paginated = $query->orderBy('full_name')
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('Recipient/Index', [
             'recipients' => $paginated->items(),
@@ -25,6 +50,11 @@ class RecipientController extends Controller
                 'per_page' => $paginated->perPage(),
                 'total' => $paginated->total(),
                 'links' => $paginated->linkCollection(),
+            ],
+            'filters' => [
+                'search' => $search,
+                'city' => $city,
+                'status' => $status,
             ],
         ]);
     }

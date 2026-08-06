@@ -9,13 +9,38 @@ use Illuminate\Support\Facades\Auth;
 
 class SenderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $enterpriseId = Auth::user()->enterprise_id;
 
-        $paginated = Sender::where('enterprise_id', $enterpriseId)
-            ->orderBy('full_name')
-            ->paginate(10);
+        $search = trim((string) $request->query('search', ''));
+        $city   = trim((string) $request->query('city', ''));
+        $status = $request->query('status', ''); // '', 'blocked', 'alert'
+
+        $query = Sender::where('enterprise_id', $enterpriseId);
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%")
+                    ->orWhere('identification', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        if ($city !== '') {
+            $query->where('city', 'like', "%{$city}%");
+        }
+
+        if ($status === 'blocked') {
+            $query->where('blocked', true);
+        } elseif ($status === 'alert') {
+            $query->where('alert', true);
+        }
+
+        $paginated = $query->orderBy('full_name')
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('Sender/Index', [
             'senders' => $paginated->items(),
@@ -25,6 +50,11 @@ class SenderController extends Controller
                 'per_page' => $paginated->perPage(),
                 'total' => $paginated->total(),
                 'links' => $paginated->linkCollection(),
+            ],
+            'filters' => [
+                'search' => $search,
+                'city' => $city,
+                'status' => $status,
             ],
         ]);
     }
@@ -70,7 +100,6 @@ class SenderController extends Controller
             'alert'          => 'required|boolean',
         ]);
 
-        // ✅ Validación de cédula
         if ($validated['id_type'] === 'CEDULA' && !$this->isValidEcuadorianCedula($validated['identification'])) {
             return response()->json([
                 'status' => 'error',
@@ -78,13 +107,10 @@ class SenderController extends Controller
             ], 422);
         }
         if (!empty($validated['full_name']) && preg_match('/[ñÑ.;\/]/', $validated['full_name'])) {
-            // Para storeJson:
             return response()->json([
                 'status' => 'error',
                 'message' => 'El nombre no puede contener los caracteres: ñ . ; /',
             ], 422);
-            // Para store (Inertia):
-            // return redirect()->back()->withErrors(['full_name' => 'El nombre no puede contener los caracteres: ñ . ; /'])->withInput();
         }
 
         $validated['enterprise_id'] = Auth::user()->enterprise_id;
@@ -116,7 +142,6 @@ class SenderController extends Controller
             'alert'          => 'required|boolean',
         ]);
 
-        // ✅ Validación de cédula
         if ($validated['id_type'] === 'CEDULA' && !$this->isValidEcuadorianCedula($validated['identification'])) {
             return redirect()->back()->withErrors(['identification' => 'La cédula ingresada no es válida.'])->withInput();
         }
@@ -175,9 +200,6 @@ class SenderController extends Controller
         return redirect()->route('senders.index')->with('success', 'Sender deleted successfully.');
     }
 
-    /**
-     * Validación de cédula ecuatoriana
-     */
     private function isValidEcuadorianCedula($cedula)
     {
         if (!preg_match('/^\d{10}$/', $cedula)) {
