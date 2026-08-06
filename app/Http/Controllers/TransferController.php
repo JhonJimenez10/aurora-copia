@@ -73,19 +73,18 @@ class TransferController extends Controller
         $fromCities = $this->fromCitiesFor($enterpriseId);
         $toCities   = collect(['CUENCA']);
 
-        // ✅ NUEVO: solo admin/sudo recibe el listado de empresas para el combo
         $enterprises = $isAdmin ? $this->selectableEnterprises() : collect();
 
         return Inertia::render('Transfers/Create', [
             'fromCities'  => $fromCities,
             'toCities'    => $toCities,
-            'isAdmin'     => $isAdmin,       // ✅ NUEVO
-            'enterprises' => $enterprises,   // ✅ NUEVO
+            'isAdmin'     => $isAdmin,
+            'enterprises' => $enterprises,
         ]);
     }
 
     /**
-     * ✅ NUEVO: GET /api/transfers/from-cities?enterprise_id=...
+     * GET /api/transfers/from-cities?enterprise_id=...
      * Devuelve el "Trasladar de" de la empresa elegida en el combo (solo admin/sudo).
      */
     public function fromCitiesForEnterprise(Request $request)
@@ -116,11 +115,9 @@ class TransferController extends Controller
         $isAdmin = $this->canViewAllEnterprises($user);
 
         $data = $request->validate([
-            // Ya no se usa para filtrar (ver nota abajo), solo referencia.
-            'from_city'     => 'nullable|string|max:100',
+            'from_city'     => 'nullable|string|max:100', // ya no se usa para filtrar, solo referencia
             'search'        => 'nullable|string|max:255',
-            // ✅ NUEVO: solo el admin/sudo puede pedir paquetes de OTRA empresa
-            'enterprise_id' => 'nullable|uuid|exists:enterprises,id',
+            'enterprise_id' => 'nullable|uuid|exists:enterprises,id', // solo admin/sudo
         ]);
 
         $enterpriseId = $user->enterprise_id;
@@ -140,13 +137,16 @@ class TransferController extends Controller
                 'packages.kilograms'
             )
             ->join('receptions', 'receptions.id', '=', 'packages.reception_id')
-            // Solo se filtra por empresa — cada cuenta/empresa YA es una
-            // agencia; comparar además agency_origin exacto ocultaba
-            // paquetes reales por variaciones de texto.
             ->where('receptions.enterprise_id', $enterpriseId)
+            // ✅ CORREGIDO: antes solo excluía paquetes en traslados PENDIENTES,
+            // así que en cuanto un traslado se CONFIRMABA, el paquete volvía a
+            // aparecer como "disponible" y se podía trasladar de nuevo — de ahí
+            // los duplicados. Ahora se excluye si el paquete está en CUALQUIER
+            // traslado activo (PENDING o CONFIRMED). Solo si ese traslado se
+            // elimina (ver destroy() más abajo) el paquete vuelve a liberarse.
             ->whereDoesntHave('transferSackItems', function ($q) {
                 $q->whereHas('sack.transfer', function ($tq) {
-                    $tq->where('status', 'PENDING');
+                    $tq->whereIn('status', ['PENDING', 'CONFIRMED']);
                 });
             });
 
@@ -193,7 +193,7 @@ class TransferController extends Controller
             'from_city'     => 'nullable|string|max:100',
             'to_city'       => 'nullable|string|max:100',
             'only_pending'  => 'nullable|boolean',
-            'enterprise_id' => 'nullable|uuid', // solo lo usa el admin
+            'enterprise_id' => 'nullable|uuid',
         ]);
 
         $query = Transfer::query()
@@ -246,7 +246,7 @@ class TransferController extends Controller
                 'country'         => $t->country,
                 'from_city'       => $t->from_city,
                 'to_city'         => $t->to_city,
-                'status'          => $t->status,
+                'status'          => $t->status, // ✅ el front ya lo usa para habilitar "Eliminar"
                 'enterprise_name' => $enterpriseNames[$t->enterprise_id] ?? null,
             ];
         });
@@ -265,9 +265,7 @@ class TransferController extends Controller
         $isAdmin = $this->canViewAllEnterprises($user);
 
         $data = $request->validate([
-            // ✅ NUEVO: solo el admin/sudo puede crear el traslado A NOMBRE
-            // de otra empresa; para customer se ignora este campo.
-            'enterprise_id' => 'nullable|uuid|exists:enterprises,id',
+            'enterprise_id' => 'nullable|uuid|exists:enterprises,id', // solo admin/sudo
             'number'        => 'nullable|string|max:30',
             'country'       => 'required|string|max:100',
             'from_city'     => 'required|string|max:100',
@@ -285,6 +283,30 @@ class TransferController extends Controller
         $enterpriseId = $user->enterprise_id;
         if ($isAdmin && !empty($data['enterprise_id'])) {
             $enterpriseId = $data['enterprise_id'];
+        }
+
+        // ✅ NUEVO: salvaguarda final contra duplicados — aunque el listado ya
+        // excluye paquetes trasladados, esto cubre el caso de dos pestañas
+        // abiertas guardando casi al mismo tiempo. Si algún paquete elegido
+        // ya pertenece a un traslado activo (PENDING o CONFIRMED), se
+        // rechaza todo el guardado con un mensaje claro.
+        $allPackageIds = collect($data['sacks'])
+            ->pluck('packages')
+            ->flatten(1)
+            ->pluck('id')
+            ->unique()
+            ->values();
+
+        $alreadyUsed = TransferSackPackage::whereIn('package_id', $allPackageIds)
+            ->whereHas('sack.transfer', function ($q) {
+                $q->whereIn('status', ['PENDING', 'CONFIRMED']);
+            })
+            ->exists();
+
+        if ($alreadyUsed) {
+            return back()->withErrors([
+                'transfer' => 'Uno o más paquetes seleccionados ya fueron trasladados anteriormente. Actualiza la lista de paquetes disponibles e intenta nuevamente.',
+            ]);
         }
 
         $number = $data['number'] ?: $this->generateNextNumber($enterpriseId);
@@ -318,10 +340,8 @@ class TransferController extends Controller
                 ]);
 
                 foreach ($sackData['packages'] as $pkg) {
-                    // ✅ Salvaguarda: el paquete debe pertenecer realmente
-                    // a la empresa a nombre de la cual se crea el traslado
-                    // (evita que, por error del front, se mezclen paquetes
-                    // de otra empresa distinta a la elegida en el combo).
+                    // Salvaguarda: el paquete debe pertenecer realmente a la
+                    // empresa a nombre de la cual se crea el traslado.
                     $belongs = Package::query()
                         ->join('receptions', 'receptions.id', '=', 'packages.reception_id')
                         ->where('packages.id', $pkg['id'])
@@ -359,13 +379,51 @@ class TransferController extends Controller
         }
     }
 
+    /**
+     * ✅ NUEVO: DELETE /transfers/{transfer}
+     * Elimina un traslado PENDIENTE (aún no confirmado) y libera sus
+     * paquetes para que vuelvan a estar disponibles en un traslado nuevo.
+     * Las sacas y sus paquetes se borran en cascada por las FKs.
+     */
+    public function destroy($id)
+    {
+        $user = Auth::user();
+        $isAdmin = $this->canViewAllEnterprises($user);
+
+        $query = Transfer::query();
+        if (!$isAdmin) {
+            $query->where('enterprise_id', $user->enterprise_id);
+        }
+        $transfer = $query->findOrFail($id);
+
+        if ($transfer->status !== 'PENDING') {
+            return back()->withErrors([
+                'transfer' => 'Solo se pueden eliminar traslados pendientes. Este traslado ya fue confirmado o cancelado.',
+            ]);
+        }
+
+        DB::beginTransaction();
+        try {
+            // transfer_sacks -> cascadeOnDelete, transfer_sack_packages -> cascadeOnDelete
+            $transfer->delete();
+
+            DB::commit();
+
+            return redirect()
+                ->route('transfers.create')
+                ->with('success', 'Traslado eliminado correctamente. Sus paquetes vuelven a estar disponibles.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+
+            return back()->withErrors([
+                'transfer' => 'Error al eliminar el traslado: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
     protected function generateNextNumber(string $enterpriseId): string
     {
-        // ✅ CORREGIDO: antes tomaba el ÚLTIMO traslado por fecha de creación
-        // (orderByDesc('created_at')) y le sumaba 1 — pero ese no siempre es
-        // el número más alto realmente usado, causando colisiones con el
-        // unique(enterprise_id, number). Ahora se calcula el MÁXIMO número
-        // numérico ya usado por esa empresa y se suma 1 desde ahí.
         $maxNumber = Transfer::where('enterprise_id', $enterpriseId)
             ->selectRaw("MAX(NULLIF(regexp_replace(number, '[^0-9]', '', 'g'), '')::integer) as max_num")
             ->value('max_num');

@@ -5,6 +5,7 @@ namespace App\Exports;
 use App\Models\Reception;
 use App\Models\Enterprise;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -75,6 +76,13 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
 
         $receptions = $query->orderBy('enterprise_id')->orderByDesc('date_time')->get();
 
+        // ✅ NUEVO: número de saca de embarque (si existe) para cada paquete,
+        // resuelto en UNA sola consulta (evita N+1 dentro del foreach).
+        // Relación: packages -> shipment_sack_packages -> shipment_sacks.sack_number
+        $sackNumbersByPackageId = DB::table('shipment_sack_packages')
+            ->join('shipment_sacks', 'shipment_sacks.id', '=', 'shipment_sack_packages.shipment_sack_id')
+            ->pluck('shipment_sacks.sack_number', 'shipment_sack_packages.package_id');
+
         foreach ($receptions as $reception) {
             $sender    = $reception->sender;
             $recipient = $reception->recipient;
@@ -84,53 +92,16 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                 $rows[] = [
                     'hawb','14','','','','','',
                     'GYE','USA','','','','',
-                    0, 0, 'KG','APX','USD', 0,
-                    '','','','O','','','',
-                    '6264','','','','',
-                    $this->clip30(optional($sender)->full_name),
-                    $this->clip30(optional($sender)->address),
-                    '',
-                    $this->normalizeString(optional($sender)->city),
-                    '',
-                    $this->normalizeString(optional($sender)->postal_code),
-                    'EC',
-                    $this->normalizeString(optional($sender)->phone),
-                    $this->clip30(optional($recipient)->full_name),
-                    '',
-                    $this->clip30(optional($recipient)->address),
-                    '',
-                    $this->normalizeString(optional($recipient)->city),
-                    $this->normalizeString(optional($recipient)->state),
-                    $this->normalizeString(optional($recipient)->postal_code),
-                    'US',
-                    $this->normalizeString(optional($recipient)->phone),
+                    0,
+                    0, 'KG','APX','USD', 0,
                     '','','',
-                    'EC','0',
-                ];
-                continue;
-            }
-
-            // Con paquetes: una fila HAWB por paquete + commodities + FDA
-            foreach ($reception->packages as $package) {
-                $barcodeBase   = explode('.', $package->barcode ?? '')[0] ?? '';
-                $firstHsCode   = $package->items?->first()?->artPackage?->codigo_hs ?? '';
-                $description   = $package->items?->map(fn($i) => $this->normalizeString($i->artPackage?->translation ?? ''))->filter()->implode(' ') ?: '';
-                $declaredValue = $package->items?->sum(fn($i) => ($i->items_declrd ?? 0) * ($i->decl_val ?? 0)) ?? 0;
-
-                // Fila HAWB
-                $rows[] = [
-                    'hawb','14','',
-                    $barcodeBase,
-                    '','','',
-                    'GYE','USA','','','','',
-                    1,
-                    $package->kilograms ?? 0,
-                    'KG','APX','USD',
-                    $declaredValue,
-                    '',
-                    $description,
-                    $firstHsCode,
-                    '','','O','','','',
+                    // ✅ CORRECCIÓN: antes 'O' y '6264' quedaban en la posición
+                    // equivocada dentro de este bloque (fda_prior_notice/
+                    // collect_amount en vez de packaging/cust_key). Ahora:
+                    // idx19..26 = insurance_amount, description, hs_code,
+                    // fda_prior_notice, terms, packaging='O', service_type,
+                    // collect_amount — luego cust_key='6264'.
+                    '','','O','','',
                     '6264','','','',
                     $this->clip30(optional($sender)->full_name),
                     $this->clip30(optional($sender)->address),
@@ -150,7 +121,61 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                     'US',
                     $this->normalizeString(optional($recipient)->phone),
                     '','','',
-                    'EC','0',
+                    'EC',
+                    '0', // sin paquete no hay saca -> 0
+                ];
+                continue;
+            }
+
+            // Con paquetes: una fila HAWB por paquete + commodities + FDA
+            foreach ($reception->packages as $package) {
+                $barcodeBase   = explode('.', $package->barcode ?? '')[0] ?? '';
+                $firstHsCode   = $package->items?->first()?->artPackage?->codigo_hs ?? '';
+                $description   = $package->items?->map(fn($i) => $this->normalizeString($i->artPackage?->translation ?? ''))->filter()->implode(' ') ?: '';
+                $declaredValue = $package->items?->sum(fn($i) => ($i->items_declrd ?? 0) * ($i->decl_val ?? 0)) ?? 0;
+
+                // ✅ NUEVO: número de saca real del embarque (solo el número,
+                // sin prefijo). Si el paquete aún no está en ninguna saca -> '0'.
+                $containerId = $sackNumbersByPackageId[$package->id] ?? '0';
+
+                // Fila HAWB
+                $rows[] = [
+                    'hawb','14','',
+                    $barcodeBase,
+                    '','','',
+                    'GYE','USA','','','','',
+                    1,
+                    $package->kilograms ?? 0,
+                    'KG','APX','USD',
+                    $declaredValue,
+                    '',
+                    $description,
+                    $firstHsCode,
+                    '','','O','','',
+                    // ✅ CORRECCIÓN: antes había un campo vacío de más aquí,
+                    // lo que corría todo lo siguiente (incluido shipper_zip)
+                    // una columna a la derecha.
+                    '6264','','','',
+                    $this->clip30(optional($sender)->full_name),
+                    $this->clip30(optional($sender)->address),
+                    '',
+                    $this->normalizeString(optional($sender)->city),
+                    '',
+                    $this->normalizeString(optional($sender)->postal_code),
+                    'EC',
+                    $this->normalizeString(optional($sender)->phone),
+                    $this->clip30(optional($recipient)->full_name),
+                    '',
+                    $this->clip30(optional($recipient)->address),
+                    '',
+                    $this->normalizeString(optional($recipient)->city),
+                    $this->normalizeString(optional($recipient)->state),
+                    $this->normalizeString(optional($recipient)->postal_code),
+                    'US',
+                    $this->normalizeString(optional($recipient)->phone),
+                    '','','',
+                    'EC',
+                    $containerId, // ✅ NUEVO: número de saca del embarque
                 ];
 
                 // Filas commodity + FDA
@@ -180,10 +205,6 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                             in_array($artCategoria, ['COMIDA', 'COSMETICOS'], true)
                             && $artCodigoFda !== ''
                         ) {
-                            // ✅ CORRECCIÓN: antes siempre se ponía FOO/PRO/FOO/######
-                            // sin importar la categoría. Ahora se distingue:
-                            //   - COMIDA       -> FOO / PRO / FOO / ######
-                            //   - COSMETICOS   -> COS / COS / COS / (vacío)
                             $isFood = $artCategoria === 'COMIDA';
 
                             $type1 = $isFood ? 'FOO' : 'COS';
@@ -198,10 +219,6 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                                 $artTranslation,
                             ];
 
-                            // ✅ NUEVO: los alimentos (FOO) requieren además la
-                            // fila de "Prior Notice" (commodity_misc / PNC), tal
-                            // como exige el manifiesto IBC. Los cosméticos (COS)
-                            // NO llevan esta fila.
                             if ($isFood) {
                                 $rows[] = [
                                     'commodity_misc', '1', 'fda_compliance_code',

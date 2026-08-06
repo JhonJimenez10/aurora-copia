@@ -24,7 +24,7 @@ class ShipmentSackController extends Controller
     }
 
     /**
-     * ✅ GET /api/enterprises/list-filter (reutilizable, solo admin)
+     * GET /api/enterprises/list-filter (reutilizable, solo admin)
      */
     public function enterprisesList()
     {
@@ -42,10 +42,8 @@ class ShipmentSackController extends Controller
     /**
      * GET /api/shipments/available-sacks
      *
-     * ✅ CAMBIO: ya NO agrupa por saca de traslado. Devuelve la lista PLANA
-     * de paquetes confirmados que aún no están asignados a ninguna saca
-     * de embarque, cada uno con su información de traslado/agencia para
-     * poder armar sacas de embarque a nivel de paquete individual.
+     * Devuelve la lista PLANA de paquetes confirmados que aún no están
+     * asignados a ninguna saca de embarque.
      */
     public function availableSacks(Request $request)
     {
@@ -53,7 +51,6 @@ class ShipmentSackController extends Controller
         $isAdmin = $this->canViewAllEnterprises($user);
         $enterpriseId = $user->enterprise_id;
 
-        // Filtro opcional de empresa (solo aplica si es admin)
         $filterEnterpriseId = $request->input('enterprise_id');
 
         // Paquetes que YA están en alguna saca de embarque (no se repiten)
@@ -62,6 +59,12 @@ class ShipmentSackController extends Controller
         $items = TransferSackPackage::where('confirmed', true)
             ->whereNotIn('package_id', $assignedPackageIds)
             ->whereHas('sack.transfer', function ($q) use ($isAdmin, $enterpriseId, $filterEnterpriseId) {
+                // ✅ NUEVO: el traslado de origen debe seguir CONFIRMED. Si
+                // por algún motivo quedó CANCELLED después de que algunos de
+                // sus paquetes se marcaron confirmed=true, ya no debe salir
+                // aquí como disponible para embarque.
+                $q->where('status', 'CONFIRMED');
+
                 if (!$isAdmin) {
                     $q->where('enterprise_id', $enterpriseId);
                 } elseif (!empty($filterEnterpriseId)) {
@@ -75,7 +78,14 @@ class ShipmentSackController extends Controller
                 'package.reception:id,agency_dest',
                 'package.reception.agencyDest:id,name',
             ])
-            ->get();
+            ->get()
+            // ✅ NUEVO: salvaguarda extra — si por datos históricos un mismo
+            // paquete quedó registrado en más de un transfer_sack_package
+            // (bug ya corregido en el origen, ver TransferController), aquí
+            // se deja solo UNA aparición por paquete para no mostrar
+            // duplicados en pantalla.
+            ->unique('package_id')
+            ->values();
 
         $enterpriseIds = $items->pluck('sack.transfer.enterprise_id')->filter()->unique();
         $enterpriseNames = Enterprise::whereIn('id', $enterpriseIds)->pluck('name', 'id');
@@ -84,14 +94,14 @@ class ShipmentSackController extends Controller
             $enterpriseId = $tsp->sack->transfer->enterprise_id ?? null;
 
             return [
-                'id'                    => $tsp->package_id, // id del PAQUETE
+                'id'                    => $tsp->package_id,
                 'transfer_sack_id'      => $tsp->transfer_sack_id,
                 'barcode'               => $tsp->package->barcode ?? '—',
                 'content'               => $tsp->package->content ?? '—',
                 'service_type'          => $tsp->package->service_type ?? '—',
                 'pounds'                => (float) $tsp->pounds,
                 'kilograms'             => (float) $tsp->kilograms,
-                'sack_number'           => $tsp->sack->sack_number ?? null, // no. saca de traslado (referencia)
+                'sack_number'           => $tsp->sack->sack_number ?? null,
                 'transfer_number'       => $tsp->sack->transfer->number ?? '—',
                 'from_city'             => $tsp->sack->transfer->from_city ?? '—',
                 'to_city'               => $tsp->sack->transfer->to_city ?? '—',
@@ -107,9 +117,6 @@ class ShipmentSackController extends Controller
 
     /**
      * GET /api/shipments/{shipment}/sacks
-     *
-     * ✅ CAMBIO: cada saca del embarque ahora trae sus paquetes desde la
-     * nueva tabla pivote shipment_sack_packages (desglosados individualmente).
      */
     public function sacksForShipment($shipmentId)
     {
@@ -142,8 +149,6 @@ class ShipmentSackController extends Controller
                 ->map(fn($sp) => $sp->package?->reception?->agencyDest?->name)
                 ->filter()->unique()->values();
 
-            // Ruta de referencia: la del primer traslado de origen de los
-            // paquetes de esta saca (puede haber más de uno mezclado).
             $firstTransfer = $pivots->first()?->transferSack?->transfer;
 
             return [
@@ -190,10 +195,6 @@ class ShipmentSackController extends Controller
 
     /**
      * POST /api/shipments/{shipment}/sacks
-     *
-     * ✅ CAMBIO: crea una saca de embarque NUEVA a partir de paquetes
-     * individuales sueltos (package_ids), en vez de sacas completas de
-     * traslado (sack_ids).
      */
     public function assignSacks(Request $request, $shipmentId)
     {
@@ -227,7 +228,11 @@ class ShipmentSackController extends Controller
 
         $items = TransferSackPackage::where('confirmed', true)
             ->whereIn('package_id', $packageIds)
-            ->get();
+            // ✅ NUEVO: mismo resguardo que en availableSacks() — el traslado
+            // de origen debe seguir CONFIRMED.
+            ->whereHas('sack.transfer', fn($q) => $q->where('status', 'CONFIRMED'))
+            ->get()
+            ->unique('package_id');
 
         if ($items->count() !== $packageIds->count()) {
             return response()->json([
@@ -239,7 +244,7 @@ class ShipmentSackController extends Controller
         try {
             $sack = ShipmentSack::create([
                 'shipment_id'      => $shipmentId,
-                'transfer_sack_id' => null, // ya no aplica: la saca puede mezclar orígenes
+                'transfer_sack_id' => null,
                 'sack_number'      => $request->sack_number,
                 'packages_count'   => $items->count(),
                 'pounds_total'     => $items->sum('pounds'),
@@ -269,11 +274,7 @@ class ShipmentSackController extends Controller
     }
 
     /**
-     * ✅ NUEVO: PUT /api/shipments/{shipment}/sacks/{shipmentSack}
-     *
-     * Edita una saca de embarque YA creada: reemplaza su lista de paquetes
-     * (agrega los que falten, quita los que ya no estén) y actualiza el
-     * número de saca y los totales.
+     * PUT /api/shipments/{shipment}/sacks/{shipmentSack}
      */
     public function updateSackPackages(Request $request, $shipmentId, $shipmentSackId)
     {
@@ -300,7 +301,6 @@ class ShipmentSackController extends Controller
 
         $newPackageIds = collect($request->package_ids)->unique()->values();
 
-        // Ningún paquete puede pertenecer a OTRA saca de embarque distinta a esta
         $conflicting = ShipmentSackPackage::whereIn('package_id', $newPackageIds)
             ->where('shipment_sack_id', '!=', $sack->id)
             ->exists();
@@ -315,17 +315,17 @@ class ShipmentSackController extends Controller
             $currentPackageIds = ShipmentSackPackage::where('shipment_sack_id', $sack->id)
                 ->pluck('package_id');
 
-            // Quitar los que ya no están en la selección final
             ShipmentSackPackage::where('shipment_sack_id', $sack->id)
                 ->whereNotIn('package_id', $newPackageIds)
                 ->delete();
 
-            // Agregar los nuevos que no estaban antes en esta saca
             $toAddIds = $newPackageIds->diff($currentPackageIds);
             if ($toAddIds->isNotEmpty()) {
                 $items = TransferSackPackage::where('confirmed', true)
                     ->whereIn('package_id', $toAddIds)
-                    ->get();
+                    ->whereHas('sack.transfer', fn($q) => $q->where('status', 'CONFIRMED'))
+                    ->get()
+                    ->unique('package_id');
 
                 if ($items->count() !== $toAddIds->count()) {
                     DB::rollBack();
@@ -345,7 +345,6 @@ class ShipmentSackController extends Controller
                 }
             }
 
-            // Recalcular totales con el estado final
             $finalPivots = ShipmentSackPackage::where('shipment_sack_id', $sack->id)->get();
             $sack->update([
                 'sack_number'     => $request->sack_number,
@@ -365,7 +364,6 @@ class ShipmentSackController extends Controller
 
     /**
      * Remover una saca completa de un embarque.
-     * (El cascade de la FK elimina automáticamente sus shipment_sack_packages)
      */
     public function removeSack($shipmentId, $shipmentSackId)
     {

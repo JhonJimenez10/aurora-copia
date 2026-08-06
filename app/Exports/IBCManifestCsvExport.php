@@ -5,6 +5,7 @@ namespace App\Exports;
 use App\Models\Reception;
 use App\Models\Enterprise;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithCustomCsvSettings;
 
@@ -81,6 +82,13 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
             ->orderByDesc('date_time')
             ->get();
 
+        // ✅ NUEVO: número de saca de embarque (si existe) para cada paquete,
+        // resuelto en UNA sola consulta (evita N+1 dentro del foreach).
+        // Relación: packages -> shipment_sack_packages -> shipment_sacks.sack_number
+        $sackNumbersByPackageId = DB::table('shipment_sack_packages')
+            ->join('shipment_sacks', 'shipment_sacks.id', '=', 'shipment_sack_packages.shipment_sack_id')
+            ->pluck('shipment_sacks.sack_number', 'shipment_sack_packages.package_id');
+
         foreach ($receptions as $reception) {
             foreach ($reception->packages as $package) {
                 $barcodeBase = explode('.', (string)($package->barcode ?? ''))[0] ?? '';
@@ -96,6 +104,10 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
                 foreach ($package->items as $item) {
                     $declaredValue += (float)(($item->items_declrd ?? 0) * ($item->decl_val ?? 0));
                 }
+
+                // ✅ NUEVO: número de saca real del embarque (solo el número,
+                // sin prefijo). Si el paquete aún no está en ninguna saca -> '0'.
+                $containerId = $sackNumbersByPackageId[$package->id] ?? '0';
 
                 // Fila HAWB
                 $rows[] = [
@@ -130,7 +142,8 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
                     'US',
                     $this->normalizeString(optional($reception->recipient)->phone),
                     '','','',
-                    'EC','',
+                    'EC',
+                    $containerId, // ✅ NUEVO: número de saca del embarque (antes iba vacío)
                 ];
 
                 // Filas commodity + FDA
@@ -159,10 +172,6 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
                         in_array($artCategoria, ['COMIDA', 'COSMETICOS'], true)
                         && $artCodigoFda !== ''
                     ) {
-                        // ✅ CORRECCIÓN: antes siempre se ponía FOO/PRO/FOO/######
-                        // sin importar la categoría. Ahora se distingue:
-                        //   - COMIDA       -> FOO / PRO / FOO / ######
-                        //   - COSMETICOS   -> COS / COS / COS / (vacío)
                         $isFood = $artCategoria === 'COMIDA';
 
                         $type1 = $isFood ? 'FOO' : 'COS';
@@ -177,10 +186,6 @@ class IBCManifestCsvExport implements FromCollection, WithCustomCsvSettings
                             $artTranslation,
                         ], $this->emptyCols(45));
 
-                        // ✅ NUEVO: los alimentos (FOO) requieren además la fila
-                        // de "Prior Notice" (commodity_misc / PNC), tal como
-                        // exige el manifiesto IBC. Los cosméticos (COS) NO
-                        // llevan esta fila — así queda igual que el ejemplo real.
                         if ($isFood) {
                             $rows[] = array_merge([
                                 'commodity_misc', '1', 'fda_compliance_code',

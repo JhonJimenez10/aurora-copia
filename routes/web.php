@@ -205,6 +205,8 @@ Route::middleware(['auth'])->group(function () {
     // "Trasladar de" de otra empresa, solo admin/sudo (se autovalida dentro del método)
     Route::get('/api/transfers/from-cities', [TransferController::class, 'fromCitiesForEnterprise'])
         ->name('transfers.from-cities');
+    Route::delete('/transfers/{transfer}', [TransferController::class, 'destroy'])
+        ->name('transfers.destroy');
 });
 // -----------------------------
 // RUTAS PARA ADMIN Y SUDO

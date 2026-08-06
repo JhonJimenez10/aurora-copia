@@ -7,6 +7,7 @@ import {
     FilePlus2,
     Plus,
     Pencil,
+    Trash2,
     LayoutGrid,
     X,
     ChevronRight,
@@ -108,6 +109,7 @@ type TransferSearchResult = {
     country: string;
     from_city: string;
     to_city: string;
+    status: string;
 };
 
 /** ---------------------
@@ -119,7 +121,6 @@ type SackModalProps = {
     sackNumber: number;
     onSave: (sack: Sack) => void;
     fromCity?: string;
-    // ✅ NUEVO: empresa elegida por el admin (undefined/"" = la propia del usuario)
     enterpriseId?: string;
 };
 
@@ -140,7 +141,6 @@ function SackModal({
     const [loading, setLoading] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
 
-    // Estados de búsqueda
     const [searchLeft, setSearchLeft] = useState("");
     const [searchRight, setSearchRight] = useState("");
 
@@ -157,7 +157,6 @@ function SackModal({
 
         try {
             const params = new URLSearchParams({ from_city: fromCity });
-            // ✅ NUEVO: si el admin eligió una empresa, se piden SUS paquetes
             if (enterpriseId) {
                 params.append("enterprise_id", enterpriseId);
             }
@@ -193,7 +192,6 @@ function SackModal({
         loadPackages();
     }, [isOpen, loadPackages]);
 
-    // Filtrar paquetes emitidos según búsqueda
     const filteredEmitted = useMemo(() => {
         if (!searchLeft.trim()) return emittedPkgs;
 
@@ -206,7 +204,6 @@ function SackModal({
         );
     }, [emittedPkgs, searchLeft]);
 
-    // Filtrar paquetes en saca según búsqueda
     const filteredSack = useMemo(() => {
         if (!searchRight.trim()) return sackPkgs;
 
@@ -275,7 +272,6 @@ function SackModal({
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-[1.5fr_auto_1.5fr] gap-4">
-                {/* Izquierda: emitidos */}
                 <div>
                     <h3 className="text-sm text-gray-300 mb-2">
                         Buscar paquetes emitidos
@@ -377,7 +373,6 @@ function SackModal({
                     </div>
                 </div>
 
-                {/* Flechas */}
                 <div className="flex flex-col items-center justify-center gap-3">
                     <Button
                         type="button"
@@ -399,7 +394,6 @@ function SackModal({
                     </Button>
                 </div>
 
-                {/* Derecha: en saca */}
                 <div>
                     <h3 className="text-sm text-gray-300 mb-2">
                         Buscar paquetes saca
@@ -493,7 +487,6 @@ function SackModal({
                 </div>
             </div>
 
-            {/* Inferior */}
             <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-sm text-gray-300">
                 <div className="flex gap-6">
                     <span>
@@ -595,7 +588,6 @@ function ConfirmTransferModal({
         string | null
     >(null);
 
-    // Estados de búsqueda
     const [searchPending, setSearchPending] = useState("");
     const [searchConfirmed, setSearchConfirmed] = useState("");
 
@@ -625,7 +617,6 @@ function ConfirmTransferModal({
         load();
     }, [isOpen, transferId]);
 
-    // Filtros
     const filteredPending = useMemo(() => {
         if (!current || !searchPending.trim()) return current?.pending ?? [];
 
@@ -799,7 +790,6 @@ function ConfirmTransferModal({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-[1.5fr_auto_1.5fr] gap-4">
-                        {/* Pendientes */}
                         <div>
                             <h3 className="text-sm text-gray-300 mb-2">
                                 Buscar paquetes pendientes
@@ -897,7 +887,6 @@ function ConfirmTransferModal({
                             </div>
                         </div>
 
-                        {/* Flechas */}
                         <div className="flex flex-col items-center justify-center gap-3">
                             <Button
                                 type="button"
@@ -921,7 +910,6 @@ function ConfirmTransferModal({
                             </Button>
                         </div>
 
-                        {/* Confirmados */}
                         <div>
                             <h3 className="text-sm text-gray-300 mb-2">
                                 Buscar paquetes confirmados
@@ -1020,7 +1008,6 @@ function ConfirmTransferModal({
                         </div>
                     </div>
 
-                    {/* Zona inferior */}
                     <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-sm text-gray-300">
                         <div className="flex gap-6">
                             <span>
@@ -1117,8 +1104,8 @@ export default function TransfersCreate({
     >(null);
 
     const [submitting, setSubmitting] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
-    // ✅ NUEVO: empresa elegida por el admin/sudo ("" = ninguna elegida aún)
     const [selectedEnterpriseId, setSelectedEnterpriseId] = useState("");
     const [fromCities, setFromCities] = useState<string[]>(fromCitiesProp);
     const [loadingFromCities, setLoadingFromCities] = useState(false);
@@ -1165,9 +1152,6 @@ export default function TransfersCreate({
         }
     }, [showSearchModal]);
 
-    // ✅ NUEVO: cuando el admin cambia de empresa, se recarga "Trasladar de"
-    // de ESA empresa y se limpian las sacas ya armadas (pertenecían a la
-    // empresa anterior — mezclarlas rompería la integridad del traslado).
     const handleEnterpriseChange = async (enterpriseId: string) => {
         setSelectedEnterpriseId(enterpriseId);
         setSacks([]);
@@ -1214,7 +1198,6 @@ export default function TransfersCreate({
         { sacks: 0, pounds: 0, kilograms: 0 },
     );
 
-    // ✅ Si es admin, además se exige haber elegido una empresa
     const canAddSack = Boolean(
         doc.from_city && doc.to_city && (!isAdmin || selectedEnterpriseId),
     );
@@ -1240,7 +1223,6 @@ export default function TransfersCreate({
             return;
         }
         const payload = {
-            // ✅ NUEVO: solo se envía si el admin eligió una empresa
             enterprise_id:
                 isAdmin && selectedEnterpriseId
                     ? selectedEnterpriseId
@@ -1342,6 +1324,39 @@ export default function TransfersCreate({
         setShowConfirmModal(true);
     };
 
+    const selectedResult = searchResults.find((t) => t.id === selectedResultId);
+
+    // ✅ NUEVO: eliminar un traslado PENDIENTE — libera sus paquetes para
+    // que vuelvan a estar disponibles en un nuevo traslado.
+    const handleDeleteSelected = () => {
+        if (!selectedResultId || !selectedResult) return;
+        if (selectedResult.status !== "PENDING") {
+            alert(
+                "Solo se pueden eliminar traslados pendientes (no confirmados).",
+            );
+            return;
+        }
+        if (
+            !confirm(
+                `¿Eliminar el traslado ${selectedResult.number}? Sus paquetes volverán a estar disponibles para un nuevo traslado. Esta acción no se puede deshacer.`,
+            )
+        ) {
+            return;
+        }
+
+        setDeleting(true);
+        router.delete(`/transfers/${selectedResultId}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setSelectedResultId(null);
+                setSearchResults((prev) =>
+                    prev.filter((t) => t.id !== selectedResultId),
+                );
+            },
+            onFinish: () => setDeleting(false),
+        });
+    };
+
     return (
         <AuthenticatedLayout>
             <Head title="Elaborar Traslado" />
@@ -1360,7 +1375,6 @@ export default function TransfersCreate({
                     {/* Cabecera */}
                     <div className="flex items-start justify-between mb-6 gap-4">
                         <div className="flex-1">
-                            {/* ✅ NUEVO: combo de empresa, solo admin/sudo */}
                             {isAdmin && (
                                 <div className="mb-3 max-w-sm">
                                     <label className="text-sm text-gray-300 mb-1 block">
@@ -1847,13 +1861,16 @@ export default function TransfersCreate({
                                     <th className="px-4 py-2 text-left">
                                         Traslado a
                                     </th>
+                                    <th className="px-4 py-2 text-left">
+                                        Estado
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {searchLoading ? (
                                     <tr>
                                         <td
-                                            colSpan={4}
+                                            colSpan={5}
                                             className="text-center py-4 text-gray-300 italic"
                                         >
                                             Buscando documentos...
@@ -1888,12 +1905,32 @@ export default function TransfersCreate({
                                             <td className="px-4 py-2">
                                                 {t.to_city}
                                             </td>
+                                            <td className="px-4 py-2">
+                                                <span
+                                                    className={cn(
+                                                        "px-2 py-1 rounded text-xs font-semibold",
+                                                        t.status === "PENDING"
+                                                            ? "bg-yellow-900/30 text-yellow-400"
+                                                            : t.status ===
+                                                                "CONFIRMED"
+                                                              ? "bg-green-900/30 text-green-400"
+                                                              : "bg-gray-800 text-gray-400",
+                                                    )}
+                                                >
+                                                    {t.status === "PENDING"
+                                                        ? "PENDIENTE"
+                                                        : t.status ===
+                                                            "CONFIRMED"
+                                                          ? "CONFIRMADO"
+                                                          : "CANCELADO"}
+                                                </span>
+                                            </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
                                         <td
-                                            colSpan={4}
+                                            colSpan={5}
                                             className="text-center py-4 text-red-400"
                                         >
                                             No se encontraron documentos.
@@ -1912,6 +1949,26 @@ export default function TransfersCreate({
                             onClick={() => setShowSearchModal(false)}
                         >
                             Cerrar
+                        </Button>
+                        {/* ✅ NUEVO: Eliminar traslado (solo si está PENDIENTE) */}
+                        <Button
+                            type="button"
+                            className="bg-red-800 hover:bg-red-900 disabled:opacity-40"
+                            onClick={handleDeleteSelected}
+                            disabled={
+                                !selectedResultId ||
+                                selectedResult?.status !== "PENDING" ||
+                                deleting
+                            }
+                            title={
+                                selectedResult &&
+                                selectedResult.status !== "PENDING"
+                                    ? "Solo se pueden eliminar traslados pendientes"
+                                    : "Eliminar traslado y liberar sus paquetes"
+                            }
+                        >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            {deleting ? "Eliminando..." : "Eliminar"}
                         </Button>
                         <Button
                             type="button"
