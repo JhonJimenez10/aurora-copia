@@ -21,6 +21,12 @@ import { cn } from "@/lib/utils";
 /** ---------------------
  * Tipos generales
  * --------------------- */
+type EnterpriseOption = {
+    id: string;
+    name: string;
+    city: string;
+};
+
 type TransfersPageProps = PageProps<{
     countries: string[];
     agencies: string[];
@@ -113,6 +119,8 @@ type SackModalProps = {
     sackNumber: number;
     onSave: (sack: Sack) => void;
     fromCity?: string;
+    // ✅ NUEVO: empresa elegida por el admin (undefined/"" = la propia del usuario)
+    enterpriseId?: string;
 };
 
 function SackModal({
@@ -121,6 +129,7 @@ function SackModal({
     sackNumber,
     onSave,
     fromCity,
+    enterpriseId,
 }: SackModalProps) {
     const [emittedPkgs, setEmittedPkgs] = useState<SackPackage[]>([]);
     const [sackPkgs, setSackPkgs] = useState<SackPackage[]>([]);
@@ -134,7 +143,6 @@ function SackModal({
     // Estados de búsqueda
     const [searchLeft, setSearchLeft] = useState("");
     const [searchRight, setSearchRight] = useState("");
-    const [allEmittedPkgs, setAllEmittedPkgs] = useState<SackPackage[]>([]);
 
     const loadPackages = useCallback(async () => {
         if (!fromCity) {
@@ -148,14 +156,17 @@ function SackModal({
         setLoadError(null);
 
         try {
+            const params = new URLSearchParams({ from_city: fromCity });
+            // ✅ NUEVO: si el admin eligió una empresa, se piden SUS paquetes
+            if (enterpriseId) {
+                params.append("enterprise_id", enterpriseId);
+            }
+
             const res = await fetch(
-                `/api/transfers/available-packages?from_city=${encodeURIComponent(
-                    fromCity,
-                )}`,
+                `/api/transfers/available-packages?${params.toString()}`,
             );
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data: SackPackage[] = await res.json();
-            setAllEmittedPkgs(data);
             setEmittedPkgs(data);
         } catch {
             setLoadError(
@@ -164,14 +175,13 @@ function SackModal({
         } finally {
             setLoading(false);
         }
-    }, [fromCity]);
+    }, [fromCity, enterpriseId]);
 
     useEffect(() => {
         if (!isOpen) return;
 
         setEmittedPkgs([]);
         setSackPkgs([]);
-        setAllEmittedPkgs([]);
         setSelectedLeftId(null);
         setSelectedRightId(null);
         setSeal("");
@@ -271,7 +281,6 @@ function SackModal({
                         Buscar paquetes emitidos
                     </h3>
 
-                    {/* Campo de búsqueda */}
                     <div className="mb-2">
                         <input
                             type="text"
@@ -396,7 +405,6 @@ function SackModal({
                         Buscar paquetes saca
                     </h3>
 
-                    {/* Campo de búsqueda */}
                     <div className="mb-2">
                         <input
                             type="text"
@@ -1086,11 +1094,19 @@ function ConfirmTransferModal({
 export default function TransfersCreate({
     countries: countriesProp,
     agencies: agenciesProp,
-    fromCities,
+    fromCities: fromCitiesProp,
     toCities,
-}: TransfersPageProps & { fromCities: string[]; toCities: string[] }) {
+    isAdmin,
+    enterprises,
+}: TransfersPageProps & {
+    fromCities: string[];
+    toCities: string[];
+    isAdmin: boolean;
+    enterprises: EnterpriseOption[];
+}) {
     const countries = countriesProp?.length ? countriesProp : ["ECUADOR"];
     const agencies = agenciesProp ?? [];
+    const enterpriseOptions = enterprises ?? [];
 
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [showSackModal, setShowSackModal] = useState(false);
@@ -1102,6 +1118,11 @@ export default function TransfersCreate({
 
     const [submitting, setSubmitting] = useState(false);
 
+    // ✅ NUEVO: empresa elegida por el admin/sudo ("" = ninguna elegida aún)
+    const [selectedEnterpriseId, setSelectedEnterpriseId] = useState("");
+    const [fromCities, setFromCities] = useState<string[]>(fromCitiesProp);
+    const [loadingFromCities, setLoadingFromCities] = useState(false);
+
     const [doc, setDoc] = useState<{
         number: string;
         country: string;
@@ -1110,7 +1131,7 @@ export default function TransfersCreate({
     }>({
         number: "",
         country: countries[0] ?? "ECUADOR",
-        from_city: fromCities[0] ?? "",
+        from_city: fromCitiesProp[0] ?? "",
         to_city: toCities[0] ?? "CUENCA",
     });
 
@@ -1144,6 +1165,39 @@ export default function TransfersCreate({
         }
     }, [showSearchModal]);
 
+    // ✅ NUEVO: cuando el admin cambia de empresa, se recarga "Trasladar de"
+    // de ESA empresa y se limpian las sacas ya armadas (pertenecían a la
+    // empresa anterior — mezclarlas rompería la integridad del traslado).
+    const handleEnterpriseChange = async (enterpriseId: string) => {
+        setSelectedEnterpriseId(enterpriseId);
+        setSacks([]);
+        setNextSackNumber(1);
+
+        if (!enterpriseId) {
+            setFromCities(fromCitiesProp);
+            setDoc((d) => ({ ...d, from_city: fromCitiesProp[0] ?? "" }));
+            return;
+        }
+
+        setLoadingFromCities(true);
+        try {
+            const res = await fetch(
+                `/api/transfers/from-cities?enterprise_id=${encodeURIComponent(
+                    enterpriseId,
+                )}`,
+            );
+            if (!res.ok) throw new Error();
+            const cities: string[] = await res.json();
+            setFromCities(cities);
+            setDoc((d) => ({ ...d, from_city: cities[0] ?? "" }));
+        } catch {
+            setFromCities([]);
+            setDoc((d) => ({ ...d, from_city: "" }));
+        } finally {
+            setLoadingFromCities(false);
+        }
+    };
+
     const handleSackSaved = (sack: Sack) => {
         setSacks((prev) => [...prev, sack]);
         setNextSackNumber((prev) => prev + 1);
@@ -1160,14 +1214,17 @@ export default function TransfersCreate({
         { sacks: 0, pounds: 0, kilograms: 0 },
     );
 
-    const canAddSack = Boolean(doc.from_city && doc.to_city);
+    // ✅ Si es admin, además se exige haber elegido una empresa
+    const canAddSack = Boolean(
+        doc.from_city && doc.to_city && (!isAdmin || selectedEnterpriseId),
+    );
 
     const handleNewTransfer = () => {
         setDoc({
             number: "",
             country: countries[0] ?? "ECUADOR",
-            from_city: agencies[0] ?? "",
-            to_city: agencies[0] ?? "",
+            from_city: fromCities[0] ?? "",
+            to_city: toCities[0] ?? "CUENCA",
         });
         setSacks([]);
         setNextSackNumber(1);
@@ -1176,11 +1233,18 @@ export default function TransfersCreate({
     const submitTransfer = () => {
         if (!canAddSack || !sacks.length) {
             alert(
-                "Completa la cabecera (origen/destino) y agrega al menos una saca.",
+                isAdmin && !selectedEnterpriseId
+                    ? "Selecciona primero la empresa para la que vas a crear el traslado."
+                    : "Completa la cabecera (origen/destino) y agrega al menos una saca.",
             );
             return;
         }
         const payload = {
+            // ✅ NUEVO: solo se envía si el admin eligió una empresa
+            enterprise_id:
+                isAdmin && selectedEnterpriseId
+                    ? selectedEnterpriseId
+                    : undefined,
             number: doc.number.trim() === "" ? null : doc.number.trim(),
             country: doc.country,
             from_city: doc.from_city,
@@ -1230,6 +1294,9 @@ export default function TransfersCreate({
             if (searchFilters.toCity)
                 params.append("to_city", searchFilters.toCity);
             if (searchFilters.onlyPending) params.append("only_pending", "1");
+            if (isAdmin && selectedEnterpriseId) {
+                params.append("enterprise_id", selectedEnterpriseId);
+            }
 
             const url = params.toString()
                 ? `/api/transfers/search?${params.toString()}`
@@ -1283,7 +1350,9 @@ export default function TransfersCreate({
                 <div className="bg-gradient-to-r from-red-700 via-red-600 to-yellow-400 text-white px-6 py-4 rounded-t-lg">
                     <h1 className="text-2xl font-bold">Elaborar Traslado</h1>
                     <p className="text-white text-sm">
-                        Gestión de traslados entre agencias
+                        {isAdmin
+                            ? "Gestión de traslados entre agencias — puedes elaborar traslados para cualquier empresa"
+                            : "Gestión de traslados entre agencias"}
                     </p>
                 </div>
 
@@ -1291,6 +1360,39 @@ export default function TransfersCreate({
                     {/* Cabecera */}
                     <div className="flex items-start justify-between mb-6 gap-4">
                         <div className="flex-1">
+                            {/* ✅ NUEVO: combo de empresa, solo admin/sudo */}
+                            {isAdmin && (
+                                <div className="mb-3 max-w-sm">
+                                    <label className="text-sm text-gray-300 mb-1 block">
+                                        Empresa
+                                    </label>
+                                    <select
+                                        value={selectedEnterpriseId}
+                                        onChange={(e) =>
+                                            handleEnterpriseChange(
+                                                e.target.value,
+                                            )
+                                        }
+                                        className="w-full bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white"
+                                    >
+                                        <option value="">
+                                            Selecciona una empresa
+                                        </option>
+                                        {enterpriseOptions.map((ent) => (
+                                            <option key={ent.id} value={ent.id}>
+                                                {ent.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {!selectedEnterpriseId && (
+                                        <p className="text-xs text-yellow-400 mt-1">
+                                            Elige la empresa para la que vas a
+                                            elaborar el traslado.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                                 <div className="flex flex-col">
                                     <label className="text-sm text-gray-300 mb-1">
@@ -1347,11 +1449,15 @@ export default function TransfersCreate({
                                         disabled
                                         className="bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white"
                                     >
-                                        {fromCities.map((a) => (
-                                            <option key={a} value={a}>
-                                                {a}
-                                            </option>
-                                        ))}
+                                        {loadingFromCities ? (
+                                            <option>Cargando...</option>
+                                        ) : (
+                                            fromCities.map((a) => (
+                                                <option key={a} value={a}>
+                                                    {a}
+                                                </option>
+                                            ))
+                                        )}
                                     </select>
                                 </div>
 
@@ -1511,7 +1617,9 @@ export default function TransfersCreate({
                                 title={
                                     canAddSack
                                         ? "Agregar saca"
-                                        : "Completa 'Trasladar de' y 'Trasladar a' para agregar sacas"
+                                        : isAdmin && !selectedEnterpriseId
+                                          ? "Selecciona primero una empresa"
+                                          : "Completa 'Trasladar de' y 'Trasladar a' para agregar sacas"
                                 }
                             >
                                 <Plus className="h-4 w-4" />
@@ -1857,6 +1965,11 @@ export default function TransfersCreate({
                 sackNumber={nextSackNumber}
                 onSave={handleSackSaved}
                 fromCity={doc.from_city}
+                enterpriseId={
+                    isAdmin && selectedEnterpriseId
+                        ? selectedEnterpriseId
+                        : undefined
+                }
             />
 
             <ConfirmTransferModal

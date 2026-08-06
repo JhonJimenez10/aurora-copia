@@ -180,12 +180,34 @@ class IBCManifestExport implements FromCollection, ShouldAutoSize, WithStyles
                             in_array($artCategoria, ['COMIDA', 'COSMETICOS'], true)
                             && $artCodigoFda !== ''
                         ) {
+                            // ✅ CORRECCIÓN: antes siempre se ponía FOO/PRO/FOO/######
+                            // sin importar la categoría. Ahora se distingue:
+                            //   - COMIDA       -> FOO / PRO / FOO / ######
+                            //   - COSMETICOS   -> COS / COS / COS / (vacío)
+                            $isFood = $artCategoria === 'COMIDA';
+
+                            $type1 = $isFood ? 'FOO' : 'COS';
+                            $type2 = $isFood ? 'PRO' : 'COS';
+                            $type3 = $isFood ? 'FOO' : 'COS';
+                            $extra = $isFood ? '######' : '';
+
                             $rows[] = [
                                 'fda','1',
                                 $artCodigoFda,
-                                'FOO','PRO','100','FOO','######',
+                                $type1, $type2, '100', $type3, $extra,
                                 $artTranslation,
                             ];
+
+                            // ✅ NUEVO: los alimentos (FOO) requieren además la
+                            // fila de "Prior Notice" (commodity_misc / PNC), tal
+                            // como exige el manifiesto IBC. Los cosméticos (COS)
+                            // NO llevan esta fila.
+                            if ($isFood) {
+                                $rows[] = [
+                                    'commodity_misc', '1', 'fda_compliance_code',
+                                    'PNC', 'PRIORI NOTICE',
+                                ];
+                            }
                         }
                     }
                 }
