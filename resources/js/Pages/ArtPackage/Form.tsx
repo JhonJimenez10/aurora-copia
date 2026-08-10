@@ -1,235 +1,249 @@
 import { useForm } from "@inertiajs/react";
-import { Input } from "@/Components/ui/input";
-import { Label } from "@/Components/ui/label";
-import { Button } from "@/Components/ui/button";
-import { Card, CardContent } from "@/Components/ui/card";
-import { Switch } from "@/Components/ui/switch";
+import { FormEvent } from "react";
 
-const CATEGORIAS = [
-    "Alimentos",
-    "Cosméticos",
-    "Medicamentos",
-    "Dispositivos Médicos",
-    "Suplementos",
-    "Otros",
-];
+interface ArtPackage {
+    id?: string;
+    name?: string;
+    translation?: string;
+    codigo_hs?: string;
+    categoria?: string;
+    codigo_fda?: string;
+    unit_type?: string;
+    unit_price?: number | string;
+    agent_val?: number | string;
+    arancel?: number | string;
+    canceled?: boolean;
+    active?: boolean;
+}
 
-export default function ArtPackageForm({
-    art_package = null,
-}: {
-    art_package?: any;
-}) {
+interface Props {
+    art_package?: ArtPackage;
+}
+
+const CATEGORIAS = ["NO ESPECIFICADA", "COMIDA", "COSMETICOS"];
+const UNIT_TYPES = ["LIBRAS", "UNIDAD", "CAJA", "SOBRE"];
+
+export default function ArtPackageForm({ art_package }: Props) {
     const { data, setData, post, put, processing, errors } = useForm({
-        name: art_package?.name || "",
-        translation: art_package?.translation || "",
-        codigo_hs: art_package?.codigo_hs || "",
-        categoria: art_package?.categoria || "",
-        codigo_fda: art_package?.codigo_fda || "",
-        unit_type: art_package?.unit_type || "",
-        unit_price: art_package?.unit_price || "",
-        agent_val: art_package?.agent_val || "",
-        arancel: art_package?.arancel || "",
-        canceled: art_package?.canceled || false,
+        name: art_package?.name ?? "",
+        translation: art_package?.translation ?? "",
+        codigo_hs: art_package?.codigo_hs ?? "",
+        // ✅ FIX: usar el valor de BD o 'NO ESPECIFICADA' por defecto
+        categoria: art_package?.categoria ?? "NO ESPECIFICADA",
+        codigo_fda: art_package?.codigo_fda ?? "",
+        unit_type: art_package?.unit_type ?? "LIBRAS",
+        unit_price: art_package?.unit_price ?? 5.0,
+        agent_val: art_package?.agent_val ?? 0.0,
+        arancel: art_package?.arancel ?? 30.0,
+        canceled: art_package?.canceled ?? false,
         active: art_package?.active ?? true,
     });
 
-    const submit = (e: React.FormEvent) => {
+    const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        if (art_package) {
-            put(`/art_packages/${art_package.id}`, { preserveScroll: true });
+        if (art_package?.id) {
+            put(route("art_packages.update", art_package.id));
         } else {
-            post("/art_packages", { preserveScroll: true });
+            post(route("art_packages.store"));
         }
     };
 
-    const handleCodigoFda = (value: string) => {
-        // Solo letras y números, sin espacios
-        const cleaned = value.replace(/[^a-zA-Z0-9]/g, "");
-        setData("codigo_fda", cleaned);
-    };
+    const inputClass =
+        "w-full bg-gray-900 border border-red-700 text-white rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-red-500";
+    const labelClass = "block text-sm font-medium text-gray-300 mb-1";
+    const errorClass = "text-red-400 text-xs mt-1";
 
     return (
-        <Card className="bg-black border border-red-700 shadow-xl">
-            <CardContent className="p-6 space-y-5 text-sm text-white">
-                <form onSubmit={submit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <Label>Nombre</Label>
-                            <Input
-                                value={data.name}
-                                onChange={(e) =>
-                                    setData("name", e.target.value)
-                                }
-                                className="bg-[#1b1b1b] border border-red-700 text-white"
-                            />
-                            {errors.name && (
-                                <p className="text-red-500 text-xs mt-1">
-                                    {errors.name}
-                                </p>
-                            )}
-                        </div>
+        <form
+            onSubmit={handleSubmit}
+            className="bg-black border border-red-700 rounded-lg p-6 space-y-5"
+        >
+            {/* Nombre + Traducción */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label className={labelClass}>Nombre</label>
+                    <input
+                        type="text"
+                        value={data.name}
+                        onChange={(e) =>
+                            setData("name", e.target.value.toUpperCase())
+                        }
+                        className={inputClass}
+                        required
+                    />
+                    {errors.name && <p className={errorClass}>{errors.name}</p>}
+                </div>
+                <div>
+                    <label className={labelClass}>Traducción</label>
+                    <input
+                        type="text"
+                        value={data.translation}
+                        onChange={(e) => setData("translation", e.target.value)}
+                        className={inputClass}
+                    />
+                    {errors.translation && (
+                        <p className={errorClass}>{errors.translation}</p>
+                    )}
+                </div>
+            </div>
 
-                        <div>
-                            <Label>Traducción</Label>
-                            <Input
-                                value={data.translation}
-                                onChange={(e) =>
-                                    setData("translation", e.target.value)
-                                }
-                                className="bg-[#1b1b1b] border border-red-700 text-white"
-                            />
-                        </div>
+            {/* Código HS + Categoría */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label className={labelClass}>Código HS</label>
+                    <input
+                        type="text"
+                        value={data.codigo_hs}
+                        onChange={(e) => setData("codigo_hs", e.target.value)}
+                        className={inputClass}
+                    />
+                    {errors.codigo_hs && (
+                        <p className={errorClass}>{errors.codigo_hs}</p>
+                    )}
+                </div>
+                <div>
+                    <label className={labelClass}>Categoría</label>
+                    {/* ✅ FIX: value={data.categoria} muestra correctamente el valor de la BD */}
+                    <select
+                        value={data.categoria}
+                        onChange={(e) => setData("categoria", e.target.value)}
+                        className={inputClass}
+                    >
+                        {CATEGORIAS.map((c) => (
+                            <option key={c} value={c}>
+                                {c}
+                            </option>
+                        ))}
+                    </select>
+                    {errors.categoria && (
+                        <p className={errorClass}>{errors.categoria}</p>
+                    )}
+                </div>
+            </div>
 
-                        <div>
-                            <Label>Código HS</Label>
-                            <Input
-                                value={data.codigo_hs}
-                                onChange={(e) =>
-                                    setData("codigo_hs", e.target.value)
-                                }
-                                className="bg-[#1b1b1b] border border-red-700 text-white"
-                            />
-                            {errors.codigo_hs && (
-                                <p className="text-red-500 text-xs mt-1">
-                                    {errors.codigo_hs}
-                                </p>
-                            )}
-                        </div>
+            {/* Código FDA + Tipo de Unidad */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label className={labelClass}>Código FDA</label>
+                    <input
+                        type="text"
+                        value={data.codigo_fda}
+                        onChange={(e) => setData("codigo_fda", e.target.value)}
+                        className={inputClass}
+                    />
+                    {errors.codigo_fda && (
+                        <p className={errorClass}>{errors.codigo_fda}</p>
+                    )}
+                </div>
+                <div>
+                    <label className={labelClass}>Tipo de Unidad</label>
+                    <select
+                        value={data.unit_type}
+                        onChange={(e) => setData("unit_type", e.target.value)}
+                        className={inputClass}
+                    >
+                        {UNIT_TYPES.map((u) => (
+                            <option key={u} value={u}>
+                                {u}
+                            </option>
+                        ))}
+                    </select>
+                    {errors.unit_type && (
+                        <p className={errorClass}>{errors.unit_type}</p>
+                    )}
+                </div>
+            </div>
 
-                        <div>
-                            <Label>Categoría</Label>
-                            <select
-                                value={data.categoria}
-                                onChange={(e) =>
-                                    setData("categoria", e.target.value)
-                                }
-                                className="w-full h-10 rounded-md bg-[#1b1b1b] border border-red-700 text-white px-3 text-sm"
-                            >
-                                <option value="">
-                                    Seleccione una categoría
-                                </option>
-                                {CATEGORIAS.map((cat) => (
-                                    <option key={cat} value={cat}>
-                                        {cat}
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.categoria && (
-                                <p className="text-red-500 text-xs mt-1">
-                                    {errors.categoria}
-                                </p>
-                            )}
-                        </div>
+            {/* Precio por Unidad + Valor Agencia */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label className={labelClass}>Precio por Unidad</label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        value={data.unit_price}
+                        onChange={(e) => setData("unit_price", e.target.value)}
+                        className={inputClass}
+                    />
+                    {errors.unit_price && (
+                        <p className={errorClass}>{errors.unit_price}</p>
+                    )}
+                </div>
+                <div>
+                    <label className={labelClass}>Valor Agencia</label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        value={data.agent_val}
+                        onChange={(e) => setData("agent_val", e.target.value)}
+                        className={inputClass}
+                    />
+                    {errors.agent_val && (
+                        <p className={errorClass}>{errors.agent_val}</p>
+                    )}
+                </div>
+            </div>
 
-                        <div>
-                            <Label>Código FDA</Label>
-                            <Input
-                                value={data.codigo_fda}
-                                onChange={(e) =>
-                                    handleCodigoFda(e.target.value)
-                                }
-                                placeholder="Ej: K123456"
-                                className="bg-[#1b1b1b] border border-red-700 text-white"
-                            />
-                            {errors.codigo_fda && (
-                                <p className="text-red-500 text-xs mt-1">
-                                    {errors.codigo_fda}
-                                </p>
-                            )}
-                        </div>
+            {/* Arancel */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label className={labelClass}>Arancel (%)</label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        value={data.arancel}
+                        onChange={(e) => setData("arancel", e.target.value)}
+                        className={inputClass}
+                    />
+                    {errors.arancel && (
+                        <p className={errorClass}>{errors.arancel}</p>
+                    )}
+                </div>
+            </div>
 
-                        <div>
-                            <Label>Tipo de Unidad</Label>
-                            <Input
-                                value={data.unit_type}
-                                onChange={(e) =>
-                                    setData("unit_type", e.target.value)
-                                }
-                                className="bg-[#1b1b1b] border border-red-700 text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <Label>Precio por Unidad</Label>
-                            <Input
-                                type="number"
-                                step="0.01"
-                                value={data.unit_price}
-                                onChange={(e) =>
-                                    setData("unit_price", e.target.value)
-                                }
-                                className="bg-[#1b1b1b] border border-red-700 text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <Label>Valor Agencia</Label>
-                            <Input
-                                type="number"
-                                step="0.01"
-                                value={data.agent_val}
-                                onChange={(e) =>
-                                    setData("agent_val", e.target.value)
-                                }
-                                className="bg-[#1b1b1b] border border-red-700 text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <Label>Arancel</Label>
-                            <Input
-                                type="number"
-                                step="0.01"
-                                value={data.arancel}
-                                onChange={(e) =>
-                                    setData("arancel", e.target.value)
-                                }
-                                className="bg-[#1b1b1b] border border-red-700 text-white"
-                            />
-                            {errors.arancel && (
-                                <p className="text-red-500 text-xs mt-1">
-                                    {errors.arancel}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="pt-4">
-                            <Label>Anulado por Agencia</Label>
-                            <div className="mt-1">
-                                <Switch
-                                    checked={data.canceled}
-                                    onCheckedChange={(val) =>
-                                        setData("canceled", val)
-                                    }
-                                />
-                            </div>
-                        </div>
-                        <div className="pt-4">
-                            <Label>Activo</Label>
-                            <div className="mt-1 flex items-center gap-2">
-                                <Switch
-                                    checked={data.active}
-                                    onCheckedChange={(val) =>
-                                        setData("active", val)
-                                    }
-                                />
-                                <span className="text-xs text-gray-400">
-                                    {data.active ? "Activo" : "Inactivo"}
-                                </span>
-                            </div>
-                        </div>
+            {/* Toggles */}
+            <div className="flex gap-8">
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <div
+                        onClick={() => setData("canceled", !data.canceled)}
+                        className={`w-10 h-6 rounded-full transition-colors ${data.canceled ? "bg-red-600" : "bg-gray-600"} relative`}
+                    >
+                        <span
+                            className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${data.canceled ? "left-5" : "left-1"}`}
+                        />
                     </div>
+                    <span className="text-sm text-gray-300">
+                        Anulado por Agencia
+                    </span>
+                </label>
 
-                    <div className="pt-4 text-end">
-                        <Button
-                            className="bg-yellow-500 hover:bg-yellow-600 text-white px-6"
-                            disabled={processing}
-                        >
-                            {art_package ? "Actualizar" : "Guardar"} Artículo
-                        </Button>
+                <label className="flex items-center gap-2 cursor-pointer">
+                    <div
+                        onClick={() => setData("active", !data.active)}
+                        className={`w-10 h-6 rounded-full transition-colors ${data.active ? "bg-purple-600" : "bg-gray-600"} relative`}
+                    >
+                        <span
+                            className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${data.active ? "left-5" : "left-1"}`}
+                        />
                     </div>
-                </form>
-            </CardContent>
-        </Card>
+                    <span className="text-sm text-gray-300">Activo</span>
+                </label>
+            </div>
+
+            {/* Botón */}
+            <div className="flex justify-end">
+                <button
+                    type="submit"
+                    disabled={processing}
+                    className="bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 text-black font-semibold px-6 py-2 rounded transition-colors"
+                >
+                    {processing
+                        ? "Guardando..."
+                        : art_package?.id
+                          ? "Actualizar Artículo"
+                          : "Crear Artículo"}
+                </button>
+            </div>
+        </form>
     );
 }
