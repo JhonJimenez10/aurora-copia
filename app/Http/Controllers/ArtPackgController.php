@@ -9,13 +9,34 @@ use Inertia\Inertia;
 
 class ArtPackgController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $enterpriseId = Auth::user()->enterprise_id;
 
-        $paginated = ArtPackg::where('enterprise_id', $enterpriseId)
-            ->orderBy('name')
-            ->paginate(10);
+        $search = trim((string) $request->query('search', ''));
+        $status = $request->query('status', ''); // '', 'active', 'inactive', 'canceled'
+
+        $query = ArtPackg::where('enterprise_id', $enterpriseId);
+
+        if ($search !== '') {
+            $searchLower = mb_strtolower($search, 'UTF-8');
+            $query->where(function ($q) use ($searchLower) {
+                $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(unit_type) LIKE ?', ["%{$searchLower}%"]);
+            });
+        }
+
+        if ($status === 'active') {
+            $query->where('active', true);
+        } elseif ($status === 'inactive') {
+            $query->where('active', false);
+        } elseif ($status === 'canceled') {
+            $query->where('canceled', true);
+        }
+
+        $paginated = $query->orderBy('name')
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('ArtPackg/Index', [
             'artPackgs' => $paginated->items(),
@@ -26,9 +47,12 @@ class ArtPackgController extends Controller
                 'total' => $paginated->total(),
                 'links' => $paginated->linkCollection(),
             ],
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+            ],
         ]);
     }
-
 
     public function create()
     {
@@ -64,7 +88,6 @@ class ArtPackgController extends Controller
         $artPackg = ArtPackg::where('enterprise_id', Auth::user()->enterprise_id)
             ->findOrFail($id);
 
-
         return Inertia::render('ArtPackg/Edit', [
             'art_packg' => $artPackg,
         ]);
@@ -75,8 +98,6 @@ class ArtPackgController extends Controller
         $artPackg = ArtPackg::where('enterprise_id', Auth::user()->enterprise_id)
             ->findOrFail($id);
 
-
-        // Solo actualiza los campos permitidos (no enterprise_id)
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:100',
             'unit_type' => 'nullable|string|max:50',
@@ -100,7 +121,6 @@ class ArtPackgController extends Controller
         return redirect()->route('art_packgs.index')->with('success', 'Artículo eliminado correctamente.');
     }
 
-    // Retorna artículos filtrados por empresa autenticada
     public function listJson()
     {
         $enterpriseId = Auth::user()->enterprise_id;
@@ -114,9 +134,7 @@ class ArtPackgController extends Controller
 
         return response()->json($artPackgs);
     }
-    /**
-     * ✅ Método nuevo: Alternar el estado activo/inactivo de un artículo
-     */
+
     public function toggleActive($id)
     {
         $artPackg = ArtPackg::where('enterprise_id', Auth::user()->enterprise_id)

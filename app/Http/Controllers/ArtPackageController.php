@@ -9,13 +9,41 @@ use Inertia\Inertia;
 
 class ArtPackageController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $enterpriseId = Auth::user()->enterprise_id;
 
-        $paginated = ArtPackage::where('enterprise_id', $enterpriseId)
-            ->orderBy('name')
-            ->paginate(10);
+        $search = trim((string) $request->query('search', ''));
+        $categoria = trim((string) $request->query('categoria', ''));
+        $status = $request->query('status', ''); // '', 'active', 'inactive', 'canceled'
+
+        $query = ArtPackage::where('enterprise_id', $enterpriseId);
+
+        if ($search !== '') {
+            $searchLower = mb_strtolower($search, 'UTF-8');
+            $query->where(function ($q) use ($searchLower) {
+                $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(translation) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(codigo_hs) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(codigo_fda) LIKE ?', ["%{$searchLower}%"]);
+            });
+        }
+
+        if ($categoria !== '') {
+            $query->where('categoria', $categoria);
+        }
+
+        if ($status === 'active') {
+            $query->where('active', true);
+        } elseif ($status === 'inactive') {
+            $query->where('active', false);
+        } elseif ($status === 'canceled') {
+            $query->where('canceled', true);
+        }
+
+        $paginated = $query->orderBy('name')
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('ArtPackage/Index', [
             'art_packages' => $paginated->items(),
@@ -25,6 +53,11 @@ class ArtPackageController extends Controller
                 'per_page' => $paginated->perPage(),
                 'total' => $paginated->total(),
                 'links' => $paginated->linkCollection(),
+            ],
+            'filters' => [
+                'search' => $search,
+                'categoria' => $categoria,
+                'status' => $status,
             ],
         ]);
     }

@@ -1,9 +1,18 @@
 import { Head, Link, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { PageProps } from "@/types";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/Components/ui/button";
+import { Input } from "@/Components/ui/input";
+import {
+    Select,
+    SelectTrigger,
+    SelectValue,
+    SelectContent,
+    SelectItem,
+} from "@/Components/ui/select";
 import Pagination from "@/Components/Pagination";
+import { useDebouncedValue } from "@/Hooks/useDebouncedValue";
 
 interface ArtPackg {
     id: string;
@@ -11,20 +20,55 @@ interface ArtPackg {
     unit_type: string;
     unit_price: string;
     canceled: boolean;
+    active: boolean;
+}
+
+interface Filters {
+    search: string;
+    status: string;
 }
 
 export default function ArtPackgIndex({
     artPackgs,
     pagination,
-}: PageProps<{ artPackgs: ArtPackg[]; pagination: any }>) {
+    filters,
+}: PageProps<{ artPackgs: ArtPackg[]; pagination: any; filters: Filters }>) {
+    const [search, setSearch] = useState(filters?.search ?? "");
+    const [status, setStatus] = useState(filters?.status ?? "");
     const [loading, setLoading] = useState(false);
+
+    const debouncedSearch = useDebouncedValue(search, 400);
+
+    useEffect(() => {
+        setLoading(true);
+        router.get(
+            "/art_packgs",
+            {
+                search: debouncedSearch || undefined,
+                status: status || undefined,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                onFinish: () => setLoading(false),
+            },
+        );
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [debouncedSearch, status]);
+
+    const clearFilters = () => {
+        setSearch("");
+        setStatus("");
+    };
+
+    const hasActiveFilters = search !== "" || status !== "";
 
     return (
         <AuthenticatedLayout>
             <Head title="Artículos de Embalaje" />
 
             <div className="container mx-auto px-4 py-8">
-                {/* Cabecera visual */}
                 <div className="bg-gradient-to-r from-red-700 via-red-600 to-yellow-400 text-white px-6 py-4 rounded-t-lg">
                     <h1 className="text-2xl font-bold">
                         Artículos de Embalaje
@@ -35,7 +79,6 @@ export default function ArtPackgIndex({
                 </div>
 
                 <div className="bg-black border border-red-700 px-6 py-4 rounded-b-lg shadow-md">
-                    {/* Botón crear */}
                     <div className="flex justify-end mb-4">
                         <Link href="/art_packgs/create">
                             <Button className="bg-green-600 hover:bg-green-700">
@@ -44,10 +87,67 @@ export default function ArtPackgIndex({
                         </Link>
                     </div>
 
-                    {/* Paginación superior */}
+                    {/* Barra de filtros */}
+                    <div className="bg-[#1b1b1b] border border-red-700 rounded-lg p-4 mb-4 flex flex-wrap gap-3 items-end">
+                        <div className="flex-1 min-w-[220px]">
+                            <label className="text-xs text-gray-300 block mb-1">
+                                Buscar (nombre o tipo de unidad)
+                            </label>
+                            <Input
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Ej: caja, funda, sobre..."
+                                className="bg-black border border-red-700 text-white"
+                            />
+                        </div>
+
+                        <div className="min-w-[180px]">
+                            <label className="text-xs text-gray-300 block mb-1">
+                                Estado
+                            </label>
+                            <Select
+                                value={status || "all"}
+                                onValueChange={(val) =>
+                                    setStatus(val === "all" ? "" : val)
+                                }
+                            >
+                                <SelectTrigger className="bg-black border border-red-700 text-white">
+                                    <SelectValue placeholder="Todos" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-[#1b1b1b] text-white border border-red-700">
+                                    <SelectItem value="all">Todos</SelectItem>
+                                    <SelectItem value="active">
+                                        Activos
+                                    </SelectItem>
+                                    <SelectItem value="inactive">
+                                        Inactivos
+                                    </SelectItem>
+                                    <SelectItem value="canceled">
+                                        Anulados
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {hasActiveFilters && (
+                            <Button
+                                type="button"
+                                onClick={clearFilters}
+                                className="bg-gray-700 hover:bg-gray-600 text-white"
+                            >
+                                Limpiar filtros
+                            </Button>
+                        )}
+
+                        {loading && (
+                            <span className="text-xs text-gray-400">
+                                Buscando...
+                            </span>
+                        )}
+                    </div>
+
                     <Pagination pagination={pagination} />
 
-                    {/* Tabla */}
                     <div className="overflow-x-auto rounded-lg border border-red-700">
                         <table className="min-w-full text-sm text-white table-auto">
                             <thead className="bg-red-800 text-white">
@@ -100,15 +200,14 @@ export default function ArtPackgIndex({
                                                     onClick={() => {
                                                         if (
                                                             confirm(
-                                                                "¿Estás seguro de que deseas eliminar este artículo?"
+                                                                "¿Estás seguro de que deseas eliminar este artículo?",
                                                             )
                                                         ) {
                                                             router.delete(
                                                                 `/art_packgs/${item.id}`,
                                                                 {
-                                                                    preserveScroll:
-                                                                        true,
-                                                                }
+                                                                    preserveScroll: true,
+                                                                },
                                                             );
                                                         }
                                                     }}
@@ -126,7 +225,9 @@ export default function ArtPackgIndex({
                                             colSpan={5}
                                             className="text-center py-4 text-red-400"
                                         >
-                                            No hay artículos registrados.
+                                            {hasActiveFilters
+                                                ? "No se encontraron artículos con esos filtros."
+                                                : "No hay artículos registrados."}
                                         </td>
                                     </tr>
                                 )}
@@ -134,7 +235,6 @@ export default function ArtPackgIndex({
                         </table>
                     </div>
 
-                    {/* Paginación inferior */}
                     <div className="mt-4">
                         <Pagination pagination={pagination} />
                     </div>

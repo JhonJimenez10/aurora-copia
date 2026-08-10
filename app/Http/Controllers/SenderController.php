@@ -20,16 +20,18 @@ class SenderController extends Controller
         $query = Sender::where('enterprise_id', $enterpriseId);
 
         if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('full_name', 'like', "%{$search}%")
-                    ->orWhere('identification', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
+            $searchLower = mb_strtolower($search, 'UTF-8');
+            $query->where(function ($q) use ($searchLower) {
+                $q->whereRaw('LOWER(full_name) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(identification) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(phone) LIKE ?', ["%{$searchLower}%"]);
             });
         }
 
         if ($city !== '') {
-            $query->where('city', 'like', "%{$city}%");
+            $cityLower = mb_strtolower($city, 'UTF-8');
+            $query->whereRaw('LOWER(city) LIKE ?', ["%{$cityLower}%"]);
         }
 
         if ($status === 'blocked') {
