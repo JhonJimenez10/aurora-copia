@@ -5,6 +5,7 @@ namespace App\Exports;
 use App\Models\Reception;
 use App\Models\Enterprise;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -76,6 +77,13 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
             ->orderByDesc('date_time')
             ->get();
 
+        // Número de saca de embarque (si existe) para cada paquete, resuelto en
+        // UNA sola consulta (evita N+1 dentro del foreach).
+        // Relación: packages -> shipment_sack_packages -> shipment_sacks.sack_number
+        $sackNumbersByPackageId = DB::table('shipment_sack_packages')
+            ->join('shipment_sacks', 'shipment_sacks.id', '=', 'shipment_sack_packages.shipment_sack_id')
+            ->pluck('shipment_sacks.sack_number', 'shipment_sack_packages.package_id');
+
         $rows = [];
 
         foreach ($receptions as $reception) {
@@ -85,7 +93,7 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
                     'REGISTRO',                     // Tipo de Envío
                     '0',                            // Subpartida
                     Carbon::parse($reception->date_time)->format('Y-m-d'),
-                    '0',                            // Saca
+                    '0',                            // Saca: sin paquete no hay saca -> 0
                     '',                             // Guía Hija
                     $this->clip(optional($reception->sender)->full_name ?? ''),   // <- máx 30
                     $this->normalizeString(optional($reception->sender)->identification ?? ''),
@@ -113,11 +121,13 @@ class ReceptionsExport implements FromCollection, WithHeadings, WithStyles, Shou
 
                 $contenido = $this->normalizeString(optional($package->artPackage)->name ?? 'Sin artículo');
 
+                $sacaNumber = $sackNumbersByPackageId[$package->id] ?? '0';
+
                 $rows[] = [
                     'REGISTRO',
                     '0',
                     Carbon::parse($reception->date_time)->format('Y-m-d'),
-                    '0',
+                    $sacaNumber, // número de saca del embarque
                     $guiaHija,
                     $this->clip(optional($reception->sender)->full_name ?? ''),    // <- máx 30
                     $this->normalizeString(optional($reception->sender)->identification ?? ''),
