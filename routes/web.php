@@ -295,4 +295,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Manifiesto NY
     Route::get('/reports/ny-manifest', [ReportController::class, 'nyManifestIndex'])->name('reports.ny.index');
     Route::get('/reports/ny-manifest/export', [ReportController::class, 'nyManifestExport'])->name('reports.ny.export');
+   Route::get('/shipments/{shipment}/manifest/export', [ShipmentController::class, 'manifestExport'])
+        ->name('shipments.manifest.export');
+    Route::get('/shipments/{shipment}/manifest/export-csv', [ShipmentController::class, 'manifestExportCsv'])
+        ->name('shipments.manifest.export.csv');
+    Route::get('/shipments/{shipment}/receptions/export', [ShipmentController::class, 'receptionsExport'])
+        ->name('shipments.receptions.export');
 });

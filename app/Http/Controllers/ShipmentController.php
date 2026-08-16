@@ -3,10 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Shipment;
+use App\Exports\ShipmentManifestExport;
+use App\Exports\ShipmentManifestCsvExport;
+use App\Exports\ShipmentReceptionsExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Excel as ExcelFormat;
 
 class ShipmentController extends Controller
 {
@@ -287,5 +292,48 @@ class ShipmentController extends Controller
         return response()->json([
             'number' => 'EMB-' . str_pad($nextSeq, 6, '0', STR_PAD_LEFT),
         ]);
+    }
+
+    // -------------------------------------------------------
+    // MANIFIESTO EXCEL — solo paquetes de este embarque
+    // -------------------------------------------------------
+    public function manifestExport($id)
+    {
+        $enterpriseId = auth()->user()->enterprise_id;
+        $shipment = Shipment::where('enterprise_id', $enterpriseId)->findOrFail($id);
+
+        return Excel::download(
+            new ShipmentManifestExport((string) $shipment->id),
+            "manifiesto-embarque-{$shipment->number}.xlsx"
+        );
+    }
+
+    // -------------------------------------------------------
+    // MANIFIESTO CSV — solo paquetes de este embarque
+    // -------------------------------------------------------
+    public function manifestExportCsv($id)
+    {
+        $enterpriseId = auth()->user()->enterprise_id;
+        $shipment = Shipment::where('enterprise_id', $enterpriseId)->findOrFail($id);
+
+        return Excel::download(
+            new ShipmentManifestCsvExport((string) $shipment->id),
+            "manifiesto-embarque-{$shipment->number}.csv",
+            ExcelFormat::CSV
+        );
+    }
+
+    // -------------------------------------------------------
+    // REPORTE DE RECEPCIONES EXCEL — solo paquetes de este embarque
+    // -------------------------------------------------------
+    public function receptionsExport($id)
+    {
+        $enterpriseId = auth()->user()->enterprise_id;
+        $shipment = Shipment::where('enterprise_id', $enterpriseId)->findOrFail($id);
+
+        return Excel::download(
+            new ShipmentReceptionsExport((string) $shipment->id),
+            "recepciones-embarque-{$shipment->number}.xlsx"
+        );
     }
 }

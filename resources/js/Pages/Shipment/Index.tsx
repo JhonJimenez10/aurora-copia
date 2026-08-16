@@ -3,7 +3,16 @@ import { Head, router, useForm } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Button } from "@/Components/ui/button";
 import Pagination from "@/Components/Pagination";
-import { Plus, Search, Layers, Ban, Pencil } from "lucide-react";
+import {
+    Plus,
+    Search,
+    Layers,
+    Ban,
+    Pencil,
+    Printer,
+    FileSpreadsheet,
+    FileText,
+} from "lucide-react";
 import { StatusBadge } from "./helpers";
 import type { ShipmentRow } from "./types";
 import CreateShipmentModal from "./CreateShipmentModal";
@@ -35,6 +44,8 @@ export default function ShipmentsIndex({
     const [editingShipment, setEditingShipment] = useState<ShipmentRow | null>(
         null,
     );
+    // id del embarque cuyo menú de exportación está abierto (uno a la vez)
+    const [exportMenuId, setExportMenuId] = useState<string | null>(null);
 
     const handleFilter = (e: React.FormEvent) => {
         e.preventDefault();
@@ -70,6 +81,22 @@ export default function ShipmentsIndex({
                 onFinish: () => setCancelling(null),
             },
         );
+    };
+
+    // Abre en pestaña nueva la descarga del reporte elegido (solo los
+    // paquetes que están dentro de las sacas de ESE embarque).
+    const handleExport = (
+        shipmentId: string,
+        kind: "manifest-excel" | "manifest-csv" | "receptions-excel",
+    ) => {
+        const routeName =
+            kind === "manifest-excel"
+                ? "shipments.manifest.export"
+                : kind === "manifest-csv"
+                  ? "shipments.manifest.export.csv"
+                  : "shipments.receptions.export";
+        window.open(route(routeName, shipmentId), "_blank");
+        setExportMenuId(null);
     };
 
     const fmtDate = (iso: string) =>
@@ -253,6 +280,89 @@ export default function ShipmentsIndex({
                                                     <Layers className="h-3 w-3 mr-1" />
                                                     Sacas
                                                 </Button>
+
+                                                {/* Botón de impresión con menú desplegable de 3 opciones */}
+                                                <div className="relative">
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            setExportMenuId(
+                                                                exportMenuId ===
+                                                                    s.id
+                                                                    ? null
+                                                                    : s.id,
+                                                            )
+                                                        }
+                                                        title="Imprimir / exportar reportes de este embarque"
+                                                        className="h-7 px-2.5 bg-blue-700 hover:bg-blue-600 text-white text-xs font-semibold"
+                                                    >
+                                                        <Printer className="h-3 w-3 mr-1" />
+                                                        Imprimir
+                                                    </Button>
+
+                                                    {exportMenuId === s.id && (
+                                                        <>
+                                                            <div
+                                                                className="fixed inset-0 z-40"
+                                                                onClick={() =>
+                                                                    setExportMenuId(
+                                                                        null,
+                                                                    )
+                                                                }
+                                                            />
+                                                            <div className="absolute right-0 top-full mt-1 w-64 bg-[#111] border border-red-700 rounded-lg shadow-xl z-50 p-1">
+                                                                <p className="text-[11px] font-semibold uppercase tracking-wider text-red-300 px-2 pt-1.5 pb-2 mb-1 border-b border-red-900/40">
+                                                                    Reportes de
+                                                                    exportación
+                                                                </p>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        handleExport(
+                                                                            s.id,
+                                                                            "manifest-excel",
+                                                                        )
+                                                                    }
+                                                                    className="w-full flex items-center gap-2 px-2 py-2 rounded hover:bg-red-900/30 text-sm text-white text-left"
+                                                                >
+                                                                    <FileSpreadsheet className="h-4 w-4 text-green-400 flex-shrink-0" />
+                                                                    Manifiesto
+                                                                    (Excel)
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        handleExport(
+                                                                            s.id,
+                                                                            "manifest-csv",
+                                                                        )
+                                                                    }
+                                                                    className="w-full flex items-center gap-2 px-2 py-2 rounded hover:bg-red-900/30 text-sm text-white text-left"
+                                                                >
+                                                                    <FileText className="h-4 w-4 text-yellow-400 flex-shrink-0" />
+                                                                    Manifiesto
+                                                                    (CSV)
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        handleExport(
+                                                                            s.id,
+                                                                            "receptions-excel",
+                                                                        )
+                                                                    }
+                                                                    className="w-full flex items-center gap-2 px-2 py-2 rounded hover:bg-red-900/30 text-sm text-white text-left"
+                                                                >
+                                                                    <FileSpreadsheet className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                                                                    Reporte de
+                                                                    Recepciones
+                                                                    (Excel)
+                                                                </button>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+
                                                 {s.status !== "CANCELLED" && (
                                                     <Button
                                                         size="sm"
