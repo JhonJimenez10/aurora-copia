@@ -9,22 +9,62 @@ use Inertia\Inertia;
 
 class AgencyDestController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $enterpriseId = Auth::user()->enterprise_id;
 
-        $paginated = AgencyDest::where('enterprise_id', $enterpriseId)
-            ->orderBy('name')
-            ->paginate(10); // Puedes cambiar 10 por la cantidad que prefieras
+        $search      = trim((string) $request->query('search', ''));
+        $city        = trim((string) $request->query('city', ''));
+        $status      = $request->query('status', '');       // '', 'active', 'inactive'
+        $availableUs = $request->query('available_us', '');  // '', 'yes', 'no'
+
+        $query = AgencyDest::where('enterprise_id', $enterpriseId);
+
+        if ($search !== '') {
+            $searchLower = mb_strtolower($search, 'UTF-8');
+            $query->where(function ($q) use ($searchLower) {
+                $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(code_letters) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(trade_name) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(phone) LIKE ?', ["%{$searchLower}%"]);
+            });
+        }
+
+        if ($city !== '') {
+            $cityLower = mb_strtolower($city, 'UTF-8');
+            $query->whereRaw('LOWER(city) LIKE ?', ["%{$cityLower}%"]);
+        }
+
+        if ($status === 'active') {
+            $query->where('active', true);
+        } elseif ($status === 'inactive') {
+            $query->where('active', false);
+        }
+
+        if ($availableUs === 'yes') {
+            $query->where('available_us', true);
+        } elseif ($availableUs === 'no') {
+            $query->where('available_us', false);
+        }
+
+        $paginated = $query->orderBy('name')
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('AgencyDest/Index', [
             'agencies' => $paginated->items(),
             'pagination' => [
                 'current_page' => $paginated->currentPage(),
-                'last_page' => $paginated->lastPage(),
-                'per_page' => $paginated->perPage(),
-                'total' => $paginated->total(),
-                'links' => $paginated->linkCollection(),
+                'last_page'    => $paginated->lastPage(),
+                'per_page'     => $paginated->perPage(),
+                'total'        => $paginated->total(),
+                'links'        => $paginated->linkCollection(),
+            ],
+            'filters' => [
+                'search'       => $search,
+                'city'         => $city,
+                'status'       => $status,
+                'available_us' => $availableUs,
             ],
         ]);
     }

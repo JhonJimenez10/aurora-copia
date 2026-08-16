@@ -2,6 +2,10 @@ import { Head, Link, router } from "@inertiajs/react";
 import { PageProps } from "@/types";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Button } from "@/Components/ui/button";
+import { Input } from "@/Components/ui/input";
+import { useEffect, useState } from "react";
+import Pagination from "@/Components/Pagination";
+import { useDebouncedValue } from "@/Hooks/useDebouncedValue";
 
 interface Enterprise {
     id: string;
@@ -14,9 +18,57 @@ interface Enterprise {
     city?: string;
 }
 
+interface Filters {
+    search: string;
+    province: string;
+    city: string;
+}
+
 export default function EnterprisesIndex({
     enterprises,
-}: PageProps<{ enterprises: Enterprise[] }>) {
+    pagination,
+    filters,
+}: PageProps<{
+    enterprises: Enterprise[];
+    pagination: any;
+    filters: Filters;
+}>) {
+    const [search, setSearch] = useState(filters?.search ?? "");
+    const [province, setProvince] = useState(filters?.province ?? "");
+    const [city, setCity] = useState(filters?.city ?? "");
+    const [loading, setLoading] = useState(false);
+
+    const debouncedSearch = useDebouncedValue(search, 400);
+    const debouncedProvince = useDebouncedValue(province, 400);
+    const debouncedCity = useDebouncedValue(city, 400);
+
+    useEffect(() => {
+        setLoading(true);
+        router.get(
+            "/enterprises",
+            {
+                search: debouncedSearch || undefined,
+                province: debouncedProvince || undefined,
+                city: debouncedCity || undefined,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                onFinish: () => setLoading(false),
+            },
+        );
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [debouncedSearch, debouncedProvince, debouncedCity]);
+
+    const clearFilters = () => {
+        setSearch("");
+        setProvince("");
+        setCity("");
+    };
+
+    const hasActiveFilters = search !== "" || province !== "" || city !== "";
+
     return (
         <AuthenticatedLayout>
             <Head title="Empresas" />
@@ -39,6 +91,64 @@ export default function EnterprisesIndex({
                             </Button>
                         </Link>
                     </div>
+
+                    {/* Barra de filtros */}
+                    <div className="bg-[#1b1b1b] border border-red-700 rounded-lg p-4 mb-4 flex flex-wrap gap-3 items-end">
+                        <div className="flex-1 min-w-[220px]">
+                            <label className="text-xs text-gray-300 block mb-1">
+                                Buscar (RUC, nombre, nombre comercial, correo)
+                            </label>
+                            <Input
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Ej: 0190123456001 o Cuencanito Express"
+                                className="bg-black border border-red-700 text-white"
+                            />
+                        </div>
+
+                        <div className="min-w-[180px]">
+                            <label className="text-xs text-gray-300 block mb-1">
+                                Provincia
+                            </label>
+                            <Input
+                                value={province}
+                                onChange={(e) => setProvince(e.target.value)}
+                                placeholder="Ej: Azuay"
+                                className="bg-black border border-red-700 text-white"
+                            />
+                        </div>
+
+                        <div className="min-w-[180px]">
+                            <label className="text-xs text-gray-300 block mb-1">
+                                Ciudad
+                            </label>
+                            <Input
+                                value={city}
+                                onChange={(e) => setCity(e.target.value)}
+                                placeholder="Ej: Cuenca"
+                                className="bg-black border border-red-700 text-white"
+                            />
+                        </div>
+
+                        {hasActiveFilters && (
+                            <Button
+                                type="button"
+                                onClick={clearFilters}
+                                className="bg-gray-700 hover:bg-gray-600 text-white"
+                            >
+                                Limpiar filtros
+                            </Button>
+                        )}
+
+                        {loading && (
+                            <span className="text-xs text-gray-400">
+                                Buscando...
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Paginación superior */}
+                    <Pagination pagination={pagination} />
 
                     <div className="overflow-auto rounded-lg border border-red-700">
                         <table className="min-w-full text-sm text-white table-auto">
@@ -108,15 +218,14 @@ export default function EnterprisesIndex({
                                                     onClick={() => {
                                                         if (
                                                             confirm(
-                                                                "¿Estás seguro de que deseas eliminar esta empresa?"
+                                                                "¿Estás seguro de que deseas eliminar esta empresa?",
                                                             )
                                                         ) {
                                                             router.delete(
                                                                 `/enterprises/${enterprise.id}`,
                                                                 {
-                                                                    preserveScroll:
-                                                                        true,
-                                                                }
+                                                                    preserveScroll: true,
+                                                                },
                                                             );
                                                         }
                                                     }}
@@ -131,15 +240,22 @@ export default function EnterprisesIndex({
                                 {!enterprises.length && (
                                     <tr>
                                         <td
-                                            colSpan={5}
+                                            colSpan={7}
                                             className="text-center py-4 text-red-400"
                                         >
-                                            No hay empresas registradas.
+                                            {hasActiveFilters
+                                                ? "No se encontraron empresas con esos filtros."
+                                                : "No hay empresas registradas."}
                                         </td>
                                     </tr>
                                 )}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Paginación inferior */}
+                    <div className="mt-4">
+                        <Pagination pagination={pagination} />
                     </div>
                 </div>
             </div>

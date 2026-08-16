@@ -11,10 +11,53 @@ use Inertia\Inertia;
 
 class EnterpriseController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $enterprises = Enterprise::all();
-        return Inertia::render('Enterprises/Index', compact('enterprises'));
+        $search   = trim((string) $request->query('search', ''));
+        $province = trim((string) $request->query('province', ''));
+        $city     = trim((string) $request->query('city', ''));
+
+        $query = Enterprise::query();
+
+        if ($search !== '') {
+            $searchLower = mb_strtolower($search, 'UTF-8');
+            $query->where(function ($q) use ($searchLower) {
+                $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(commercial_name) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(ruc) LIKE ?', ["%{$searchLower}%"])
+                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$searchLower}%"]);
+            });
+        }
+
+        if ($province !== '') {
+            $provinceLower = mb_strtolower($province, 'UTF-8');
+            $query->whereRaw('LOWER(province) LIKE ?', ["%{$provinceLower}%"]);
+        }
+
+        if ($city !== '') {
+            $cityLower = mb_strtolower($city, 'UTF-8');
+            $query->whereRaw('LOWER(city) LIKE ?', ["%{$cityLower}%"]);
+        }
+
+        $paginated = $query->orderBy('commercial_name')
+            ->paginate(10)
+            ->withQueryString();
+
+        return Inertia::render('Enterprises/Index', [
+            'enterprises' => $paginated->items(),
+            'pagination' => [
+                'current_page' => $paginated->currentPage(),
+                'last_page'    => $paginated->lastPage(),
+                'per_page'     => $paginated->perPage(),
+                'total'        => $paginated->total(),
+                'links'        => $paginated->linkCollection(),
+            ],
+            'filters' => [
+                'search'   => $search,
+                'province' => $province,
+                'city'     => $city,
+            ],
+        ]);
     }
 
     public function create()
