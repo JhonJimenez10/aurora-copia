@@ -25,18 +25,36 @@ class TransferController extends Controller
     }
 
     /**
-     * Lista de empresas seleccionables para el combo de admin,
-     * excluyendo siempre COAVPRO.
+     * Nombre a mostrar en pantalla para una empresa: si su commercial_name
+     * es COAVPRO, se muestra como "Empresa de pruebas" (para poder probar
+     * traslados/confirmaciones/embarques con ella sin exponer el nombre
+     * real). Cualquier otra empresa se muestra con su nombre normal.
+     */
+    private function displayEnterpriseName(?string $name, ?string $commercialName): ?string
+    {
+        return $commercialName === 'COAVPRO' ? 'Empresa de pruebas' : $name;
+    }
+
+    /**
+     * Lista de empresas seleccionables para el combo de admin.
+     * ✅ CAMBIO: antes se excluía COAVPRO por completo. Ahora SÍ aparece
+     * en el combo (para poder hacer traslados/confirmaciones/embarques de
+     * prueba con ella), pero se muestra como "Empresa de pruebas" en vez
+     * de su nombre real.
      */
     private function selectableEnterprises()
     {
         return Enterprise::query()
-            ->where(function ($q) {
-                $q->whereNull('commercial_name')
-                    ->orWhere('commercial_name', '!=', 'COAVPRO');
-            })
             ->orderBy('name')
-            ->get(['id', 'name', 'city']);
+            ->get(['id', 'name', 'commercial_name', 'city'])
+            ->map(function ($ent) {
+                return [
+                    'id'   => $ent->id,
+                    'name' => $this->displayEnterpriseName($ent->name, $ent->commercial_name),
+                    'city' => $ent->city,
+                ];
+            })
+            ->values();
     }
 
     /**
@@ -236,8 +254,13 @@ class TransferController extends Controller
             ->limit(200)
             ->get();
 
+        // ✅ CAMBIO: se trae también commercial_name para poder mostrar
+        // "Empresa de pruebas" en vez de "COAVPRO" en los resultados.
         $enterpriseNames = Enterprise::whereIn('id', $results->pluck('enterprise_id')->unique())
-            ->pluck('name', 'id');
+            ->get(['id', 'name', 'commercial_name'])
+            ->mapWithKeys(function ($ent) {
+                return [$ent->id => $this->displayEnterpriseName($ent->name, $ent->commercial_name)];
+            });
 
         $mapped = $results->map(function (Transfer $t) use ($enterpriseNames) {
             return [

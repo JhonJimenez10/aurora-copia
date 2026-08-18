@@ -25,6 +25,16 @@ class TransferConfirmController extends Controller
     }
 
     /**
+     * Nombre a mostrar en pantalla para una empresa: si su commercial_name
+     * es COAVPRO, se muestra como "Empresa de pruebas" en vez de su nombre
+     * real (para poder probar confirmaciones con ella).
+     */
+    private function displayEnterpriseName(?string $name, ?string $commercialName): ?string
+    {
+        return $commercialName === 'COAVPRO' ? 'Empresa de pruebas' : $name;
+    }
+
+    /**
      * GET /classification/transfers/confirm
      */
     public function index()
@@ -43,9 +53,19 @@ class TransferConfirmController extends Controller
             ->values()
             ->toArray();
 
-        // ✅ Lista de empresas para el filtro, solo si es admin/sudo
+        // ✅ Lista de empresas para el filtro, solo si es admin/sudo.
+        // CAMBIO: ya no se excluye COAVPRO (nunca se excluía aquí), pero
+        // ahora se relabela como "Empresa de pruebas" igual que en el resto
+        // del módulo de traslados/embarques.
         $enterprises = $isAdmin
-            ? Enterprise::query()->orderBy('name')->get(['id', 'name', 'city'])
+            ? Enterprise::query()->orderBy('name')->get(['id', 'name', 'commercial_name', 'city'])
+                ->map(function ($ent) {
+                    return [
+                        'id'   => $ent->id,
+                        'name' => $this->displayEnterpriseName($ent->name, $ent->commercial_name),
+                        'city' => $ent->city,
+                    ];
+                })->values()
             : collect();
 
         return Inertia::render('Classification/TransfersConfirm', [
@@ -68,7 +88,14 @@ class TransferConfirmController extends Controller
             return response()->json([], 200, ['Content-Type' => 'application/json']);
         }
 
-        $enterprises = Enterprise::query()->orderBy('name')->get(['id', 'name', 'city']);
+        $enterprises = Enterprise::query()->orderBy('name')->get(['id', 'name', 'commercial_name', 'city'])
+            ->map(function ($ent) {
+                return [
+                    'id'   => $ent->id,
+                    'name' => $this->displayEnterpriseName($ent->name, $ent->commercial_name),
+                    'city' => $ent->city,
+                ];
+            })->values();
 
         return response()->json($enterprises, 200, ['Content-Type' => 'application/json']);
     }
@@ -97,8 +124,14 @@ class TransferConfirmController extends Controller
 
         $transfer->load(['sacks.packages']);
 
-        // ✅ Nombre de la empresa dueña del traslado (útil para el admin)
-        $enterpriseName = Enterprise::where('id', $transfer->enterprise_id)->value('name');
+        // ✅ Nombre de la empresa dueña del traslado (útil para el admin).
+        // CAMBIO: se trae también commercial_name para poder mostrar
+        // "Empresa de pruebas" en vez de "COAVPRO".
+        $enterpriseRecord = Enterprise::where('id', $transfer->enterprise_id)
+            ->first(['id', 'name', 'commercial_name']);
+        $enterpriseName = $enterpriseRecord
+            ? $this->displayEnterpriseName($enterpriseRecord->name, $enterpriseRecord->commercial_name)
+            : null;
 
         $sacks = $transfer->sacks->map(function (TransferSack $sack) {
             $pending = $sack->packages->filter(fn($p) => !$p->pivot->confirmed)->values();

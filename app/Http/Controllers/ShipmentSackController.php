@@ -24,6 +24,16 @@ class ShipmentSackController extends Controller
     }
 
     /**
+     * Nombre a mostrar en pantalla para una empresa: si su commercial_name
+     * es COAVPRO, se muestra como "Empresa de pruebas" en vez de su nombre
+     * real (para poder probar embarques con ella).
+     */
+    private function displayEnterpriseName(?string $name, ?string $commercialName): ?string
+    {
+        return $commercialName === 'COAVPRO' ? 'Empresa de pruebas' : $name;
+    }
+
+    /**
      * GET /api/enterprises/list-filter (reutilizable, solo admin)
      */
     public function enterprisesList()
@@ -35,7 +45,14 @@ class ShipmentSackController extends Controller
         }
 
         return response()->json(
-            Enterprise::orderBy('name')->get(['id', 'name', 'city'])
+            Enterprise::orderBy('name')->get(['id', 'name', 'commercial_name', 'city'])
+                ->map(function ($ent) {
+                    return [
+                        'id'   => $ent->id,
+                        'name' => $this->displayEnterpriseName($ent->name, $ent->commercial_name),
+                        'city' => $ent->city,
+                    ];
+                })->values()
         );
     }
 
@@ -88,7 +105,14 @@ class ShipmentSackController extends Controller
             ->values();
 
         $enterpriseIds = $items->pluck('sack.transfer.enterprise_id')->filter()->unique();
-        $enterpriseNames = Enterprise::whereIn('id', $enterpriseIds)->pluck('name', 'id');
+
+        // ✅ CAMBIO: se trae también commercial_name para poder mostrar
+        // "Empresa de pruebas" en vez de "COAVPRO" en la lista de paquetes.
+        $enterpriseNames = Enterprise::whereIn('id', $enterpriseIds)
+            ->get(['id', 'name', 'commercial_name'])
+            ->mapWithKeys(function ($ent) {
+                return [$ent->id => $this->displayEnterpriseName($ent->name, $ent->commercial_name)];
+            });
 
         $result = $items->map(function (TransferSackPackage $tsp) use ($enterpriseNames) {
             $enterpriseId = $tsp->sack->transfer->enterprise_id ?? null;
@@ -140,7 +164,14 @@ class ShipmentSackController extends Controller
         $enterpriseIds = $sacks
             ->flatMap(fn($s) => $s->packages->pluck('transferSack.transfer.enterprise_id'))
             ->filter()->unique();
-        $enterpriseNames = Enterprise::whereIn('id', $enterpriseIds)->pluck('name', 'id');
+
+        // ✅ CAMBIO: se trae también commercial_name para poder mostrar
+        // "Empresa de pruebas" en vez de "COAVPRO".
+        $enterpriseNames = Enterprise::whereIn('id', $enterpriseIds)
+            ->get(['id', 'name', 'commercial_name'])
+            ->mapWithKeys(function ($ent) {
+                return [$ent->id => $this->displayEnterpriseName($ent->name, $ent->commercial_name)];
+            });
 
         $mapped = $sacks->map(function (ShipmentSack $sack) use ($enterpriseNames) {
             $pivots = $sack->packages;

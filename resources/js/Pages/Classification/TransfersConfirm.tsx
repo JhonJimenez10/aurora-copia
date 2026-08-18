@@ -11,10 +11,34 @@ import {
     ChevronDown,
     CheckCircle2,
     CheckCircle,
+    ScanLine,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import type { FormEvent } from "react";
 import { cn } from "@/lib/utils";
+
+/** ---------------------
+ * Sonido de error de escaneo (beep corto, sin archivos externos)
+ * --------------------- */
+function playScanErrorBeep() {
+    try {
+        const AudioCtx =
+            window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.type = "square";
+        oscillator.frequency.value = 320;
+        gain.gain.value = 0.2;
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.start();
+        oscillator.stop(ctx.currentTime + 0.3);
+    } catch {
+        // Web Audio no soportado; se ignora silenciosamente
+    }
+}
 
 /** ---------------------
  * Tipos generales
@@ -226,6 +250,11 @@ function ConfirmTransferModal({
     const [searchPending, setSearchPending] = useState("");
     const [searchConfirmed, setSearchConfirmed] = useState("");
 
+    // ─── Escáner de código de barras ───────────────────────────
+    const [scanCode, setScanCode] = useState("");
+    const [scanError, setScanError] = useState<string | null>(null);
+    const scanInputRef = useRef<HTMLInputElement>(null);
+
     useEffect(() => {
         const load = async () => {
             if (!isOpen || transferId == null) return;
@@ -237,6 +266,8 @@ function ConfirmTransferModal({
             setCurrentIdx(0);
             setSearchPending("");
             setSearchConfirmed("");
+            setScanCode("");
+            setScanError(null);
 
             try {
                 const res = await fetch(`/api/transfers/${transferId}/details`);
@@ -256,6 +287,12 @@ function ConfirmTransferModal({
         };
         load();
     }, [isOpen, transferId]);
+
+    useEffect(() => {
+        if (isOpen && !loading) {
+            scanInputRef.current?.focus();
+        }
+    }, [isOpen, loading, currentIdx]);
 
     const filteredPending = useMemo(() => {
         if (!current || !searchPending.trim()) return current?.pending ?? [];
@@ -320,6 +357,40 @@ function ConfirmTransferModal({
             s.number === sack.number ? sack : s,
         );
         setDetails(copy);
+    };
+
+    // ✅ NUEVO: al escanear un código, busca el paquete PENDIENTE de la
+    // saca actual y lo pasa automáticamente a confirmados. Si no existe
+    // entre los pendientes de esta saca, suena una alerta y avisa — así
+    // se puede escanear uno tras otro sin hacer clic manual cada vez.
+    const handleScan = (e: FormEvent) => {
+        e.preventDefault();
+        if (!current) return;
+        const code = scanCode.trim();
+        setScanCode("");
+        if (!code) return;
+
+        const pkg = current.pending.find(
+            (p) =>
+                p.code.toLowerCase() === code.toLowerCase() ||
+                p.id.toLowerCase() === code.toLowerCase(),
+        );
+
+        if (!pkg) {
+            playScanErrorBeep();
+            setScanError(
+                `No se encontró ningún paquete pendiente con el código "${code}" en esta saca.`,
+            );
+            scanInputRef.current?.focus();
+            return;
+        }
+
+        setScanError(null);
+        const sack = { ...current };
+        sack.pending = sack.pending.filter((p) => p.id !== pkg.id);
+        sack.confirmed = [...sack.confirmed, pkg];
+        replaceSack(sack);
+        scanInputRef.current?.focus();
     };
 
     const totalsPending = useMemo(
@@ -415,6 +486,8 @@ function ConfirmTransferModal({
         setSelectedConfirmedId(null);
         setSearchPending("");
         setSearchConfirmed("");
+        setScanCode("");
+        setScanError(null);
         setCurrentIdx((i) => (i > 0 ? i - 1 : details.sacks.length - 1));
     };
 
@@ -424,6 +497,8 @@ function ConfirmTransferModal({
         setSelectedConfirmedId(null);
         setSearchPending("");
         setSearchConfirmed("");
+        setScanCode("");
+        setScanError(null);
         setCurrentIdx((i) => (i + 1) % details.sacks.length);
     };
 
@@ -513,6 +588,32 @@ function ConfirmTransferModal({
                                 </div>
                             )}
                         </div>
+
+                        {/* ─── Escáner de código de barras ───────────── */}
+                        <form
+                            onSubmit={handleScan}
+                            className="mb-4 bg-[#111] border border-red-700 rounded-lg p-3"
+                        >
+                            <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-red-300 mb-1.5">
+                                <ScanLine className="h-3.5 w-3.5" />
+                                Escanear código de barras (confirma
+                                automáticamente)
+                            </label>
+                            <input
+                                ref={scanInputRef}
+                                type="text"
+                                value={scanCode}
+                                onChange={(e) => setScanCode(e.target.value)}
+                                placeholder="Escanea o escribe el código y presiona Enter..."
+                                autoFocus
+                                className="w-full bg-black border border-red-900/50 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-red-500"
+                            />
+                            {scanError && (
+                                <p className="mt-1.5 text-xs text-red-400">
+                                    {scanError}
+                                </p>
+                            )}
+                        </form>
 
                         <div className="grid grid-cols-1 md:grid-cols-[1.5fr_auto_1.5fr] gap-4">
                             {/* Pendientes */}

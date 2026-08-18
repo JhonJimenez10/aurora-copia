@@ -1,9 +1,39 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/Components/ui/button";
-import { Hash, ChevronRight, ChevronLeft, AlertCircle } from "lucide-react";
+import {
+    Hash,
+    ChevronRight,
+    ChevronLeft,
+    AlertCircle,
+    ScanLine,
+} from "lucide-react";
+import type { FormEvent } from "react";
 import { cn } from "@/lib/utils";
 import { Modal, n, csrfToken } from "./helpers";
 import type { AvailablePackage, AssignedSack } from "./types";
+
+/** ---------------------
+ * Sonido de error de escaneo (beep corto, sin archivos externos)
+ * --------------------- */
+function playScanErrorBeep() {
+    try {
+        const AudioCtx =
+            window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.type = "square";
+        oscillator.frequency.value = 320;
+        gain.gain.value = 0.2;
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.start();
+        oscillator.stop(ctx.currentTime + 0.3);
+    } catch {
+        // Web Audio no soportado; se ignora silenciosamente
+    }
+}
 
 export default function SackPackagesModal({
     shipmentId,
@@ -31,6 +61,11 @@ export default function SackPackagesModal({
         existingSack?.sack_number ?? "",
     );
     const [sackNumberError, setSackNumberError] = useState("");
+
+    // ─── Escáner de código de barras ───────────────────────────
+    const [scanCode, setScanCode] = useState("");
+    const [scanError, setScanError] = useState<string | null>(null);
+    const scanInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         setLoading(true);
@@ -75,6 +110,13 @@ export default function SackPackagesModal({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Foco automático en el campo de escaneo cuando termina de cargar
+    useEffect(() => {
+        if (!loading) {
+            scanInputRef.current?.focus();
+        }
+    }, [loading]);
+
     const filteredLeft = useMemo(() => {
         if (!searchLeft.trim()) return available;
         const t = searchLeft.toLowerCase();
@@ -115,6 +157,37 @@ export default function SackPackagesModal({
         setToAdd((prev) => prev.filter((p) => p.id !== selectedRightId));
         setAvailable((prev) => [...prev, pkg]);
         setSelectedRightId(null);
+    };
+
+    // ✅ NUEVO: al escanear (o escribir + Enter) un código de barras, busca
+    // el paquete entre los disponibles y lo pasa automáticamente a la saca
+    // del embarque. Si no existe, suena una alerta y muestra advertencia —
+    // así se puede escanear uno tras otro sin clic manual cada vez.
+    const handleScan = (e: FormEvent) => {
+        e.preventDefault();
+        const code = scanCode.trim();
+        setScanCode("");
+        if (!code) return;
+
+        const pkg = available.find(
+            (p) =>
+                p.barcode.toLowerCase() === code.toLowerCase() ||
+                p.id.toLowerCase() === code.toLowerCase(),
+        );
+
+        if (!pkg) {
+            playScanErrorBeep();
+            setScanError(
+                `No se encontró ningún paquete disponible con el código "${code}".`,
+            );
+            scanInputRef.current?.focus();
+            return;
+        }
+
+        setScanError(null);
+        setAvailable((prev) => prev.filter((p) => p.id !== pkg.id));
+        setToAdd((prev) => [...prev, pkg]);
+        scanInputRef.current?.focus();
     };
 
     const handleSave = async () => {
@@ -211,6 +284,31 @@ export default function SackPackagesModal({
                             </p>
                         )}
                     </div>
+
+                    {/* ─── Escáner de código de barras ───────────────── */}
+                    <form
+                        onSubmit={handleScan}
+                        className="mb-4 bg-[#111] border border-red-700 rounded-lg p-3"
+                    >
+                        <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-red-300 mb-1.5">
+                            <ScanLine className="h-3.5 w-3.5" />
+                            Escanear código de barras
+                        </label>
+                        <input
+                            ref={scanInputRef}
+                            type="text"
+                            value={scanCode}
+                            onChange={(e) => setScanCode(e.target.value)}
+                            placeholder="Escanea o escribe el código y presiona Enter..."
+                            autoFocus
+                            className="w-full bg-black border border-red-900/50 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-red-500"
+                        />
+                        {scanError && (
+                            <p className="mt-1.5 text-xs text-red-400">
+                                {scanError}
+                            </p>
+                        )}
+                    </form>
 
                     <div className="grid grid-cols-1 md:grid-cols-[1.5fr_auto_1.5fr] gap-4">
                         {/* Izquierda: paquetes disponibles (desglosados) */}
