@@ -15,6 +15,7 @@ import {
     ChevronUp,
     ChevronDown,
     ScanLine,
+    Eye,
 } from "lucide-react";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import type { FormEvent } from "react";
@@ -135,6 +136,379 @@ type TransferSearchResult = {
     to_city: string;
     status: string;
 };
+
+/** ---------------------
+ * Tipos detalles del traslado (compartidos por ambos modales)
+ * --------------------- */
+type TransferDetails = {
+    id: number | string;
+    number: string;
+    from_city: string;
+    to_city: string;
+    enterprise_name?: string | null;
+    sacks: Array<{
+        id?: string;
+        number: number;
+        seal: string | null;
+        refrigerated: boolean;
+        pending: SackPackage[];
+        confirmed: SackPackage[];
+    }>;
+};
+
+/** ---------------------
+ * MODAL: VER CONTENIDO DEL TRASLADO (SOLO LECTURA)
+ * Muestra TODAS las sacas del traslado, con sus paquetes pendientes y
+ * confirmados. Usa el endpoint de solo lectura /api/transfers/{id}/view,
+ * que NO exige que el traslado esté PENDING — funciona con traslados ya
+ * confirmados o cancelados también. Sin ninguna posibilidad de mover,
+ * editar ni guardar nada.
+ * --------------------- */
+type ViewTransferModalProps = {
+    isOpen: boolean;
+    onClose: () => void;
+    transferId: number | string | null;
+};
+
+function ViewTransferModal({
+    isOpen,
+    onClose,
+    transferId,
+}: ViewTransferModalProps) {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [details, setDetails] = useState<TransferDetails | null>(null);
+
+    useEffect(() => {
+        const load = async () => {
+            if (!isOpen || transferId == null) return;
+            setLoading(true);
+            setError(null);
+            setDetails(null);
+
+            try {
+                const res = await fetch(`/api/transfers/${transferId}/view`);
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || `HTTP ${res.status}`);
+                }
+                const data: TransferDetails = await res.json();
+                setDetails(data);
+            } catch (e: any) {
+                setError(
+                    e.message ||
+                        "No se pudo cargar el contenido de este traslado.",
+                );
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
+    }, [isOpen, transferId]);
+
+    return (
+        <Modal
+            title="Ver Contenido del Traslado"
+            isOpen={isOpen}
+            onClose={onClose}
+        >
+            {loading && (
+                <div className="text-sm text-gray-300 italic">Cargando...</div>
+            )}
+            {error && (
+                <div className="mb-3 p-3 bg-red-900/30 border border-red-700 rounded text-sm text-red-400">
+                    {error}
+                </div>
+            )}
+            {!loading && !error && details && (
+                <>
+                    <div className="mb-4 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                        <span className="text-gray-300">
+                            Traslado No.:{" "}
+                            <span className="text-white font-semibold">
+                                {details.number}
+                            </span>
+                        </span>
+                        {details.enterprise_name && (
+                            <span className="text-gray-300">
+                                Empresa:{" "}
+                                <span className="text-white font-semibold">
+                                    {details.enterprise_name}
+                                </span>
+                            </span>
+                        )}
+                        <span className="text-gray-300">
+                            De: {details.from_city} → A: {details.to_city}
+                        </span>
+                    </div>
+
+                    {!details.sacks.length && (
+                        <div className="text-center py-8 text-gray-400 italic text-sm">
+                            Este traslado no tiene sacas registradas.
+                        </div>
+                    )}
+
+                    <div className="space-y-5">
+                        {details.sacks.map((sack) => {
+                            const totalsPending = calculateTotals(sack.pending);
+                            const totalsConfirmed = calculateTotals(
+                                sack.confirmed,
+                            );
+
+                            return (
+                                <div
+                                    key={sack.number}
+                                    className="border border-red-700 rounded-lg p-4"
+                                >
+                                    <div className="flex flex-wrap items-center gap-x-6 gap-y-1 mb-3 text-sm text-gray-300">
+                                        <span>
+                                            No. saca:{" "}
+                                            <span className="text-white font-semibold">
+                                                {sack.number}
+                                            </span>
+                                        </span>
+                                        <span>
+                                            Precinto:{" "}
+                                            <span className="text-white font-semibold">
+                                                {sack.seal || "—"}
+                                            </span>
+                                        </span>
+                                        <span>
+                                            Refrigerada:{" "}
+                                            <span className="text-white font-semibold">
+                                                {sack.refrigerated
+                                                    ? "Sí"
+                                                    : "No"}
+                                            </span>
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {/* Pendientes (solo lectura) */}
+                                        <div>
+                                            <h4 className="text-xs font-semibold uppercase tracking-wider text-yellow-400 mb-2">
+                                                Pendientes (
+                                                {sack.pending.length})
+                                            </h4>
+                                            <div className="overflow-x-auto rounded-lg border border-red-700 max-h-56 overflow-y-auto">
+                                                <table className="min-w-full text-sm text-white table-auto">
+                                                    <thead className="bg-red-800 text-white sticky top-0">
+                                                        <tr>
+                                                            <th className="px-3 py-2 text-left">
+                                                                No. paquete
+                                                            </th>
+                                                            <th className="px-3 py-2 text-left">
+                                                                Contenido
+                                                            </th>
+                                                            <th className="px-3 py-2 text-left">
+                                                                Tipo
+                                                            </th>
+                                                            <th className="px-3 py-2 text-right">
+                                                                Lbs
+                                                            </th>
+                                                            <th className="px-3 py-2 text-right">
+                                                                Kgs
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {sack.pending.length ? (
+                                                            sack.pending.map(
+                                                                (pkg) => (
+                                                                    <tr
+                                                                        key={
+                                                                            pkg.id
+                                                                        }
+                                                                        className="border-t border-red-700"
+                                                                    >
+                                                                        <td className="px-3 py-1">
+                                                                            {
+                                                                                pkg.code
+                                                                            }
+                                                                        </td>
+                                                                        <td className="px-3 py-1">
+                                                                            {
+                                                                                pkg.content
+                                                                            }
+                                                                        </td>
+                                                                        <td className="px-3 py-1">
+                                                                            {
+                                                                                pkg.serviceType
+                                                                            }
+                                                                        </td>
+                                                                        <td className="px-3 py-1 text-right">
+                                                                            {pkg.pounds.toFixed(
+                                                                                2,
+                                                                            )}
+                                                                        </td>
+                                                                        <td className="px-3 py-1 text-right">
+                                                                            {pkg.kilograms.toFixed(
+                                                                                2,
+                                                                            )}
+                                                                        </td>
+                                                                    </tr>
+                                                                ),
+                                                            )
+                                                        ) : (
+                                                            <tr>
+                                                                <td
+                                                                    colSpan={5}
+                                                                    className="text-center py-3 text-gray-400 italic text-xs"
+                                                                >
+                                                                    No hay
+                                                                    paquetes
+                                                                    pendientes
+                                                                    en esta
+                                                                    saca.
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div className="mt-1 text-xs text-gray-300 flex justify-between">
+                                                <span>
+                                                    LBS:{" "}
+                                                    <span className="text-white font-semibold">
+                                                        {totalsPending.pounds.toFixed(
+                                                            2,
+                                                        )}
+                                                    </span>
+                                                </span>
+                                                <span>
+                                                    KGS:{" "}
+                                                    <span className="text-white font-semibold">
+                                                        {totalsPending.kilograms.toFixed(
+                                                            2,
+                                                        )}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Confirmados (solo lectura) */}
+                                        <div>
+                                            <h4 className="text-xs font-semibold uppercase tracking-wider text-green-400 mb-2">
+                                                Confirmados (
+                                                {sack.confirmed.length})
+                                            </h4>
+                                            <div className="overflow-x-auto rounded-lg border border-red-700 max-h-56 overflow-y-auto">
+                                                <table className="min-w-full text-sm text-white table-auto">
+                                                    <thead className="bg-red-800 text-white sticky top-0">
+                                                        <tr>
+                                                            <th className="px-3 py-2 text-left">
+                                                                No. paquete
+                                                            </th>
+                                                            <th className="px-3 py-2 text-left">
+                                                                Contenido
+                                                            </th>
+                                                            <th className="px-3 py-2 text-left">
+                                                                Tipo
+                                                            </th>
+                                                            <th className="px-3 py-2 text-right">
+                                                                Lbs
+                                                            </th>
+                                                            <th className="px-3 py-2 text-right">
+                                                                Kgs
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {sack.confirmed
+                                                            .length ? (
+                                                            sack.confirmed.map(
+                                                                (pkg) => (
+                                                                    <tr
+                                                                        key={
+                                                                            pkg.id
+                                                                        }
+                                                                        className="border-t border-red-700"
+                                                                    >
+                                                                        <td className="px-3 py-1">
+                                                                            {
+                                                                                pkg.code
+                                                                            }
+                                                                        </td>
+                                                                        <td className="px-3 py-1">
+                                                                            {
+                                                                                pkg.content
+                                                                            }
+                                                                        </td>
+                                                                        <td className="px-3 py-1">
+                                                                            {
+                                                                                pkg.serviceType
+                                                                            }
+                                                                        </td>
+                                                                        <td className="px-3 py-1 text-right">
+                                                                            {pkg.pounds.toFixed(
+                                                                                2,
+                                                                            )}
+                                                                        </td>
+                                                                        <td className="px-3 py-1 text-right">
+                                                                            {pkg.kilograms.toFixed(
+                                                                                2,
+                                                                            )}
+                                                                        </td>
+                                                                    </tr>
+                                                                ),
+                                                            )
+                                                        ) : (
+                                                            <tr>
+                                                                <td
+                                                                    colSpan={5}
+                                                                    className="text-center py-3 text-gray-400 italic text-xs"
+                                                                >
+                                                                    No hay
+                                                                    paquetes
+                                                                    confirmados
+                                                                    en esta
+                                                                    saca.
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div className="mt-1 text-xs text-gray-300 flex justify-between">
+                                                <span>
+                                                    LBS:{" "}
+                                                    <span className="text-white font-semibold">
+                                                        {totalsConfirmed.pounds.toFixed(
+                                                            2,
+                                                        )}
+                                                    </span>
+                                                </span>
+                                                <span>
+                                                    KGS:{" "}
+                                                    <span className="text-white font-semibold">
+                                                        {totalsConfirmed.kilograms.toFixed(
+                                                            2,
+                                                        )}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="mt-6 flex justify-end">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="border-red-700 text-gray-200 hover:bg-red-700"
+                            onClick={onClose}
+                        >
+                            Cerrar
+                        </Button>
+                    </div>
+                </>
+            )}
+        </Modal>
+    );
+}
 
 /** ---------------------
  * MODAL: CREAR SACA (con búsqueda + escáner de código de barras)
@@ -272,8 +646,8 @@ function SackModal({
         setSelectedRightId(null);
     };
 
-    // ✅ NUEVO: al escanear (o escribir + Enter) un código de barras, busca
-    // el paquete entre los disponibles y lo pasa automáticamente a la saca.
+    // ✅ Al escanear (o escribir + Enter) un código de barras, busca el
+    // paquete entre los disponibles y lo pasa automáticamente a la saca.
     // Si no existe, suena una alerta y muestra advertencia — así se puede
     // escanear uno tras otro sin tener que hacer clic manualmente cada vez.
     const handleScan = (e: FormEvent) => {
@@ -641,19 +1015,6 @@ function SackModal({
 /** ---------------------
  * MODAL: CONFIRMAR / MODIFICAR TRASLADO EXISTENTE
  * --------------------- */
-type ConfirmTransferDetails = {
-    id: number | string;
-    number: string;
-    to_city: string;
-    sacks: Array<{
-        number: number;
-        seal: string | null;
-        refrigerated: boolean;
-        pending: SackPackage[];
-        confirmed: SackPackage[];
-    }>;
-};
-
 type ConfirmTransferModalProps = {
     isOpen: boolean;
     onClose: () => void;
@@ -669,7 +1030,7 @@ function ConfirmTransferModal({
 }: ConfirmTransferModalProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [details, setDetails] = useState<ConfirmTransferDetails | null>(null);
+    const [details, setDetails] = useState<TransferDetails | null>(null);
     const [currentIdx, setCurrentIdx] = useState(0);
 
     const current =
@@ -707,7 +1068,7 @@ function ConfirmTransferModal({
             try {
                 const res = await fetch(`/api/transfers/${transferId}/details`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data: ConfirmTransferDetails = await res.json();
+                const data: TransferDetails = await res.json();
                 setDetails(data);
             } catch (e: any) {
                 setError("No se pudo cargar el traslado seleccionado.");
@@ -788,9 +1149,9 @@ function ConfirmTransferModal({
         setDetails(copy);
     };
 
-    // ✅ NUEVO: al escanear un código, busca el paquete PENDIENTE de la
-    // saca actual y lo pasa automáticamente a confirmados. Si no existe
-    // entre los pendientes de esta saca, suena una alerta y avisa.
+    // ✅ Al escanear un código, busca el paquete PENDIENTE de la saca
+    // actual y lo pasa automáticamente a confirmados. Si no existe entre
+    // los pendientes de esta saca, suena una alerta y avisa.
     const handleScan = (e: FormEvent) => {
         e.preventDefault();
         if (!current) return;
@@ -1272,6 +1633,12 @@ export default function TransfersCreate({
         number | string | null
     >(null);
 
+    // ✅ modal de solo lectura para ver contenido del traslado
+    const [showViewModal, setShowViewModal] = useState(false);
+    const [viewTransferId, setViewTransferId] = useState<
+        number | string | null
+    >(null);
+
     const [submitting, setSubmitting] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
@@ -1493,10 +1860,18 @@ export default function TransfersCreate({
         setShowConfirmModal(true);
     };
 
+    // ✅ Abre la vista de solo lectura del traslado seleccionado, sin
+    // cerrar el buscador. Funciona sin importar si ya está confirmado.
+    const openViewForSelected = () => {
+        if (!selectedResultId) return;
+        setViewTransferId(selectedResultId);
+        setShowViewModal(true);
+    };
+
     const selectedResult = searchResults.find((t) => t.id === selectedResultId);
 
-    // ✅ NUEVO: eliminar un traslado PENDIENTE — libera sus paquetes para
-    // que vuelvan a estar disponibles en un nuevo traslado.
+    // ✅ Eliminar un traslado PENDIENTE — libera sus paquetes para que
+    // vuelvan a estar disponibles en un nuevo traslado.
     const handleDeleteSelected = () => {
         if (!selectedResultId || !selectedResult) return;
         if (selectedResult.status !== "PENDING") {
@@ -2119,7 +2494,7 @@ export default function TransfersCreate({
                         >
                             Cerrar
                         </Button>
-                        {/* ✅ NUEVO: Eliminar traslado (solo si está PENDIENTE) */}
+                        {/* ✅ Eliminar traslado (solo si está PENDIENTE) */}
                         <Button
                             type="button"
                             className="bg-red-800 hover:bg-red-900 disabled:opacity-40"
@@ -2139,12 +2514,24 @@ export default function TransfersCreate({
                             <Trash2 className="h-4 w-4 mr-2" />
                             {deleting ? "Eliminando..." : "Eliminar"}
                         </Button>
+                        {/* ✅ NUEVO: Ver Contenido (solo lectura) — funciona
+                            aunque el traslado ya esté confirmado */}
+                        <Button
+                            type="button"
+                            className="bg-blue-700 hover:bg-blue-600"
+                            onClick={openViewForSelected}
+                            disabled={!selectedResultId}
+                            title="Ver el contenido del traslado (solo lectura)"
+                        >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Ver Contenido
+                        </Button>
                         <Button
                             type="button"
                             className="bg-yellow-600 hover:bg-yellow-700"
                             onClick={openConfirmForSelected}
                             disabled={!selectedResultId}
-                            title="Ver / Modificar"
+                            title="Ver / Modificar (solo traslados pendientes)"
                         >
                             Ver / Modificar
                         </Button>
@@ -2183,6 +2570,13 @@ export default function TransfersCreate({
                     </div>
                 </div>
             </Modal>
+
+            {/* MODAL: VER CONTENIDO (SOLO LECTURA) */}
+            <ViewTransferModal
+                isOpen={showViewModal}
+                onClose={() => setShowViewModal(false)}
+                transferId={viewTransferId}
+            />
 
             {/* MODALES */}
             <SackModal

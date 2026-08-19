@@ -19,6 +19,13 @@ import CreateShipmentModal from "./CreateShipmentModal";
 import EditShipmentModal from "./EditShipmentModal";
 import SacksListModal from "./SacksListModal";
 
+type ExportKind =
+    | "manifest-excel"
+    | "manifest-csv"
+    | "receptions-excel"
+    | "acas-excel"
+    | "airline-excel";
+
 export default function ShipmentsIndex({
     shipments,
     filters,
@@ -85,17 +92,15 @@ export default function ShipmentsIndex({
 
     // Abre en pestaña nueva la descarga del reporte elegido (solo los
     // paquetes que están dentro de las sacas de ESE embarque).
-    const handleExport = (
-        shipmentId: string,
-        kind: "manifest-excel" | "manifest-csv" | "receptions-excel",
-    ) => {
-        const routeName =
-            kind === "manifest-excel"
-                ? "shipments.manifest.export"
-                : kind === "manifest-csv"
-                  ? "shipments.manifest.export.csv"
-                  : "shipments.receptions.export";
-        window.open(route(routeName, shipmentId), "_blank");
+    const handleExport = (shipmentId: string, kind: ExportKind) => {
+        const routeNameByKind: Record<ExportKind, string> = {
+            "manifest-excel": "shipments.manifest.export",
+            "manifest-csv": "shipments.manifest.export.csv",
+            "receptions-excel": "shipments.receptions.export",
+            "acas-excel": "shipments.acas.export",
+            "airline-excel": "shipments.airline.export",
+        };
+        window.open(route(routeNameByKind[kind], shipmentId), "_blank");
         setExportMenuId(null);
     };
 
@@ -281,7 +286,7 @@ export default function ShipmentsIndex({
                                                     Sacas
                                                 </Button>
 
-                                                {/* Botón de impresión con menú desplegable de 3 opciones */}
+                                                {/* Botón de impresión con menú desplegable de 5 opciones */}
                                                 <div className="relative">
                                                     <Button
                                                         size="sm"
@@ -356,6 +361,36 @@ export default function ShipmentsIndex({
                                                                     <FileSpreadsheet className="h-4 w-4 text-blue-400 flex-shrink-0" />
                                                                     Reporte de
                                                                     Recepciones
+                                                                    (Excel)
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        handleExport(
+                                                                            s.id,
+                                                                            "acas-excel",
+                                                                        )
+                                                                    }
+                                                                    className="w-full flex items-center gap-2 px-2 py-2 rounded hover:bg-red-900/30 text-sm text-white text-left"
+                                                                >
+                                                                    <FileSpreadsheet className="h-4 w-4 text-purple-400 flex-shrink-0" />
+                                                                    Manifiesto
+                                                                    ACAS Avianca
+                                                                    (Excel)
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        handleExport(
+                                                                            s.id,
+                                                                            "airline-excel",
+                                                                        )
+                                                                    }
+                                                                    className="w-full flex items-center gap-2 px-2 py-2 rounded hover:bg-red-900/30 text-sm text-white text-left"
+                                                                >
+                                                                    <FileSpreadsheet className="h-4 w-4 text-orange-400 flex-shrink-0" />
+                                                                    Reporte de
+                                                                    Sacas
                                                                     (Excel)
                                                                 </button>
                                                             </div>

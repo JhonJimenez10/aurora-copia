@@ -219,6 +219,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // TRASLADOS - CONFIRMACIÓN (solo Admin/Sudo)
     Route::get('/api/transfers/{transfer}/details', [TransferConfirmController::class, 'show'])
         ->name('transfers.details');
+    Route::get('/api/transfers/{transfer}/view', [TransferConfirmController::class, 'viewDetails'])
+        ->name('transfers.view');
     Route::put('/api/transfers/{transfer}/sacks', [TransferConfirmController::class, 'updateSacks'])
         ->name('transfers.update-sacks');
     Route::delete('/api/transfers/{transfer}/cancel', [TransferConfirmController::class, 'cancel'])
@@ -301,4 +303,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->name('shipments.manifest.export.csv');
     Route::get('/shipments/{shipment}/receptions/export', [ShipmentController::class, 'receptionsExport'])
         ->name('shipments.receptions.export');
+    Route::get('/shipments/{shipment}/acas-manifest/export', [ShipmentController::class, 'acasManifestExport'])
+        ->name('shipments.acas.export');
+    Route::get('/shipments/{shipment}/airline-manifest/export', [ShipmentController::class, 'airlineManifestExport'])
+        ->name('shipments.airline.export');
+    
 });

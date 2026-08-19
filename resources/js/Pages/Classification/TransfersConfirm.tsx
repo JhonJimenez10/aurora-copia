@@ -207,8 +207,10 @@ type ConfirmTransferDetails = {
 /** ---------------------
  * MODAL: VER CONTENIDO DEL TRASLADO (SOLO LECTURA)
  * Muestra TODAS las sacas del traslado, con sus paquetes pendientes y
- * confirmados, tal cual están en ese momento — sin ninguna posibilidad
- * de mover, editar ni guardar nada. Solo para consultar.
+ * confirmados. Usa el endpoint de solo lectura /api/transfers/{id}/view,
+ * que NO exige que el traslado esté PENDING — funciona con traslados ya
+ * confirmados o cancelados también. Sin ninguna posibilidad de mover,
+ * editar ni guardar nada.
  * --------------------- */
 type ViewTransferModalProps = {
     isOpen: boolean;
@@ -233,7 +235,10 @@ function ViewTransferModal({
             setDetails(null);
 
             try {
-                const res = await fetch(`/api/transfers/${transferId}/details`);
+                // ✅ Endpoint de SOLO LECTURA — funciona con traslados
+                // PENDING, CONFIRMED o CANCELLED (a diferencia de
+                // /details, que exige PENDING porque es para editar).
+                const res = await fetch(`/api/transfers/${transferId}/view`);
                 if (!res.ok) {
                     const errorData = await res.json();
                     throw new Error(errorData.error || `HTTP ${res.status}`);
@@ -712,10 +717,9 @@ function ConfirmTransferModal({
         setDetails(copy);
     };
 
-    // ✅ NUEVO: al escanear un código, busca el paquete PENDIENTE de la
-    // saca actual y lo pasa automáticamente a confirmados. Si no existe
-    // entre los pendientes de esta saca, suena una alerta y avisa — así
-    // se puede escanear uno tras otro sin hacer clic manual cada vez.
+    // ✅ Al escanear un código, busca el paquete PENDIENTE de la saca
+    // actual y lo pasa automáticamente a confirmados. Si no existe entre
+    // los pendientes de esta saca, suena una alerta y avisa.
     const handleScan = (e: FormEvent) => {
         e.preventDefault();
         if (!current) return;
@@ -1286,7 +1290,7 @@ export default function TransfersConfirm({
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-    // ✅ NUEVO: modal de solo lectura para ver contenido del traslado
+    // ✅ modal de solo lectura para ver contenido del traslado
     const [showViewModal, setShowViewModal] = useState(false);
     const [viewTransferId, setViewTransferId] = useState<
         number | string | null
@@ -1381,8 +1385,9 @@ export default function TransfersConfirm({
         setShowSearchModal(false);
     };
 
-    // ✅ NUEVO: abre la vista de solo lectura del traslado seleccionado,
-    // sin cerrar el buscador (para poder volver fácilmente a él).
+    // ✅ Abre la vista de solo lectura del traslado seleccionado, sin
+    // cerrar el buscador (para poder volver fácilmente a él). Funciona
+    // sin importar si el traslado ya está confirmado.
     const openViewForSelected = () => {
         if (!selectedResultId) return;
         setViewTransferId(selectedResultId);
@@ -1724,7 +1729,8 @@ export default function TransfersConfirm({
                         >
                             Cerrar
                         </Button>
-                        {/* ✅ NUEVO: Ver contenido (solo lectura) */}
+                        {/* ✅ Ver contenido (solo lectura) — funciona con
+                            traslados pendientes o ya confirmados */}
                         <Button
                             type="button"
                             className="bg-blue-700 hover:bg-blue-600"

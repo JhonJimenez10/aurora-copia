@@ -35,6 +35,57 @@ class TransferConfirmController extends Controller
     }
 
     /**
+     * Construye el payload de sacas/paquetes (pendientes y confirmados)
+     * de un traslado, reutilizado tanto por show() (edición, solo PENDING)
+     * como por viewDetails() (solo lectura, cualquier estado).
+     */
+    private function buildTransferPayload(Transfer $transfer): array
+    {
+        $transfer->load(['sacks.packages']);
+
+        $enterpriseRecord = Enterprise::where('id', $transfer->enterprise_id)
+            ->first(['id', 'name', 'commercial_name']);
+        $enterpriseName = $enterpriseRecord
+            ? $this->displayEnterpriseName($enterpriseRecord->name, $enterpriseRecord->commercial_name)
+            : null;
+
+        $sacks = $transfer->sacks->map(function (TransferSack $sack) {
+            $pending = $sack->packages->filter(fn($p) => !$p->pivot->confirmed)->values();
+            $confirmed = $sack->packages->filter(fn($p) => $p->pivot->confirmed)->values();
+
+            $mapPackage = function (Package $p) {
+                return [
+                    'id'          => (string) $p->id,
+                    'code'        => $p->barcode ?? $p->id,
+                    'content'     => $p->content ?? '',
+                    'serviceType' => $p->service_type ?? '',
+                    'pounds'      => (float) ($p->pivot->pounds ?? 0),
+                    'kilograms'   => (float) ($p->pivot->kilograms ?? 0),
+                ];
+            };
+
+            return [
+                'id'           => $sack->id,
+                'number'       => $sack->sack_number,
+                'seal'         => $sack->seal,
+                'refrigerated' => (bool) $sack->refrigerated,
+                'pending'      => $pending->map($mapPackage)->all(),
+                'confirmed'    => $confirmed->map($mapPackage)->all(),
+            ];
+        })->values();
+
+        return [
+            'id'              => $transfer->id,
+            'number'          => $transfer->number,
+            'status'          => $transfer->status,
+            'from_city'       => $transfer->from_city,
+            'to_city'         => $transfer->to_city,
+            'enterprise_name' => $enterpriseName,
+            'sacks'           => $sacks,
+        ];
+    }
+
+    /**
      * GET /classification/transfers/confirm
      */
     public function index()
@@ -102,6 +153,9 @@ class TransferConfirmController extends Controller
 
     /**
      * GET /api/transfers/{transfer}/details
+     * Usado por el modal de EDICIÓN/CONFIRMACIÓN. Sigue exigiendo que el
+     * traslado esté PENDING, porque no tiene sentido "confirmar" algo que
+     * ya está confirmado o cancelado.
      */
     public function show(Transfer $transfer)
     {
@@ -122,50 +176,38 @@ class TransferConfirmController extends Controller
             ], 422, ['Content-Type' => 'application/json']);
         }
 
-        $transfer->load(['sacks.packages']);
+        return response()->json(
+            $this->buildTransferPayload($transfer),
+            200,
+            ['Content-Type' => 'application/json'],
+        );
+    }
 
-        // ✅ Nombre de la empresa dueña del traslado (útil para el admin).
-        // CAMBIO: se trae también commercial_name para poder mostrar
-        // "Empresa de pruebas" en vez de "COAVPRO".
-        $enterpriseRecord = Enterprise::where('id', $transfer->enterprise_id)
-            ->first(['id', 'name', 'commercial_name']);
-        $enterpriseName = $enterpriseRecord
-            ? $this->displayEnterpriseName($enterpriseRecord->name, $enterpriseRecord->commercial_name)
-            : null;
+    /**
+     * ✅ NUEVO: GET /api/transfers/{transfer}/view
+     * Igual que show(), pero de SOLO LECTURA: no exige que el traslado
+     * esté PENDING. Sirve para ver el contenido (sacas, paquetes
+     * pendientes y confirmados) de un traslado en cualquier estado
+     * (PENDING, CONFIRMED o CANCELLED), sin poder editar nada desde aquí.
+     */
+    public function viewDetails(Transfer $transfer)
+    {
+        $user = Auth::user();
+        $isAdmin = $this->canViewAllEnterprises($user);
 
-        $sacks = $transfer->sacks->map(function (TransferSack $sack) {
-            $pending = $sack->packages->filter(fn($p) => !$p->pivot->confirmed)->values();
-            $confirmed = $sack->packages->filter(fn($p) => $p->pivot->confirmed)->values();
+        // ✅ Mismo control de permisos que show(), pero SIN el bloqueo por
+        // estado — ver contenido no modifica nada, así que no hay riesgo.
+        if (!$isAdmin && $transfer->enterprise_id !== $user->enterprise_id) {
+            return response()->json([
+                'error' => 'No tienes permiso para ver este traslado.'
+            ], 403, ['Content-Type' => 'application/json']);
+        }
 
-            $mapPackage = function (Package $p) {
-                return [
-                    'id'          => (string) $p->id,
-                    'code'        => $p->barcode ?? $p->id,
-                    'content'     => $p->content ?? '',
-                    'serviceType' => $p->service_type ?? '',
-                    'pounds'      => (float) ($p->pivot->pounds ?? 0),
-                    'kilograms'   => (float) ($p->pivot->kilograms ?? 0),
-                ];
-            };
-
-            return [
-                'id'           => $sack->id,
-                'number'       => $sack->sack_number,
-                'seal'         => $sack->seal,
-                'refrigerated' => (bool) $sack->refrigerated,
-                'pending'      => $pending->map($mapPackage)->all(),
-                'confirmed'    => $confirmed->map($mapPackage)->all(),
-            ];
-        })->values();
-
-        return response()->json([
-            'id'              => $transfer->id,
-            'number'          => $transfer->number,
-            'from_city'       => $transfer->from_city,
-            'to_city'         => $transfer->to_city,
-            'enterprise_name' => $enterpriseName, // ✅ NUEVO
-            'sacks'           => $sacks,
-        ], 200, ['Content-Type' => 'application/json']);
+        return response()->json(
+            $this->buildTransferPayload($transfer),
+            200,
+            ['Content-Type' => 'application/json'],
+        );
     }
 
     /**

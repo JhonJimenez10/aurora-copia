@@ -6,6 +6,8 @@ use App\Models\Shipment;
 use App\Exports\ShipmentManifestExport;
 use App\Exports\ShipmentManifestCsvExport;
 use App\Exports\ShipmentReceptionsExport;
+use App\Exports\ShipmentAcasAviancaManifestExport;
+use App\Exports\ShipmentAirlineManifestExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
@@ -334,6 +336,36 @@ class ShipmentController extends Controller
         return Excel::download(
             new ShipmentReceptionsExport((string) $shipment->id),
             "recepciones-embarque-{$shipment->number}.xlsx"
+        );
+    }
+
+    // -------------------------------------------------------
+    // ✅ NUEVO: MANIFIESTO ACAS AVIANCA — solo paquetes de este embarque,
+    // con columna SACA (número real de saca asignado en el embarque)
+    // -------------------------------------------------------
+    public function acasManifestExport($id)
+    {
+        $enterpriseId = auth()->user()->enterprise_id;
+        $shipment = Shipment::where('enterprise_id', $enterpriseId)->findOrFail($id);
+
+        return Excel::download(
+            new ShipmentAcasAviancaManifestExport((string) $shipment->id),
+            "acas-avianca-embarque-{$shipment->number}.xlsx"
+        );
+    }
+
+    // -------------------------------------------------------
+    // ✅ NUEVO: REPORTE DE SACAS (Airline Manifest con columna BAG) —
+    // solo paquetes de este embarque, con el número real de saca en BAG
+    // -------------------------------------------------------
+    public function airlineManifestExport($id)
+    {
+        $enterpriseId = auth()->user()->enterprise_id;
+        $shipment = Shipment::where('enterprise_id', $enterpriseId)->findOrFail($id);
+
+        return Excel::download(
+            new ShipmentAirlineManifestExport((string) $shipment->id),
+            "reporte-sacas-embarque-{$shipment->number}.xlsx"
         );
     }
 }
