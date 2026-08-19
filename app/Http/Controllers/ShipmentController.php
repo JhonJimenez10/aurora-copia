@@ -10,6 +10,7 @@ use App\Exports\ShipmentManifestCsvExport;
 use App\Exports\ShipmentReceptionsExport;
 use App\Exports\ShipmentAcasAviancaManifestExport;
 use App\Exports\ShipmentAirlineManifestExport;
+use App\Exports\ShipmentNYManifestExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -382,7 +383,22 @@ class ShipmentController extends Controller
     }
 
     // -------------------------------------------------------
-    // ✅ NUEVO: LISTADO PARA ENTREGAS (PDF) — solo paquetes de este
+    // ✅ NUEVO: MANIFIESTO NY — solo paquetes de este embarque, con
+    // columna SACA (número real de saca asignado en el embarque)
+    // -------------------------------------------------------
+    public function nyManifestExport($id)
+    {
+        $enterpriseId = auth()->user()->enterprise_id;
+        $shipment = Shipment::where('enterprise_id', $enterpriseId)->findOrFail($id);
+
+        return Excel::download(
+            new ShipmentNYManifestExport((string) $shipment->id),
+            "manifiesto-ny-embarque-{$shipment->number}.xlsx"
+        );
+    }
+
+    // -------------------------------------------------------
+    // LISTADO PARA ENTREGAS (PDF) — solo paquetes de este
     // embarque que van a la agencia destino seleccionada. Mismo formato
     // que el "Listado para entregas" que ya usa la empresa.
     // -------------------------------------------------------

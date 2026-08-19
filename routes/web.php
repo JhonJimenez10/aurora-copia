@@ -314,5 +314,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // PDF "Listado para entregas" filtrado por agencia destino
     Route::get('/shipments/{shipment}/delivery-list/pdf', [ShipmentController::class, 'deliveryListPdf'])
         ->name('shipments.delivery-list.pdf');
+    Route::get('/shipments/{shipment}/ny-manifest/export', [ShipmentController::class, 'nyManifestExport'])
+        ->name('shipments.ny.export');
     
 });

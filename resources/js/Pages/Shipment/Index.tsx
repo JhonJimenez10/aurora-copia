@@ -24,7 +24,8 @@ type ExportKind =
     | "manifest-csv"
     | "receptions-excel"
     | "acas-excel"
-    | "airline-excel";
+    | "airline-excel"
+    | "ny-excel";
 
 interface DestinationAgencyOption {
     id: string;
@@ -114,6 +115,7 @@ export default function ShipmentsIndex({
             "receptions-excel": "shipments.receptions.export",
             "acas-excel": "shipments.acas.export",
             "airline-excel": "shipments.airline.export",
+            "ny-excel": "shipments.ny.export",
         };
         window.open(route(routeNameByKind[kind], shipmentId), "_blank");
         setExportMenuId(null);
@@ -447,12 +449,26 @@ export default function ShipmentsIndex({
                                                                     Sacas
                                                                     (Excel)
                                                                 </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        handleExport(
+                                                                            s.id,
+                                                                            "ny-excel",
+                                                                        )
+                                                                    }
+                                                                    className="w-full flex items-center gap-2 px-2 py-2 rounded hover:bg-red-900/30 text-sm text-white text-left"
+                                                                >
+                                                                    <FileSpreadsheet className="h-4 w-4 text-pink-400 flex-shrink-0" />
+                                                                    Manifiesto
+                                                                    NY (Excel)
+                                                                </button>
                                                             </div>
                                                         </>
                                                     )}
                                                 </div>
 
-                                                {/* ✅ NUEVO: Botón PDF con selector de agencia destino */}
+                                                {/* Botón PDF con selector de agencia destino */}
                                                 <div className="relative">
                                                     <Button
                                                         size="sm"
