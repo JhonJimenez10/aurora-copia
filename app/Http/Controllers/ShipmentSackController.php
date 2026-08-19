@@ -225,6 +225,46 @@ class ShipmentSackController extends Controller
     }
 
     /**
+     * ✅ NUEVO: GET /api/shipments/{shipment}/destination-agencies
+     *
+     * Lista de agencias destino DISTINTAS entre los paquetes que están
+     * asignados a alguna saca de este embarque. Se usa para armar el
+     * selector del reporte PDF "Listado para entregas" (que se descarga
+     * filtrado por una sola agencia destino a la vez).
+     */
+    public function destinationAgenciesForShipment($shipmentId)
+    {
+        $user = auth()->user();
+        $isAdmin = $this->canViewAllEnterprises($user);
+
+        $shipmentQuery = Shipment::query();
+        if (!$isAdmin) {
+            $shipmentQuery->where('enterprise_id', $user->enterprise_id);
+        }
+        $shipmentQuery->findOrFail($shipmentId);
+
+        $packageIds = DB::table('shipment_sack_packages')
+            ->join('shipment_sacks', 'shipment_sacks.id', '=', 'shipment_sack_packages.shipment_sack_id')
+            ->where('shipment_sacks.shipment_id', $shipmentId)
+            ->pluck('shipment_sack_packages.package_id');
+
+        if ($packageIds->isEmpty()) {
+            return response()->json([]);
+        }
+
+        $agencies = DB::table('packages')
+            ->join('receptions', 'receptions.id', '=', 'packages.reception_id')
+            ->join('agencies_dest', 'agencies_dest.id', '=', 'receptions.agency_dest')
+            ->whereIn('packages.id', $packageIds)
+            ->select('agencies_dest.id', 'agencies_dest.name')
+            ->distinct()
+            ->orderBy('agencies_dest.name')
+            ->get();
+
+        return response()->json($agencies);
+    }
+
+    /**
      * POST /api/shipments/{shipment}/sacks
      */
     public function assignSacks(Request $request, $shipmentId)

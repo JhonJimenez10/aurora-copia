@@ -26,6 +26,11 @@ type ExportKind =
     | "acas-excel"
     | "airline-excel";
 
+interface DestinationAgencyOption {
+    id: string;
+    name: string;
+}
+
 export default function ShipmentsIndex({
     shipments,
     filters,
@@ -53,6 +58,16 @@ export default function ShipmentsIndex({
     );
     // id del embarque cuyo menú de exportación está abierto (uno a la vez)
     const [exportMenuId, setExportMenuId] = useState<string | null>(null);
+
+    // ─── Selector de agencia destino para el PDF "Listado para entregas" ───
+    const [pdfPickerShipmentId, setPdfPickerShipmentId] = useState<
+        string | null
+    >(null);
+    const [pdfAgencies, setPdfAgencies] = useState<DestinationAgencyOption[]>(
+        [],
+    );
+    const [pdfLoading, setPdfLoading] = useState(false);
+    const [pdfError, setPdfError] = useState<string | null>(null);
 
     const handleFilter = (e: React.FormEvent) => {
         e.preventDefault();
@@ -102,6 +117,45 @@ export default function ShipmentsIndex({
         };
         window.open(route(routeNameByKind[kind], shipmentId), "_blank");
         setExportMenuId(null);
+    };
+
+    // Abre/cierra el selector de agencia destino para el PDF de un embarque,
+    // cargando las agencias disponibles la primera vez que se abre.
+    const openPdfPicker = async (shipmentId: string) => {
+        if (pdfPickerShipmentId === shipmentId) {
+            setPdfPickerShipmentId(null);
+            return;
+        }
+        setPdfPickerShipmentId(shipmentId);
+        setPdfAgencies([]);
+        setPdfError(null);
+        setPdfLoading(true);
+        try {
+            const res = await fetch(
+                route("shipments.destination-agencies", shipmentId),
+            );
+            if (!res.ok) throw new Error();
+            const list: DestinationAgencyOption[] = await res.json();
+            setPdfAgencies(list);
+        } catch {
+            setPdfError("No se pudieron cargar las agencias destino.");
+        } finally {
+            setPdfLoading(false);
+        }
+    };
+
+    // Descarga el PDF "Listado para entregas" filtrado por la agencia
+    // destino elegida (solo paquetes de ese embarque, hacia esa agencia).
+    const handleDownloadDeliveryListPdf = (
+        shipmentId: string,
+        agencyDestId: string,
+    ) => {
+        const url = `${route(
+            "shipments.delivery-list.pdf",
+            shipmentId,
+        )}?agency_dest_id=${agencyDestId}`;
+        window.open(url, "_blank");
+        setPdfPickerShipmentId(null);
     };
 
     const fmtDate = (iso: string) =>
@@ -286,7 +340,7 @@ export default function ShipmentsIndex({
                                                     Sacas
                                                 </Button>
 
-                                                {/* Botón de impresión con menú desplegable de 5 opciones */}
+                                                {/* Botón de impresión con menú desplegable de reportes Excel/CSV */}
                                                 <div className="relative">
                                                     <Button
                                                         size="sm"
@@ -393,6 +447,100 @@ export default function ShipmentsIndex({
                                                                     Sacas
                                                                     (Excel)
                                                                 </button>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+
+                                                {/* ✅ NUEVO: Botón PDF con selector de agencia destino */}
+                                                <div className="relative">
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            openPdfPicker(s.id)
+                                                        }
+                                                        title="Descargar listado para entregas en PDF, filtrado por agencia destino"
+                                                        className="h-7 px-2.5 bg-purple-700 hover:bg-purple-600 text-white text-xs font-semibold"
+                                                    >
+                                                        <FileText className="h-3 w-3 mr-1" />
+                                                        PDF
+                                                    </Button>
+
+                                                    {pdfPickerShipmentId ===
+                                                        s.id && (
+                                                        <>
+                                                            <div
+                                                                className="fixed inset-0 z-40"
+                                                                onClick={() =>
+                                                                    setPdfPickerShipmentId(
+                                                                        null,
+                                                                    )
+                                                                }
+                                                            />
+                                                            <div className="absolute right-0 top-full mt-1 w-72 bg-[#111] border border-red-700 rounded-lg shadow-xl z-50 p-2">
+                                                                <p className="text-[11px] font-semibold uppercase tracking-wider text-red-300 px-2 pb-2 mb-1 border-b border-red-900/40">
+                                                                    Selecciona
+                                                                    la agencia
+                                                                    destino
+                                                                </p>
+
+                                                                {pdfLoading && (
+                                                                    <p className="text-xs text-gray-400 px-2 py-3 italic">
+                                                                        Cargando
+                                                                        agencias...
+                                                                    </p>
+                                                                )}
+
+                                                                {pdfError && (
+                                                                    <p className="text-xs text-red-400 px-2 py-3">
+                                                                        {
+                                                                            pdfError
+                                                                        }
+                                                                    </p>
+                                                                )}
+
+                                                                {!pdfLoading &&
+                                                                    !pdfError &&
+                                                                    (pdfAgencies.length ? (
+                                                                        <div className="max-h-64 overflow-y-auto space-y-1">
+                                                                            {pdfAgencies.map(
+                                                                                (
+                                                                                    a,
+                                                                                ) => (
+                                                                                    <button
+                                                                                        key={
+                                                                                            a.id
+                                                                                        }
+                                                                                        type="button"
+                                                                                        onClick={() =>
+                                                                                            handleDownloadDeliveryListPdf(
+                                                                                                s.id,
+                                                                                                a.id,
+                                                                                            )
+                                                                                        }
+                                                                                        className="w-full flex items-center gap-2 px-2 py-2 rounded hover:bg-red-900/30 text-sm text-white text-left truncate"
+                                                                                    >
+                                                                                        <FileText className="h-4 w-4 text-purple-400 flex-shrink-0" />
+                                                                                        {
+                                                                                            a.name
+                                                                                        }
+                                                                                    </button>
+                                                                                ),
+                                                                            )}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <p className="text-xs text-gray-500 px-2 py-3 text-center">
+                                                                            Este
+                                                                            embarque
+                                                                            no
+                                                                            tiene
+                                                                            paquetes
+                                                                            con
+                                                                            agencia
+                                                                            destino
+                                                                            registrada.
+                                                                        </p>
+                                                                    ))}
                                                             </div>
                                                         </>
                                                     )}

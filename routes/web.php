@@ -307,5 +307,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->name('shipments.acas.export');
     Route::get('/shipments/{shipment}/airline-manifest/export', [ShipmentController::class, 'airlineManifestExport'])
         ->name('shipments.airline.export');
+    // Agencias destino disponibles en este embarque (para el selector del PDF)
+    Route::get('/api/shipments/{shipment}/destination-agencies', [ShipmentSackController::class, 'destinationAgenciesForShipment'])
+        ->name('shipments.destination-agencies');
+
+    // PDF "Listado para entregas" filtrado por agencia destino
+    Route::get('/shipments/{shipment}/delivery-list/pdf', [ShipmentController::class, 'deliveryListPdf'])
+        ->name('shipments.delivery-list.pdf');
     
 });
