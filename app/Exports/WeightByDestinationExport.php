@@ -14,22 +14,28 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
  * Mismo formato que WeightReportExport, pero agrupado por AGENCIA DESTINO
- * en vez de agencia origen, con filtro opcional por una agencia destino
- * puntual.
+ * en vez de agencia origen.
+ *
+ * ✅ CORREGIDO: el filtro de agencia destino ya NO usa el id de
+ * agencies_dest (esa tabla es por-empresa, así que la misma ciudad
+ * — ej. "ALBANY" — tiene un id distinto para cada empresa). Ahora se
+ * filtra por el NOMBRE de la agencia (case-insensitive), así funciona
+ * correctamente sin importar qué empresa esté seleccionada, incluida
+ * "Todas las empresas".
  */
 class WeightByDestinationExport implements FromCollection, WithHeadings, WithStyles, ShouldAutoSize, WithEvents
 {
     protected string $startDate;
     protected string $endDate;
     protected string $enterpriseId;   // 'all' o uuid
-    protected string $agencyDestId;   // 'all' o uuid
+    protected string $agencyDestName; // 'all' o nombre exacto de la agencia destino
 
-    public function __construct(string $startDate, string $endDate, string $enterpriseId, string $agencyDestId)
+    public function __construct(string $startDate, string $endDate, string $enterpriseId, string $agencyDestName)
     {
-        $this->startDate    = $startDate;
-        $this->endDate      = $endDate;
-        $this->enterpriseId = $enterpriseId;
-        $this->agencyDestId = $agencyDestId;
+        $this->startDate      = $startDate;
+        $this->endDate        = $endDate;
+        $this->enterpriseId   = $enterpriseId;
+        $this->agencyDestName = $agencyDestName;
     }
 
     public function collection(): Collection
@@ -41,7 +47,6 @@ class WeightByDestinationExport implements FromCollection, WithHeadings, WithSty
             ->select(
                 'enterprises.id as enterprise_id',
                 'enterprises.name as enterprise_name',
-                'agencies_dest.id as agency_dest_id',
                 'agencies_dest.name as agencia_destino',
                 DB::raw('SUM(packages.pounds)    AS total_libras'),
                 DB::raw('SUM(packages.kilograms) AS total_kilos'),
@@ -58,19 +63,21 @@ class WeightByDestinationExport implements FromCollection, WithHeadings, WithSty
             $q->where('receptions.enterprise_id', $this->enterpriseId);
         }
 
-        // Filtro por agencia destino puntual (si no es 'all')
-        if ($this->agencyDestId !== 'all') {
-            $q->where('receptions.agency_dest', $this->agencyDestId);
+        // ✅ CORREGIDO: filtro por NOMBRE de agencia destino, no por id.
+        // Funciona igual sin importar la empresa seleccionada, porque
+        // compara el nombre de la agencia (ej. "ALBANY") sin importar de
+        // qué empresa sea la fila de agencies_dest.
+        if ($this->agencyDestName !== 'all' && $this->agencyDestName !== '') {
+            $q->whereRaw('UPPER(agencies_dest.name) = UPPER(?)', [$this->agencyDestName]);
         }
 
-        // ✅ CLAVE: Agrupar por empresa Y agencia DESTINO
+        // Agrupar por empresa Y agencia DESTINO (por nombre)
         $weights = $q->groupBy(
             'enterprises.id',
             'enterprises.name',
-            'agencies_dest.id',
             'agencies_dest.name'
         )
-            ->orderBy('agencia_destino') // agrupa visualmente por agencia destino primero
+            ->orderBy('agencia_destino')
             ->orderBy('enterprises.name')
             ->get();
 
@@ -83,7 +90,7 @@ class WeightByDestinationExport implements FromCollection, WithHeadings, WithSty
             $kg = (float) ($r->total_kilos  ?? 0);
 
             $rows[] = [
-                $r->agencia_destino ?? 'Sin agencia destino', // ✅ Columna principal
+                $r->agencia_destino ?? 'Sin agencia destino',
                 $r->enterprise_name,
                 $r->rutas,
                 $lb,
@@ -109,7 +116,7 @@ class WeightByDestinationExport implements FromCollection, WithHeadings, WithSty
     public function headings(): array
     {
         return [
-            'Agencia Destino', // ✅ Columna principal de agrupación
+            'Agencia Destino',
             'Empresa',
             'Ruta',
             'Peso (Lbs)',

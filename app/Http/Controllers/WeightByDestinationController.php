@@ -45,13 +45,17 @@ class WeightByDestinationController extends Controller
     }
 
     /**
-     * Agencias destino visibles para el combo de filtro. Si se eligió una
-     * empresa puntual, solo las agencias destino de esa empresa; si es
-     * "Todas", las de todas las empresas visibles (excluyendo COAVPRO).
+     * ✅ CORREGIDO: lista de NOMBRES únicos de agencia destino (no de ids).
+     * agencies_dest es una tabla por-empresa, así que la misma ciudad (ej.
+     * "ALBANY") existe como una fila distinta por cada empresa que la
+     * configuró. Antes esto hacía que el combo mostrara "ALBANY" repetido
+     * una vez por empresa. Agrupando por nombre, sale una sola vez —y el
+     * filtro después compara por nombre, no por id, así que funciona
+     * igual sin importar qué empresa esté seleccionada.
      */
-    protected function getVisibleDestinationAgencies(string $enterpriseFilter)
+    protected function getVisibleDestinationAgencyNames(string $enterpriseFilter): array
     {
-        $query = AgencyDest::select('id', 'name', 'enterprise_id');
+        $query = AgencyDest::query()->whereNotNull('name')->where('name', '!=', '');
 
         if ($enterpriseFilter !== 'all') {
             $query->where('enterprise_id', $enterpriseFilter);
@@ -60,7 +64,11 @@ class WeightByDestinationController extends Controller
             $query->whereNotIn('enterprise_id', $coavproIds);
         }
 
-        return $query->orderBy('name')->get();
+        return $query->groupBy('name')
+            ->orderBy('name')
+            ->pluck('name')
+            ->values()
+            ->all();
     }
 
     /* =================== Vista =================== */
@@ -68,13 +76,13 @@ class WeightByDestinationController extends Controller
     {
         $this->ensureAdminOrSudo();
 
-        $startDate    = (string) $request->query('start_date', '');
-        $endDate      = (string) $request->query('end_date', '');
-        $enterpriseId = (string) $request->query('enterprise_id', 'all') ?: 'all';
-        $agencyDestId = (string) $request->query('agency_dest_id', 'all') ?: 'all';
+        $startDate      = (string) $request->query('start_date', '');
+        $endDate        = (string) $request->query('end_date', '');
+        $enterpriseId   = (string) $request->query('enterprise_id', 'all') ?: 'all';
+        $agencyDestName = (string) $request->query('agency_dest_name', 'all') ?: 'all';
 
-        $enterprises          = $this->getVisibleEnterprises();
-        $destinationAgencies  = $this->getVisibleDestinationAgencies($enterpriseId);
+        $enterprises           = $this->getVisibleEnterprises();
+        $destinationAgencyNames = $this->getVisibleDestinationAgencyNames($enterpriseId);
 
         $rows = [];
 
@@ -86,7 +94,6 @@ class WeightByDestinationController extends Controller
                 ->select(
                     'enterprises.id as enterprise_id',
                     'enterprises.name as enterprise_name',
-                    'agencies_dest.id as agency_dest_id',
                     'agencies_dest.name as agencia_destino',
                     DB::raw('SUM(packages.pounds)    AS total_libras'),
                     DB::raw('SUM(packages.kilograms) AS total_kilos'),
@@ -102,15 +109,14 @@ class WeightByDestinationController extends Controller
                 $q->where('receptions.enterprise_id', $enterpriseId);
             }
 
-            if ($agencyDestId !== 'all') {
-                $q->where('receptions.agency_dest', $agencyDestId);
+            // ✅ CORREGIDO: filtro por NOMBRE de agencia destino, no por id.
+            if ($agencyDestName !== 'all' && $agencyDestName !== '') {
+                $q->whereRaw('UPPER(agencies_dest.name) = UPPER(?)', [$agencyDestName]);
             }
 
-            // ✅ CLAVE: Agrupar por empresa Y agencia DESTINO
             $rows = $q->groupBy(
                 'enterprises.id',
                 'enterprises.name',
-                'agencies_dest.id',
                 'agencies_dest.name'
             )
                 ->orderBy('agencia_destino')
@@ -119,13 +125,13 @@ class WeightByDestinationController extends Controller
         }
 
         return Inertia::render('Reports/WeightReportByDestination', [
-            'rows'                => $rows,
-            'startDate'           => $startDate,
-            'endDate'             => $endDate,
-            'enterprises'         => $enterprises,
-            'destinationAgencies' => $destinationAgencies,
-            'enterpriseId'        => $enterpriseId,
-            'agencyDestId'        => $agencyDestId,
+            'rows'                   => $rows,
+            'startDate'              => $startDate,
+            'endDate'                => $endDate,
+            'enterprises'            => $enterprises,
+            'destinationAgencyNames' => $destinationAgencyNames,
+            'enterpriseId'           => $enterpriseId,
+            'agencyDestName'         => $agencyDestName,
         ]);
     }
 
@@ -134,26 +140,28 @@ class WeightByDestinationController extends Controller
     {
         $this->ensureAdminOrSudo();
 
-        $startDate    = (string) ($request->query('start_date') ?? '');
-        $endDate      = (string) ($request->query('end_date')   ?? '');
-        $enterpriseId = (string) ($request->query('enterprise_id') ?? '') ?: 'all';
-        $agencyDestId = (string) ($request->query('agency_dest_id') ?? '') ?: 'all';
+        $startDate      = (string) ($request->query('start_date') ?? '');
+        $endDate        = (string) ($request->query('end_date')   ?? '');
+        $enterpriseId   = (string) ($request->query('enterprise_id') ?? '') ?: 'all';
+        $agencyDestName = (string) ($request->query('agency_dest_name') ?? '') ?: 'all';
 
         validator(['start_date' => $startDate, 'end_date' => $endDate], [
             'start_date' => ['required', 'date'],
             'end_date'   => ['required', 'date', 'after_or_equal:start_date'],
         ])->validate();
 
+        $agencyLabel = $agencyDestName === 'all' ? 'TODAS' : preg_replace('/\s+/', '_', $agencyDestName);
+
         $fileName = sprintf(
             'Reporte_Pesos_Destino_%s_%s_emp%s_ag%s.xlsx',
             Carbon::parse($startDate)->format('Ymd'),
             Carbon::parse($endDate)->format('Ymd'),
             $enterpriseId === 'all' ? 'TODAS' : $enterpriseId,
-            $agencyDestId === 'all' ? 'TODAS' : $agencyDestId
+            $agencyLabel
         );
 
         return Excel::download(
-            new WeightByDestinationExport($startDate, $endDate, $enterpriseId, $agencyDestId),
+            new WeightByDestinationExport($startDate, $endDate, $enterpriseId, $agencyDestName),
             $fileName
         );
     }

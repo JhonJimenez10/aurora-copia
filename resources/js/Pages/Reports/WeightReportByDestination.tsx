@@ -1,14 +1,6 @@
 import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Button } from "@/Components/ui/button";
-import { Input } from "@/Components/ui/input";
-import {
-    Select,
-    SelectTrigger,
-    SelectValue,
-    SelectContent,
-    SelectItem,
-} from "@/Components/ui/select";
 import { useState } from "react";
 import { Download, Search, Scale } from "lucide-react";
 
@@ -18,16 +10,9 @@ interface EnterpriseOption {
     commercial_name: string;
 }
 
-interface DestinationAgencyOption {
-    id: string;
-    name: string;
-    enterprise_id: string;
-}
-
 interface WeightRow {
     enterprise_id: string;
     enterprise_name: string;
-    agency_dest_id: string | null;
     agencia_destino: string | null;
     total_libras: number | string;
     total_kilos: number | string;
@@ -39,27 +24,33 @@ interface Props {
     startDate: string;
     endDate: string;
     enterprises: EnterpriseOption[];
-    destinationAgencies: DestinationAgencyOption[];
+    destinationAgencyNames: string[];
     enterpriseId: string;
-    agencyDestId: string;
+    agencyDestName: string;
 }
+
+// Mismo estilo de <select> nativo oscuro usado en el resto de la app
+// (Embarques, Traslados, etc.) — nada de overlays transparentes.
+const selectCls =
+    "bg-[#111] border border-red-700 rounded px-3 py-2 text-sm text-white " +
+    "focus:outline-none focus:border-red-500";
 
 export default function WeightReportByDestination({
     rows,
     startDate: initialStartDate,
     endDate: initialEndDate,
     enterprises,
-    destinationAgencies,
+    destinationAgencyNames,
     enterpriseId: initialEnterpriseId,
-    agencyDestId: initialAgencyDestId,
+    agencyDestName: initialAgencyDestName,
 }: Props) {
     const [startDate, setStartDate] = useState(initialStartDate ?? "");
     const [endDate, setEndDate] = useState(initialEndDate ?? "");
     const [enterpriseId, setEnterpriseId] = useState(
         initialEnterpriseId ?? "all",
     );
-    const [agencyDestId, setAgencyDestId] = useState(
-        initialAgencyDestId ?? "all",
+    const [agencyDestName, setAgencyDestName] = useState(
+        initialAgencyDestName ?? "all",
     );
     const [loading, setLoading] = useState(false);
 
@@ -85,7 +76,7 @@ export default function WeightReportByDestination({
                 start_date: startDate,
                 end_date: endDate,
                 enterprise_id: enterpriseId,
-                agency_dest_id: agencyDestId,
+                agency_dest_name: agencyDestName,
             },
             {
                 preserveState: true,
@@ -96,24 +87,27 @@ export default function WeightReportByDestination({
         );
     };
 
-    // Al cambiar de empresa, reinicia la agencia destino elegida (porque
-    // la lista de agencias visibles depende de la empresa seleccionada) y
-    // vuelve a pedir la página para refrescar esa lista.
+    // Al cambiar de empresa, la lista de agencias destino visibles cambia
+    // (son por-empresa), así que reiniciamos la agencia elegida y volvemos
+    // a pedir la página para refrescar esa lista.
     const handleEnterpriseChange = (val: string) => {
         setEnterpriseId(val);
-        setAgencyDestId("all");
+        setAgencyDestName("all");
+
+        setLoading(true);
         router.get(
             route("reports.weights.destination"),
             {
                 start_date: startDate,
                 end_date: endDate,
                 enterprise_id: val,
-                agency_dest_id: "all",
+                agency_dest_name: "all",
             },
             {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
+                onFinish: () => setLoading(false),
             },
         );
     };
@@ -127,7 +121,7 @@ export default function WeightReportByDestination({
             start_date: startDate,
             end_date: endDate,
             enterprise_id: enterpriseId,
-            agency_dest_id: agencyDestId,
+            agency_dest_name: agencyDestName,
         });
         window.open(
             `${route("reports.weights.destination.export")}?${params.toString()}`,
@@ -157,77 +151,71 @@ export default function WeightReportByDestination({
                         onSubmit={handleSearch}
                         className="flex flex-wrap gap-3 items-end bg-[#1b1b1b] border border-red-700 rounded-lg p-4"
                     >
-                        <div>
+                        <div className="flex flex-col">
                             <label className="text-white block mb-1 text-xs">
                                 Fecha inicio
                             </label>
-                            <Input
+                            <input
                                 type="date"
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
-                                className="bg-white text-black"
+                                className={selectCls}
                                 required
                             />
                         </div>
-                        <div>
+                        <div className="flex flex-col">
                             <label className="text-white block mb-1 text-xs">
                                 Fecha fin
                             </label>
-                            <Input
+                            <input
                                 type="date"
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
-                                className="bg-white text-black"
+                                className={selectCls}
                                 required
                             />
                         </div>
 
-                        <div className="min-w-[200px]">
+                        <div className="flex flex-col min-w-[220px]">
                             <label className="text-white block mb-1 text-xs">
                                 Empresa
                             </label>
-                            <Select
+                            <select
                                 value={enterpriseId}
-                                onValueChange={handleEnterpriseChange}
+                                onChange={(e) =>
+                                    handleEnterpriseChange(e.target.value)
+                                }
+                                className={selectCls}
                             >
-                                <SelectTrigger className="bg-white text-black">
-                                    <SelectValue placeholder="Todas" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">
-                                        Todas las empresas
-                                    </SelectItem>
-                                    {enterprises.map((ent) => (
-                                        <SelectItem key={ent.id} value={ent.id}>
-                                            {ent.commercial_name || ent.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                <option value="all">Todas las empresas</option>
+                                {enterprises.map((ent) => (
+                                    <option key={ent.id} value={ent.id}>
+                                        {ent.commercial_name || ent.name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
-                        <div className="min-w-[220px]">
+                        <div className="flex flex-col min-w-[220px]">
                             <label className="text-white block mb-1 text-xs">
                                 Agencia Destino
                             </label>
-                            <Select
-                                value={agencyDestId}
-                                onValueChange={setAgencyDestId}
+                            <select
+                                value={agencyDestName}
+                                onChange={(e) =>
+                                    setAgencyDestName(e.target.value)
+                                }
+                                className={selectCls}
                             >
-                                <SelectTrigger className="bg-white text-black">
-                                    <SelectValue placeholder="Todas" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">
-                                        Todas las agencias destino
-                                    </SelectItem>
-                                    {destinationAgencies.map((a) => (
-                                        <SelectItem key={a.id} value={a.id}>
-                                            {a.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                <option value="all">
+                                    Todas las agencias destino
+                                </option>
+                                {destinationAgencyNames.map((name) => (
+                                    <option key={name} value={name}>
+                                        {name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         <Button
@@ -299,7 +287,7 @@ export default function WeightReportByDestination({
                                 {rows.length ? (
                                     rows.map((r, idx) => (
                                         <tr
-                                            key={`${r.enterprise_id}-${r.agency_dest_id ?? "none"}-${idx}`}
+                                            key={`${r.enterprise_id}-${r.agencia_destino ?? "none"}-${idx}`}
                                             className="border-t border-red-700 hover:bg-[#1b1b1b]"
                                         >
                                             <td className="px-4 py-2">
