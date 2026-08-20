@@ -183,6 +183,12 @@ export default function SidebarNavigation() {
                         href: "/reports/weights",
                         icon: <FileSpreadsheet className="h-4 w-4" />,
                     },
+                    // ✅ NUEVO: Reporte de Pesos por Agencia Destino (solo Admin/Sudo)
+                    {
+                        title: "Reporte de Pesos por Agencia Destino",
+                        href: "/reports/weights-destination",
+                        icon: <FileSpreadsheet className="h-4 w-4" />,
+                    },
                 ],
             },
             {

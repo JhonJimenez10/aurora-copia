@@ -29,6 +29,7 @@ use App\Http\Controllers\{
     ShipmentController,
     ShipmentSackController,
     ShipmentSackReportController,
+    WeightByDestinationController
 };
 
 use App\Http\Middleware\EnsureSudo;
@@ -316,5 +317,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->name('shipments.delivery-list.pdf');
     Route::get('/shipments/{shipment}/ny-manifest/export', [ShipmentController::class, 'nyManifestExport'])
         ->name('shipments.ny.export');
+    Route::get('/reports/weights-destination', [WeightByDestinationController::class, 'index'])
+        ->name('reports.weights.destination');
+    Route::get('/reports/weights-destination/export', [WeightByDestinationController::class, 'export'])
+        ->name('reports.weights.destination.export');
     
 });
