@@ -1,128 +1,136 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta charset="utf-8">
-<title>Listado para entregas</title>
-<style>
-    @page {
-        margin: 145px 25px 50px 25px;
-    }
+    <meta charset="utf-8">
+    <title>Listado para entregas</title>
+    <style>
+        @page {
+            size: letter landscape;
+            margin: 145px 20px 50px 20px;
+        }
 
-    body {
-        font-family: DejaVu Sans, Arial, sans-serif;
-        font-size: 9px;
-        color: #000;
-        margin: 0;
-        padding: 0;
-    }
+        body {
+            font-family: DejaVu Sans, Arial, sans-serif;
+            font-size: 9px;
+            color: #000;
+            margin: 0;
+            padding: 0;
+        }
 
-    /* ─── Encabezado repetido en cada página ─────────────────── */
-    .header {
-        position: fixed;
-        top: -145px;
-        left: 0;
-        right: 0;
-        height: 145px;
-    }
+        .header {
+            position: fixed;
+            top: -145px;
+            left: 0;
+            right: 0;
+            height: 145px;
+        }
 
-    .company-row {
-        overflow: hidden;
-        margin-bottom: 6px;
-    }
+        .company-row {
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
 
-    .company-name {
-        float: left;
-        font-size: 10px;
-    }
+        .company-name {
+            float: left;
+            font-size: 10px;
+        }
 
-    .elaborado {
-        float: right;
-        font-size: 9px;
-    }
+        .elaborado {
+            float: right;
+            font-size: 9px;
+        }
 
-    .report-title {
-        text-align: center;
-        font-size: 14px;
-        font-weight: bold;
-        margin-bottom: 10px;
-    }
+        .report-title {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
 
-    .meta-row {
-        overflow: hidden;
-        margin-bottom: 10px;
-        font-size: 10px;
-    }
+        .meta-row {
+            overflow: hidden;
+            margin-bottom: 10px;
+            font-size: 10px;
+        }
 
-    .meta-left {
-        float: left;
-    }
+        .meta-left {
+            float: left;
+        }
 
-    .meta-right {
-        float: right;
-    }
+        .meta-right {
+            float: right;
+        }
 
-    .meta-left div,
-    .meta-right div {
-        margin-bottom: 2px;
-    }
+        .meta-left div,
+        .meta-right div {
+            margin-bottom: 2px;
+        }
 
-    /* ─── Pie de página repetido en cada página ──────────────── */
-    .footer {
-        position: fixed;
-        bottom: -45px;
-        left: 0;
-        right: 0;
-        height: 30px;
-        font-size: 9px;
-        overflow: hidden;
-    }
+        .footer {
+            position: fixed;
+            bottom: -45px;
+            left: 0;
+            right: 0;
+            height: 30px;
+            font-size: 9px;
+            overflow: hidden;
+        }
 
-    .footer .left {
-        float: left;
-    }
+        .footer .left {
+            float: left;
+        }
 
-    .footer .right {
-        float: right;
-    }
+        .footer .right {
+            float: right;
+        }
 
-    /* ─── Tabla de detalle ────────────────────────────────────── */
-    table {
-        width: 100%;
-        border-collapse: collapse;
-    }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
 
-    thead th {
-        border: 1px solid #000;
-        font-weight: bold;
-        font-size: 8px;
-        padding: 3px 4px;
-        text-align: left;
-        background: #ffffff;
-    }
+        thead th {
+            border: 1px solid #000;
+            font-weight: bold;
+            font-size: 8px;
+            padding: 3px 4px;
+            text-align: left;
+            background: #ffffff;
+            word-wrap: break-word;
+        }
 
-    tbody td {
-        border: 1px solid #000;
-        font-size: 8px;
-        padding: 3px 4px;
-        vertical-align: top;
-    }
+        tbody td {
+            border: 1px solid #000;
+            font-size: 8px;
+            padding: 3px 4px;
+            vertical-align: top;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
 
-    .text-right {
-        text-align: right;
-    }
+        tbody tr {
+            page-break-inside: avoid;
+        }
 
-    .text-center {
-        text-align: center;
-    }
+        .text-right {
+            text-align: right;
+        }
 
-    .empty-row td {
-        text-align: center;
-        padding: 20px;
-        font-style: italic;
-        color: #555;
-    }
-</style>
+        .text-center {
+            text-align: center;
+        }
+
+        .empty-row td {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: #555;
+        }
+    </style>
 </head>
+
 <body>
 
     <div class="header">
@@ -187,4 +195,5 @@
     </table>
 
 </body>
+
 </html>
