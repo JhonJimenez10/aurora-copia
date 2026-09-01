@@ -7,7 +7,7 @@
     <style>
         @page {
             size: letter landscape;
-            margin: 145px 20px 50px 20px;
+            margin: 135px 20px 45px 20px;
         }
 
         body {
@@ -18,80 +18,109 @@
             padding: 0;
         }
 
+        /* ─── Encabezado repetido en cada página ─────────────────────
+       IMPORTANTE: nada de "float" aquí adentro. DomPDF renderiza mal
+       (o duplicado) los elementos flotados dentro de position:fixed.
+       Todo el layout del header se hace con <table>, que sí es estable. */
         .header {
             position: fixed;
-            top: -145px;
+            top: -135px;
             left: 0;
             right: 0;
-            height: 145px;
+            height: 135px;
         }
 
-        .company-row {
-            overflow: hidden;
-            margin-bottom: 6px;
+        .header-top-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 4px;
         }
 
-        .company-name {
-            float: left;
-            font-size: 10px;
-        }
-
-        .elaborado {
-            float: right;
+        .header-top-table td {
+            border: none;
+            padding: 0;
             font-size: 9px;
+            vertical-align: top;
+        }
+
+        .header-top-table .company-name {
+            text-align: left;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .header-top-table .elaborado {
+            text-align: right;
         }
 
         .report-title {
             text-align: center;
             font-size: 14px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin: 6px 0 8px 0;
         }
 
-        .meta-row {
-            overflow: hidden;
-            margin-bottom: 10px;
+        .header-meta-table {
+            width: 100%;
+            border-collapse: collapse;
             font-size: 10px;
         }
 
-        .meta-left {
-            float: left;
+        .header-meta-table td {
+            border: none;
+            padding: 0 0 2px 0;
+            vertical-align: top;
         }
 
-        .meta-right {
-            float: right;
+        .header-meta-table .meta-left {
+            text-align: left;
+            width: 60%;
         }
 
-        .meta-left div,
-        .meta-right div {
-            margin-bottom: 2px;
+        .header-meta-table .meta-right {
+            text-align: right;
+            width: 40%;
         }
 
+        /* ─── Pie de página repetido en cada página ──────────────────
+       Igual que el header: table en vez de floats. */
         .footer {
             position: fixed;
             bottom: -45px;
             left: 0;
             right: 0;
             height: 30px;
+        }
+
+        .footer-table {
+            width: 100%;
+            border-collapse: collapse;
             font-size: 9px;
-            overflow: hidden;
         }
 
-        .footer .left {
-            float: left;
+        .footer-table td {
+            border: none;
+            padding: 0;
+            vertical-align: middle;
         }
 
-        .footer .right {
-            float: right;
+        .footer-table .left {
+            text-align: left;
         }
 
-        table {
+        .footer-table .right {
+            text-align: right;
+        }
+
+        /* ─── Tabla de detalle ────────────────────────────────────── */
+        table.data-table {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
+            /* respeta los % de ancho, no se desborda */
         }
 
-        thead th {
+        table.data-table thead th {
             border: 1px solid #000;
             font-weight: bold;
             font-size: 8px;
@@ -101,7 +130,7 @@
             word-wrap: break-word;
         }
 
-        tbody td {
+        table.data-table tbody td {
             border: 1px solid #000;
             font-size: 8px;
             padding: 3px 4px;
@@ -110,8 +139,9 @@
             overflow-wrap: break-word;
         }
 
-        tbody tr {
+        table.data-table tbody tr {
             page-break-inside: avoid;
+            /* una fila nunca se parte entre páginas */
         }
 
         .text-right {
@@ -134,28 +164,38 @@
 <body>
 
     <div class="header">
-        <div class="company-row">
-            <span class="company-name">Cuencanito Express Courier S.A.S.</span>
-            <span class="elaborado">Elaborado el: {{ $elaboradoEl }}</span>
-        </div>
+        <table class="header-top-table">
+            <tr>
+                <td class="company-name">Cuencanito Express Courier S.A.S.</td>
+                <td class="elaborado">Elaborado el: {{ $elaboradoEl }}</td>
+            </tr>
+        </table>
+
         <div class="report-title">Listado para entregas</div>
-        <div class="meta-row">
-            <div class="meta-left">
-                <div><strong>Embarque :</strong> &nbsp;{{ $formattedNumber }}</div>
-                <div><strong>Ag. Destino :</strong> &nbsp;{{ $agencyName }}</div>
-            </div>
-            <div class="meta-right">
-                <div><strong>Fecha embarque :</strong> &nbsp;{{ $fechaEmbarque }}</div>
-            </div>
-        </div>
+
+        <table class="header-meta-table">
+            <tr>
+                <td class="meta-left">
+                    <div><strong>Embarque :</strong> &nbsp;{{ $formattedNumber }}</div>
+                    <div><strong>Ag. Destino :</strong> &nbsp;{{ $agencyName }}</div>
+                </td>
+                <td class="meta-right">
+                    <div><strong>Fecha embarque :</strong> &nbsp;{{ $fechaEmbarque }}</div>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <div class="footer">
-        <span class="left">Elaborado con el sistema CourierAgil &trade; 098 614 2084</span>
-        <span class="right">P&aacute;gina {PAGE_NUM} de {PAGE_COUNT}</span>
+        <table class="footer-table">
+            <tr>
+                <td class="left">Elaborado con el sistema CourierAgil &trade; 098 614 2084</td>
+                <td class="right">P&aacute;gina {PAGE_NUM} de {PAGE_COUNT}</td>
+            </tr>
+        </table>
     </div>
 
-    <table>
+    <table class="data-table">
         <thead>
             <tr>
                 <th style="width: 9%;">No. Recepci&oacute;n</th>
