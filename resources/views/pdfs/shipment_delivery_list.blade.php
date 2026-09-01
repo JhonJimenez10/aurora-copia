@@ -7,7 +7,7 @@
     <style>
         @page {
             size: letter landscape;
-            margin: 135px 20px 45px 20px;
+            margin: 112px 20px 45px 20px;
         }
 
         body {
@@ -24,10 +24,10 @@
        Todo el layout del header se hace con <table>, que sí es estable. */
         .header {
             position: fixed;
-            top: -135px;
+            top: -112px;
             left: 0;
             right: 0;
-            height: 135px;
+            height: 112px;
         }
 
         .header-top-table {
@@ -57,7 +57,7 @@
             text-align: center;
             font-size: 14px;
             font-weight: bold;
-            margin: 6px 0 8px 0;
+            margin: 4px 0 6px 0;
         }
 
         .header-meta-table {
@@ -70,6 +70,8 @@
             border: none;
             padding: 0 0 2px 0;
             vertical-align: top;
+            font-weight: bold;
+            /* etiqueta y valor en negrita, igual que el original */
         }
 
         .header-meta-table .meta-left {
