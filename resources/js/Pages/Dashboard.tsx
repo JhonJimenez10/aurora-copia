@@ -57,57 +57,20 @@ export default function Dashboard() {
         };
     }, [showEmergencyAlert]);
 
-    // ─── CALENDARIO AGOSTO ─────────────────────────────────────────────────────
-    const scheduleAgosto = {
+    // ─── CALENDARIO SEPTIEMBRE ─────────────────────────────────────────────────
+    const scheduleSeptiembre = {
         lunes: {
-            "NEW YORK": [
-                "QUEENS",
-                "BROOKLYN",
-                "BRONX WATSON",
-                "PORTWASHINGTON",
-            ],
+            "NEW YORK": ["QUEENS", "BROOKLYN", "PORTWAGSHINTON"],
             MARYLAND: ["BALTIMORE"],
             CONNECTICUT: ["DAMBURY"],
-            "NEW JERSEY": ["NEWARK", "ORANGE"],
         },
         martes: {
-            "NEW YORK": [
-                "QUEENS",
-                "BROOKLYN",
-                "SPRING VALLEY",
-                "ALBANY",
-                "MIDDLETOWN",
-            ],
-            MASSACHUSETS: [
-                "BROCKTON",
-                "LOWELL",
-                "FRAMINHAM",
-                "MILFORD",
-                "FALL RIVER",
-                "HYANNIS",
-                "LAWRENCE",
-                "WOONSCKET",
-                "SPRINGFIELD",
-            ],
+            "NEW YORK": ["QUEENS", "BROOKLYN", "SPRING VALLEY", "ALBANY", "MIDDLETOWN"],
+            MASSACHUSETS: ["BROCKTON", "LOWELL", "FRAMINHAM", "MILFORD", "FALL RIVER", "HYANNIS", "LAWRENCE", "WOONSCKET", "SPRINGFIELD"],
             CONNECTICUT: ["NEW HAVEN"],
         },
         miercoles: {
-            "NEW YORK": [
-                "QUEENS",
-                "BROOKLYN",
-                "WHITE PLAINS",
-                "SLEEPY HOLLOW",
-                "OSSINING",
-                "PEEKSKILL",
-                "YONKERS",
-                "BRONX JEROME",
-                "BRONX WATSON",
-                "PORTCHESTER",
-                "SPRING VALLEY",
-                "PATCHOGUE 2",
-                "HAMPTON BAYS",
-                "BAY SHORE",
-            ],
+            "NEW YORK": ["QUEENS", "BROOKLYN", "WHITE PLAINS", "SLEEPY HOLLOW", "OSSINING", "PEEKSKILL", "BRONX JEROME", "PORTCHESTER", "SPRING VALLEY", "PATCHOGUE 2", "HAMPTON BAYS", "BAY SHORE"],
             CONNECTICUT: ["DAMBURY", "WATER BURY", "BRIDGEPORT"],
             ILLINOIS: ["CHICAGO"],
             MINNESOTA: ["MINNEAPOLIS"],
@@ -119,63 +82,25 @@ export default function Dashboard() {
             "NEW JERSEY": [] as string[],
         },
         sabados: {
-            "NEW YORK": [
-                "QUEENS",
-                "BROOKLYN",
-                "SPRING VALLEY",
-                "WHITE PLAINS",
-                "SLEEPY HOLLOW",
-                "OSSINING",
-                "PEEKSKILL",
-                "YONKERS",
-                "BRONX JEROME",
-                "PORTCHESTER",
-                "BAY SHORE",
-                "BRONX WATSON",
-            ],
+            "NEW YORK": ["QUEENS", "BROOKLYN", "SPRING VALLEY", "WHITE PLAINS", "SLEEPY HOLLOW", "OSSINING", "PEEKSKILL", "YONKERS", "BRONX JEROME", "PORTCHESTER", "BAY SHORE", "BRONX WATSON"],
             "NEW JERSEY": ["NEWARK", "ORANGE"],
             CONNECTICUT: ["DAMBURY"],
         },
         especiales: [
-            { ciudad: "BALTIMORE", fechas: "3, 17 Y 24 DE AGOSTO" },
-            { ciudad: "PHILADELPHIA", fechas: "12 Y 26 DE AGOSTO" },
+            { ciudad: "BALTIMORE", fechas: "07 Y 21 DE SEPTIEMBRE" },
+            { ciudad: "PHILADELPHIA", fechas: "9 Y 23 DE SEPTIEMBRE" },
             { ciudad: "ROCHESTER", fechas: "POR CONFIRMAR" },
         ],
     };
 
-    const currentSchedule = scheduleAgosto;
+    const currentSchedule = scheduleSeptiembre;
 
     const daysOfWeek = [
-        {
-            key: "lunes",
-            label: "LUNES",
-            color: "from-slate-700 to-slate-800",
-            activeColor: "from-slate-600 to-slate-700",
-        },
-        {
-            key: "martes",
-            label: "MARTES",
-            color: "from-slate-700 to-slate-800",
-            activeColor: "from-blue-600 to-blue-700",
-        },
-        {
-            key: "miercoles",
-            label: "MIÉRCOLES",
-            color: "from-slate-700 to-slate-800",
-            activeColor: "from-purple-600 to-purple-700",
-        },
-        {
-            key: "jueves",
-            label: "JUEVES",
-            color: "from-slate-700 to-slate-800",
-            activeColor: "from-green-600 to-green-700",
-        },
-        {
-            key: "sabados",
-            label: "SÁBADOS",
-            color: "from-slate-700 to-slate-800",
-            activeColor: "from-cyan-600 to-cyan-700",
-        },
+        { key: "lunes", label: "LUNES", color: "from-slate-700 to-slate-800", activeColor: "from-slate-600 to-slate-700" },
+        { key: "martes", label: "MARTES", color: "from-slate-700 to-slate-800", activeColor: "from-blue-600 to-blue-700" },
+        { key: "miercoles", label: "MIÉRCOLES", color: "from-slate-700 to-slate-800", activeColor: "from-purple-600 to-purple-700" },
+        { key: "jueves", label: "JUEVES", color: "from-slate-700 to-slate-800", activeColor: "from-green-600 to-green-700" },
+        { key: "sabados", label: "SÁBADOS", color: "from-slate-700 to-slate-800", activeColor: "from-cyan-600 to-cyan-700" },
     ];
 
     type SpecialEntry = { ciudad: string; fechas: string };
@@ -183,9 +108,7 @@ export default function Dashboard() {
 
     const getCurrentDayData = (): DaySchedule | SpecialEntry[] => {
         if (selectedDay === "especiales") return currentSchedule.especiales;
-        return currentSchedule[
-            selectedDay as keyof Omit<typeof currentSchedule, "especiales">
-        ] as DaySchedule;
+        return currentSchedule[selectedDay as keyof Omit<typeof currentSchedule, "especiales">] as DaySchedule;
     };
 
     return (
@@ -314,10 +237,8 @@ export default function Dashboard() {
             {/* ── MODAL DE AVISOS ─────────────────────────────────────────────── */}
             {showEmergencyAlert && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-fadeInUp">
-                    <div
-                        className="relative max-w-lg w-full animate-modal flex flex-col"
-                        style={{ maxHeight: "90vh" }}
-                    >
+                    <div className="relative max-w-lg w-full animate-modal flex flex-col" style={{ maxHeight: "90vh" }}>
+
                         <div className="absolute inset-0 bg-gradient-to-br from-red-700 via-red-800 to-red-900 rounded-2xl blur-2xl opacity-60 animate-pulse-red"></div>
 
                         <div
@@ -332,17 +253,12 @@ export default function Dashboard() {
                                     <ShieldAlert className="w-8 h-8 text-white animate-flicker" />
                                     <div className="text-center">
                                         <h2 className="text-2xl font-black text-white uppercase tracking-widest flex items-center gap-2 justify-center">
-                                            <span className="animate-bounce-subtle">
-                                                🚨
-                                            </span>
+                                            <span className="animate-bounce-subtle">🚨</span>
                                             AVISO URGENTE
-                                            <span className="animate-bounce-subtle">
-                                                🚨
-                                            </span>
+                                            <span className="animate-bounce-subtle">🚨</span>
                                         </h2>
                                         <p className="text-red-100 text-xs font-bold mt-1 tracking-wide uppercase">
-                                            Lea antes de continuar — Vigente
-                                            hasta nuevo aviso
+                                            Lea antes de continuar — Vigente hasta nuevo aviso
                                         </p>
                                     </div>
                                     <ShieldAlert className="w-8 h-8 text-white animate-flicker" />
@@ -351,6 +267,7 @@ export default function Dashboard() {
 
                             {/* Cuerpo */}
                             <div className="relative p-6 space-y-5 overflow-y-auto modal-scroll flex-1">
+
                                 <div className="text-center space-y-2">
                                     <p className="text-red-300 text-sm font-black uppercase tracking-widest animate-flicker">
                                         ⛔ RESTRICCIÓN INMEDIATA ⛔
@@ -361,10 +278,7 @@ export default function Dashboard() {
                                             SOLO se podrán enviar
                                         </span>{" "}
                                         los siguientes{" "}
-                                        <span className="text-yellow-300 font-black text-2xl">
-                                            3 artículos
-                                        </span>
-                                        :
+                                        <span className="text-yellow-300 font-black text-2xl">3 artículos</span>:
                                     </p>
                                     <p className="text-gray-300 text-sm font-semibold">
                                         Ningún otro artículo será aceptado.
@@ -374,69 +288,37 @@ export default function Dashboard() {
                                 {/* Los 3 artículos permitidos */}
                                 <div className="grid grid-cols-3 gap-3">
                                     <div className="article-card bg-gradient-to-br from-yellow-500/20 via-yellow-600/10 to-yellow-700/20 border-2 border-yellow-400/60 rounded-2xl p-4 flex flex-col items-center gap-2 shadow-lg shadow-yellow-900/30">
-                                        <span className="text-4xl animate-bounce-subtle">
-                                            🎄
-                                        </span>
-                                        <p className="text-yellow-300 font-black text-base uppercase tracking-wide text-center">
-                                            Adornos
-                                        </p>
+                                        <span className="text-4xl animate-bounce-subtle">🎄</span>
+                                        <p className="text-yellow-300 font-black text-base uppercase tracking-wide text-center">Adornos</p>
                                         <div className="w-full h-0.5 bg-yellow-400/40 rounded"></div>
-                                        <p className="text-yellow-200/70 text-[10px] text-center font-semibold">
-                                            Artículo ✅ PERMITIDO
-                                        </p>
+                                        <p className="text-yellow-200/70 text-[10px] text-center font-semibold">Artículo ✅ PERMITIDO</p>
                                     </div>
                                     <div className="article-card bg-gradient-to-br from-blue-500/20 via-blue-600/10 to-blue-700/20 border-2 border-blue-400/60 rounded-2xl p-4 flex flex-col items-center gap-2 shadow-lg shadow-blue-900/30">
-                                        <span
-                                            className="text-4xl animate-bounce-subtle"
-                                            style={{ animationDelay: "0.3s" }}
-                                        >
-                                            👕
-                                        </span>
-                                        <p className="text-blue-300 font-black text-base uppercase tracking-wide text-center">
-                                            Ropas
-                                        </p>
+                                        <span className="text-4xl animate-bounce-subtle" style={{ animationDelay: "0.3s" }}>👕</span>
+                                        <p className="text-blue-300 font-black text-base uppercase tracking-wide text-center">Ropas</p>
                                         <div className="w-full h-0.5 bg-blue-400/40 rounded"></div>
-                                        <p className="text-blue-200/70 text-[10px] text-center font-semibold">
-                                            Artículo ✅ PERMITIDO
-                                        </p>
+                                        <p className="text-blue-200/70 text-[10px] text-center font-semibold">Artículo ✅ PERMITIDO</p>
                                     </div>
                                     <div className="article-card bg-gradient-to-br from-emerald-500/20 via-emerald-600/10 to-emerald-700/20 border-2 border-emerald-400/60 rounded-2xl p-4 flex flex-col items-center gap-2 shadow-lg shadow-emerald-900/30">
-                                        <span
-                                            className="text-4xl animate-bounce-subtle"
-                                            style={{ animationDelay: "0.6s" }}
-                                        >
-                                            🏺
-                                        </span>
-                                        <p className="text-emerald-300 font-black text-base uppercase tracking-wide text-center">
-                                            Artesanías
-                                        </p>
+                                        <span className="text-4xl animate-bounce-subtle" style={{ animationDelay: "0.6s" }}>🏺</span>
+                                        <p className="text-emerald-300 font-black text-base uppercase tracking-wide text-center">Artesanías</p>
                                         <div className="w-full h-0.5 bg-emerald-400/40 rounded"></div>
-                                        <p className="text-emerald-200/70 text-[10px] text-center font-semibold">
-                                            Artículo ✅ PERMITIDO
-                                        </p>
+                                        <p className="text-emerald-200/70 text-[10px] text-center font-semibold">Artículo ✅ PERMITIDO</p>
                                     </div>
                                 </div>
 
                                 {/* Advertencia */}
                                 <div className="bg-gradient-to-r from-red-900/70 to-rose-900/70 border-2 border-red-500/70 rounded-xl p-4 flex items-start gap-3 animate-zoom-pulse">
-                                    <span className="text-3xl flex-shrink-0">
-                                        🚫
-                                    </span>
+                                    <span className="text-3xl flex-shrink-0">🚫</span>
                                     <div className="text-white space-y-1">
                                         <p className="font-black text-base text-red-300 uppercase tracking-wide">
                                             CUALQUIER OTRO ARTÍCULO: PROHIBIDO
                                         </p>
                                         <p className="text-sm font-semibold leading-relaxed text-red-100">
-                                            No se aceptará ningún envío que
-                                            contenga artículos distintos a los{" "}
-                                            <span className="text-yellow-300 font-black">
-                                                3 listados arriba
-                                            </span>
-                                            . Esta restricción está vigente{" "}
-                                            <span className="text-red-300 font-black underline">
-                                                hasta nuevo aviso
-                                            </span>
-                                            .
+                                            No se aceptará ningún envío que contenga artículos distintos a los{" "}
+                                            <span className="text-yellow-300 font-black">3 listados arriba</span>.
+                                            Esta restricción está vigente{" "}
+                                            <span className="text-red-300 font-black underline">hasta nuevo aviso</span>.
                                         </p>
                                     </div>
                                 </div>
@@ -444,10 +326,7 @@ export default function Dashboard() {
                                 <div className="flex items-center justify-center gap-2 text-gray-400 text-xs pt-1">
                                     <div className="w-2 h-2 bg-red-400 rounded-full animate-ping"></div>
                                     <div className="w-2 h-2 bg-red-400 rounded-full absolute"></div>
-                                    <span className="ml-2 font-semibold">
-                                        Por favor, informe a sus clientes sobre
-                                        esta restricción
-                                    </span>
+                                    <span className="ml-2 font-semibold">Por favor, informe a sus clientes sobre esta restricción</span>
                                 </div>
                             </div>
 
@@ -458,9 +337,7 @@ export default function Dashboard() {
                                     className="w-full bg-gradient-to-r from-red-600 via-red-500 to-red-600 hover:from-red-700 hover:via-red-600 hover:to-red-700 text-white font-black text-lg py-4 px-8 rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 uppercase tracking-wider flex items-center justify-center gap-3 group border border-red-400/40"
                                 >
                                     <span>Entendido — Solo 3 artículos</span>
-                                    <span className="text-2xl group-hover:animate-bounce-subtle">
-                                        ✓
-                                    </span>
+                                    <span className="text-2xl group-hover:animate-bounce-subtle">✓</span>
                                 </button>
                             </div>
 
@@ -493,39 +370,23 @@ export default function Dashboard() {
                                     style={{ animationDelay: `${idx * 0.1}s` }}
                                 >
                                     <div className="shimmer-effect absolute inset-0"></div>
-                                    <div
-                                        className={`absolute inset-0 rounded-xl ${n.type === "danger" ? "border-2 border-red-300/60" : "border-2 border-yellow-200/60"}`}
-                                    ></div>
+                                    <div className={`absolute inset-0 rounded-xl ${n.type === "danger" ? "border-2 border-red-300/60" : "border-2 border-yellow-200/60"}`}></div>
                                     <div className="relative p-4 flex items-start gap-3">
-                                        <div
-                                            className={`p-2 rounded-lg animate-float ${n.type === "danger" ? "bg-red-900/60 ring-2 ring-red-300/30" : "bg-orange-900/60 ring-2 ring-yellow-300/30"}`}
-                                        >
-                                            <IconComponent
-                                                className={`w-6 h-6 ${n.type === "danger" ? "text-red-50" : "text-yellow-50"}`}
-                                            />
+                                        <div className={`p-2 rounded-lg animate-float ${n.type === "danger" ? "bg-red-900/60 ring-2 ring-red-300/30" : "bg-orange-900/60 ring-2 ring-yellow-300/30"}`}>
+                                            <IconComponent className={`w-6 h-6 ${n.type === "danger" ? "text-red-50" : "text-yellow-50"}`} />
                                         </div>
                                         <div className="flex-1">
-                                            <h3
-                                                className={`font-bold text-sm mb-1 flex items-center gap-2 ${n.type === "danger" ? "text-white" : "text-gray-900"}`}
-                                            >
-                                                <span className="animate-bounce-subtle">
-                                                    ⚠️
-                                                </span>
+                                            <h3 className={`font-bold text-sm mb-1 flex items-center gap-2 ${n.type === "danger" ? "text-white" : "text-gray-900"}`}>
+                                                <span className="animate-bounce-subtle">⚠️</span>
                                                 {n.title}
                                             </h3>
-                                            <p
-                                                className={`text-xs leading-relaxed ${n.type === "danger" ? "text-red-50" : "text-gray-900"}`}
-                                            >
+                                            <p className={`text-xs leading-relaxed ${n.type === "danger" ? "text-red-50" : "text-gray-900"}`}>
                                                 {n.message}
                                             </p>
                                         </div>
                                         <div className="absolute top-3 right-3">
-                                            <div
-                                                className={`w-3 h-3 rounded-full ${n.type === "danger" ? "bg-red-200 animate-ping" : "bg-yellow-200 animate-ping"}`}
-                                            ></div>
-                                            <div
-                                                className={`absolute top-0 right-0 w-3 h-3 rounded-full ${n.type === "danger" ? "bg-red-200" : "bg-yellow-200"}`}
-                                            ></div>
+                                            <div className={`w-3 h-3 rounded-full ${n.type === "danger" ? "bg-red-200 animate-ping" : "bg-yellow-200 animate-ping"}`}></div>
+                                            <div className={`absolute top-0 right-0 w-3 h-3 rounded-full ${n.type === "danger" ? "bg-red-200" : "bg-yellow-200"}`}></div>
                                         </div>
                                     </div>
                                 </div>
@@ -543,9 +404,7 @@ export default function Dashboard() {
                             <h2 className="text-2xl font-bold text-white group-hover:text-yellow-100 transition-colors">
                                 Panel de {enterprise?.name || "Empresa"}
                             </h2>
-                            <p className="text-red-100 text-sm">
-                                Estadísticas generales del sistema de gestión
-                            </p>
+                            <p className="text-red-100 text-sm">Estadísticas generales del sistema de gestión</p>
                         </div>
                     </div>
                 </div>
@@ -554,77 +413,33 @@ export default function Dashboard() {
                     <TabsContent value="overview" className="space-y-4">
                         <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
                             {[
-                                {
-                                    title: "Remitentes",
-                                    value: stats.senders,
-                                    icon: Users,
-                                    subtitle: "clientes",
-                                    gradient: "from-blue-600 to-blue-800",
-                                },
-                                {
-                                    title: "Destinatarios",
-                                    value: stats.recipients,
-                                    icon: Users,
-                                    subtitle: "clientes",
-                                    gradient: "from-purple-600 to-purple-800",
-                                },
-                                {
-                                    title: "Agencia",
-                                    value: stats.artPackages,
-                                    icon: Archive,
-                                    subtitle: "artículos",
-                                    gradient: "from-green-600 to-green-800",
-                                },
-                                {
-                                    title: "Embalaje",
-                                    value: stats.artPackgs,
-                                    icon: Archive,
-                                    subtitle: "artículos",
-                                    gradient: "from-orange-600 to-orange-800",
-                                },
-                                {
-                                    title: "Último Mes",
-                                    value: stats.lastMonthShipments,
-                                    icon: Truck,
-                                    subtitle: "envíos",
-                                    gradient: "from-red-600 to-red-800",
-                                },
+                                { title: "Remitentes", value: stats.senders, icon: Users, subtitle: "clientes", gradient: "from-blue-600 to-blue-800" },
+                                { title: "Destinatarios", value: stats.recipients, icon: Users, subtitle: "clientes", gradient: "from-purple-600 to-purple-800" },
+                                { title: "Agencia", value: stats.artPackages, icon: Archive, subtitle: "artículos", gradient: "from-green-600 to-green-800" },
+                                { title: "Embalaje", value: stats.artPackgs, icon: Archive, subtitle: "artículos", gradient: "from-orange-600 to-orange-800" },
+                                { title: "Último Mes", value: stats.lastMonthShipments, icon: Truck, subtitle: "envíos", gradient: "from-red-600 to-red-800" },
                             ].map((item, index) => {
                                 const IconComponent = item.icon;
                                 return (
                                     <div
                                         key={index}
                                         className={`stat-card relative overflow-hidden rounded-xl bg-gradient-to-br ${item.gradient} p-4 shadow-xl animate-fadeInUp`}
-                                        style={{
-                                            animationDelay: `${0.1 * (index + 1)}s`,
-                                        }}
-                                        onMouseEnter={() =>
-                                            setHoveredStat(index)
-                                        }
-                                        onMouseLeave={() =>
-                                            setHoveredStat(null)
-                                        }
+                                        style={{ animationDelay: `${0.1 * (index + 1)}s` }}
+                                        onMouseEnter={() => setHoveredStat(index)}
+                                        onMouseLeave={() => setHoveredStat(null)}
                                     >
                                         <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0"></div>
-                                        {hoveredStat === index && (
-                                            <div className="shimmer-effect absolute inset-0"></div>
-                                        )}
+                                        {hoveredStat === index && <div className="shimmer-effect absolute inset-0"></div>}
                                         <div className="relative">
                                             <div className="flex items-center justify-between mb-2">
-                                                <span className="text-[10px] font-semibold text-white/80 uppercase tracking-wide">
-                                                    {item.title}
-                                                </span>
+                                                <span className="text-[10px] font-semibold text-white/80 uppercase tracking-wide">{item.title}</span>
                                                 <IconComponent className="stat-icon w-4 h-4 text-white/60" />
                                             </div>
                                             <div className="text-2xl font-bold text-white mb-1 flex items-center gap-1">
                                                 {item.value}
-                                                {hoveredStat === index && (
-                                                    <TrendingUp className="w-4 h-4 text-white/80 animate-bounce-subtle" />
-                                                )}
+                                                {hoveredStat === index && <TrendingUp className="w-4 h-4 text-white/80 animate-bounce-subtle" />}
                                             </div>
-                                            <p className="text-[9px] text-white/70">
-                                                {item.subtitle}
-                                            </p>
+                                            <p className="text-[9px] text-white/70">{item.subtitle}</p>
                                         </div>
                                     </div>
                                 );
@@ -636,19 +451,13 @@ export default function Dashboard() {
                                 <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 group-hover:via-white/30 transition-all"></div>
                                 <div className="shimmer-effect absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                 <div className="relative">
-                                    <h3 className="text-xs font-bold text-gray-900 mb-3">
-                                        Agencias
-                                    </h3>
+                                    <h3 className="text-xs font-bold text-gray-900 mb-3">Agencias</h3>
                                     <div className="flex flex-col items-center justify-center space-y-2">
                                         <div className="p-3 bg-orange-700/30 rounded-full group-hover:bg-orange-700/50 transition-all group-hover:rotate-12 duration-300">
                                             <MapPin className="w-8 h-8 text-white" />
                                         </div>
-                                        <span className="text-4xl font-bold text-white group-hover:scale-110 transition-transform">
-                                            {stats.agenciesDest}
-                                        </span>
-                                        <p className="text-[10px] text-gray-900 font-semibold text-center">
-                                            oficinas EEUU
-                                        </p>
+                                        <span className="text-4xl font-bold text-white group-hover:scale-110 transition-transform">{stats.agenciesDest}</span>
+                                        <p className="text-[10px] text-gray-900 font-semibold text-center">oficinas EEUU</p>
                                     </div>
                                 </div>
                             </div>
@@ -659,13 +468,11 @@ export default function Dashboard() {
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-2">
                                             <CalendarIcon className="w-4 h-4 text-red-400 animate-bounce-subtle" />
-                                            <h3 className="text-sm font-bold text-white">
-                                                Cronograma de Envíos
-                                            </h3>
+                                            <h3 className="text-sm font-bold text-white">Cronograma de Envíos</h3>
                                         </div>
-                                        {/* Mes actual: Agosto */}
+                                        {/* Mes actual: Septiembre */}
                                         <div className="px-4 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-900/50">
-                                            Agosto 🌴
+                                            Septiembre 🍂
                                         </div>
                                     </div>
 
@@ -673,9 +480,7 @@ export default function Dashboard() {
                                         {daysOfWeek.map((day) => (
                                             <button
                                                 key={day.key}
-                                                onClick={() =>
-                                                    setSelectedDay(day.key)
-                                                }
+                                                onClick={() => setSelectedDay(day.key)}
                                                 className={`day-button px-4 py-2 rounded-lg text-xs font-bold ${
                                                     selectedDay === day.key
                                                         ? `bg-gradient-to-r ${day.activeColor} text-white shadow-lg scale-105`
@@ -686,9 +491,7 @@ export default function Dashboard() {
                                             </button>
                                         ))}
                                         <button
-                                            onClick={() =>
-                                                setSelectedDay("especiales")
-                                            }
+                                            onClick={() => setSelectedDay("especiales")}
                                             className={`day-button px-4 py-2 rounded-lg text-xs font-bold ${
                                                 selectedDay === "especiales"
                                                     ? "bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg scale-105"
@@ -704,19 +507,14 @@ export default function Dashboard() {
                                             <div className="space-y-3 animate-slideIn">
                                                 <h3 className="text-orange-400 font-bold text-sm uppercase mb-3 flex items-center gap-2">
                                                     <Sparkles className="w-4 h-4 animate-bounce-subtle" />
-                                                    Embarques Especiales —
-                                                    Agosto
+                                                    Embarques Especiales — Septiembre
                                                 </h3>
-                                                {(
-                                                    getCurrentDayData() as SpecialEntry[]
-                                                ).map((special, idx) => (
+                                                {(getCurrentDayData() as SpecialEntry[]).map((special, idx) => (
                                                     <div
                                                         key={idx}
                                                         className="flex items-center justify-between bg-gradient-to-r from-orange-900/30 to-red-900/30 p-3 rounded-lg border border-orange-500/30 hover:border-orange-500/80 hover:shadow-lg hover:shadow-orange-900/30 transition-all cursor-pointer hover:scale-105"
                                                     >
-                                                        <span className="text-yellow-300 font-bold text-sm">
-                                                            {special.ciudad}
-                                                        </span>
+                                                        <span className="text-yellow-300 font-bold text-sm">{special.ciudad}</span>
                                                         <span className="text-white text-xs bg-gray-800/80 px-3 py-1 rounded-full hover:bg-gray-700 transition-colors">
                                                             {special.fechas}
                                                         </span>
@@ -726,81 +524,34 @@ export default function Dashboard() {
                                         ) : (
                                             <div className="space-y-3 animate-slideIn">
                                                 <h3 className="text-red-400 font-bold text-sm uppercase mb-3">
-                                                    {daysOfWeek.find(
-                                                        (d) =>
-                                                            d.key ===
-                                                            selectedDay,
-                                                    )?.label || ""}
+                                                    {daysOfWeek.find((d) => d.key === selectedDay)?.label || ""}
                                                 </h3>
                                                 {(() => {
-                                                    const data =
-                                                        getCurrentDayData() as DaySchedule;
-                                                    const allEmpty =
-                                                        Object.values(
-                                                            data,
-                                                        ).every(
-                                                            (cities) =>
-                                                                cities.length ===
-                                                                0,
-                                                        );
-                                                    if (
-                                                        Object.keys(data)
-                                                            .length === 0 ||
-                                                        allEmpty
-                                                    ) {
+                                                    const data = getCurrentDayData() as DaySchedule;
+                                                    const allEmpty = Object.values(data).every((cities) => cities.length === 0);
+                                                    if (Object.keys(data).length === 0 || allEmpty) {
                                                         return (
                                                             <div className="flex flex-col items-center justify-center py-8 space-y-3">
                                                                 <div className="p-4 bg-gray-800/60 rounded-full">
                                                                     <AlertCircle className="w-12 h-12 text-gray-400" />
                                                                 </div>
                                                                 <p className="text-gray-400 text-base font-semibold">
-                                                                    Para este
-                                                                    día se puede
-                                                                    receptar
-                                                                    todo lo que
-                                                                    es CARGA
-                                                                    SECA para el
-                                                                    embarque del
-                                                                    día sábado.
+                                                                    Para este día se puede receptar todo lo que es CARGA SECA para el embarque del día sábado.
                                                                 </p>
                                                             </div>
                                                         );
                                                     }
                                                     return (
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                            {Object.entries(
-                                                                data,
-                                                            ).map(
-                                                                ([
-                                                                    state,
-                                                                    cities,
-                                                                ]) => {
-                                                                    if (
-                                                                        cities.length ===
-                                                                        0
-                                                                    )
-                                                                        return null;
-                                                                    return (
-                                                                        <div
-                                                                            key={
-                                                                                state
-                                                                            }
-                                                                            className="location-card bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-3 rounded-lg border border-gray-700/50"
-                                                                        >
-                                                                            <span className="text-yellow-400 font-bold text-xs block mb-2">
-                                                                                {
-                                                                                    state
-                                                                                }
-                                                                            </span>
-                                                                            <span className="text-gray-300 text-[11px] leading-relaxed">
-                                                                                {cities.join(
-                                                                                    ", ",
-                                                                                )}
-                                                                            </span>
-                                                                        </div>
-                                                                    );
-                                                                },
-                                                            )}
+                                                            {Object.entries(data).map(([state, cities]) => {
+                                                                if (cities.length === 0) return null;
+                                                                return (
+                                                                    <div key={state} className="location-card bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-3 rounded-lg border border-gray-700/50">
+                                                                        <span className="text-yellow-400 font-bold text-xs block mb-2">{state}</span>
+                                                                        <span className="text-gray-300 text-[11px] leading-relaxed">{cities.join(", ")}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                     );
                                                 })()}
@@ -810,10 +561,7 @@ export default function Dashboard() {
 
                                     <div className="bg-gradient-to-r from-blue-900/30 to-cyan-900/30 border border-blue-500/50 rounded-lg p-3 text-xs text-blue-300 mt-3 flex items-start gap-2 hover:border-blue-400/80 hover:shadow-lg hover:shadow-blue-900/30 transition-all cursor-pointer">
                                         <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 animate-bounce-subtle" />
-                                        <span>
-                                            Los horarios pueden variar. Consulte
-                                            con su oficina local.
-                                        </span>
+                                        <span>Los horarios pueden variar. Consulte con su oficina local.</span>
                                     </div>
                                 </div>
                             </div>
