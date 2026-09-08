@@ -74,6 +74,8 @@ Route::middleware('auth')->group(function () {
         $addressMap = [
             // Azuay
             'LOJA'            => ['postal_code' => '110150', 'city' => 'Loja',           'canton' => 'Loja',           'state' => 'Loja'],
+            'SAN LUCAS'       => ['postal_code' => '110160', 'city' => 'San Lucas',      'canton' => 'Loja',           'state' => 'Loja'],
+            'SL SAN LUCAS'    => ['postal_code' => '110160', 'city' => 'San Lucas',      'canton' => 'Loja',           'state' => 'Loja'],
             'SIGSIG'          => ['postal_code' => '010309', 'city' => 'Sígsig',         'canton' => 'Sígsig',         'state' => 'Azuay'],
             'CUENCA'          => ['postal_code' => '010101', 'city' => 'Cuenca',         'canton' => 'Cuenca',         'state' => 'Azuay'],
             'BIBLIAN'         => ['postal_code' => '030105', 'city' => 'Biblián',        'canton' => 'Biblián',        'state' => 'Cañar'],
