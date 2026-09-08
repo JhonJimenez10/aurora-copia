@@ -401,6 +401,14 @@ class ShipmentController extends Controller
     // LISTADO PARA ENTREGAS (PDF) — solo paquetes de este
     // embarque que van a la agencia destino seleccionada. Mismo formato
     // que el "Listado para entregas" que ya usa la empresa.
+    //
+    // ✅ CORREGIDO (agencias duplicadas): el selector del frontend ahora
+    // manda en "agency_dest_id" uno o VARIOS ids separados por coma
+    // (todos los que comparten el mismo NOMBRE de agencia — ver
+    // ShipmentSackController::destinationAgenciesForShipment). Esto evita
+    // que, si el mismo nombre de agencia existe con más de un id en
+    // agencies_dest, el reporte se quede corto mostrando solo la mitad
+    // de los paquetes.
     // -------------------------------------------------------
     public function deliveryListPdf(Request $request, $id)
     {
@@ -408,11 +416,28 @@ class ShipmentController extends Controller
         $shipment = Shipment::where('enterprise_id', $enterpriseId)->findOrFail($id);
 
         $request->validate([
-            'agency_dest_id' => 'required|uuid|exists:agencies_dest,id',
+            // ✅ CAMBIO: ya no es un único uuid — puede venir como
+            // "uuid1,uuid2,uuid3" cuando varias agencias comparten nombre.
+            'agency_dest_id' => 'required|string',
         ]);
 
-        $agencyDestId = $request->query('agency_dest_id');
-        $agencyDest   = AgencyDest::find($agencyDestId);
+        $agencyDestIds = collect(explode(',', (string) $request->query('agency_dest_id')))
+            ->map(fn ($v) => trim($v))
+            ->filter()
+            ->unique()
+            ->values();
+
+        // Validamos manualmente que cada id exista, ya que el formato ya
+        // no es un uuid simple sino una lista.
+        $validIds = AgencyDest::whereIn('id', $agencyDestIds)->pluck('id');
+        if ($validIds->isEmpty()) {
+            abort(422, 'Agencia destino inválida.');
+        }
+        $agencyDestIds = $validIds->values();
+
+        // Se usa el primero solo para mostrar el NOMBRE en el encabezado del
+        // PDF y en el nombre del archivo — todos comparten el mismo nombre.
+        $agencyDest = AgencyDest::find($agencyDestIds->first());
 
         // Paquetes asignados a alguna saca de ESTE embarque.
         $packageIds = DB::table('shipment_sack_packages')
@@ -424,8 +449,9 @@ class ShipmentController extends Controller
         $rows = collect();
 
         if (!empty($packageIds)) {
-            // Solo recepciones cuya agencia destino sea la seleccionada, y
-            // dentro de ellas, solo los paquetes que pertenecen a este embarque.
+            // Solo recepciones cuya agencia destino sea alguna de las
+            // seleccionadas (mismo nombre, distinto id), y dentro de ellas,
+            // solo los paquetes que pertenecen a este embarque.
             $receptions = Reception::with([
                     'sender',
                     'recipient',
@@ -434,7 +460,7 @@ class ShipmentController extends Controller
                     },
                     'packages.items.artPackage',
                 ])
-                ->where('agency_dest', $agencyDestId)
+                ->whereIn('agency_dest', $agencyDestIds)
                 ->whereHas('packages', function ($q) use ($packageIds) {
                     $q->whereIn('id', $packageIds);
                 })
@@ -444,8 +470,15 @@ class ShipmentController extends Controller
 
             foreach ($receptions as $reception) {
                 foreach ($reception->packages as $package) {
+                    // ✅ CORREGIDO (contenido en español): "name" es el
+                    // nombre original en español que registra el agente;
+                    // "translation" es la traducción al inglés que se usa
+                    // en manifiestos de aduana (ACAS/NY). Este listado es
+                    // interno y debe mostrarse en español, así que "name"
+                    // va primero y "translation" queda solo como respaldo
+                    // si no hubiera nombre en español cargado.
                     $description = $package->items
-                        ->map(fn($item) => $item->artPackage?->translation ?: $item->artPackage?->name)
+                        ->map(fn($item) => $item->artPackage?->name ?: $item->artPackage?->translation)
                         ->filter()
                         ->implode(' ');
 

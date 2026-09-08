@@ -225,12 +225,23 @@ class ShipmentSackController extends Controller
     }
 
     /**
-     * ✅ NUEVO: GET /api/shipments/{shipment}/destination-agencies
+     * GET /api/shipments/{shipment}/destination-agencies
      *
      * Lista de agencias destino DISTINTAS entre los paquetes que están
      * asignados a alguna saca de este embarque. Se usa para armar el
      * selector del reporte PDF "Listado para entregas" (que se descarga
      * filtrado por una sola agencia destino a la vez).
+     *
+     * (agencias repetidas en el selector): antes se
+     * deduplicaba por (id, name), lo cual NO evita duplicados cuando en
+     * "agencies_dest" existen dos o más registros distintos (ids
+     * distintos) con el MISMO nombre — típico si una agencia quedó
+     * registrada más de una vez por error, o distintos traslados la
+     * crearon por separado. Ahora se agrupa por NOMBRE, y cada opción
+     * del selector lleva TODOS los ids que comparten ese nombre (unidos
+     * por coma en el campo "id"). El PDF (deliveryListPdf) ya sabe leer
+     * varios ids separados por coma, así que no se pierde ningún
+     * paquete al filtrar.
      */
     public function destinationAgenciesForShipment($shipmentId)
     {
@@ -252,14 +263,29 @@ class ShipmentSackController extends Controller
             return response()->json([]);
         }
 
-        $agencies = DB::table('packages')
+        $rows = DB::table('packages')
             ->join('receptions', 'receptions.id', '=', 'packages.reception_id')
             ->join('agencies_dest', 'agencies_dest.id', '=', 'receptions.agency_dest')
             ->whereIn('packages.id', $packageIds)
             ->select('agencies_dest.id', 'agencies_dest.name')
             ->distinct()
-            ->orderBy('agencies_dest.name')
             ->get();
+
+        // Se agrupa en PHP por nombre (no en SQL) para que funcione igual
+        // sin importar el motor de base de datos (MySQL/Postgres/SQLite).
+        $agencies = $rows
+            ->groupBy('name')
+            ->map(function ($group, $name) {
+                return [
+                    // Todos los ids que comparten este nombre, unidos por
+                    // coma — el frontend lo trata como un id de texto
+                    // opaco, y deliveryListPdf() ya sabe separarlos.
+                    'id'   => $group->pluck('id')->unique()->implode(','),
+                    'name' => $name,
+                ];
+            })
+            ->sortBy('name')
+            ->values();
 
         return response()->json($agencies);
     }
