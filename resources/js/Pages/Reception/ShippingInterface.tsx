@@ -808,31 +808,14 @@ export default function ShippingInterface({
 
         const totalSeguroEnvio = totalPesoLbs * 0.1;
 
-        let totalDesaduanizacion = 0;
-        const algunPaqueteSobre = packages.some(
-            (pkg) => pkg.service_type === "SOBRE",
-        );
+        // 🔄 ESQUEMA ACTUAL: arancel y desaduanización se cobran por libras,
+        // mínimo de 3 libras. El # de items y el valor declarado se
+        // siguen registrando por paquete pero ya no afectan este cálculo.
+        const LIBRAS_MINIMAS = 3;
+        const tarifaPorPeso = round(Math.max(totalPesoLbs, LIBRAS_MINIMAS));
 
-        if (algunPaqueteSobre) {
-            totalDesaduanizacion = 3.5;
-        } else if (totalPesoLbs >= 0 && totalPesoLbs <= 17) {
-            totalDesaduanizacion = 6;
-        } else if (totalPesoLbs > 17 && totalPesoLbs <= 22) {
-            totalDesaduanizacion = 9;
-        } else if (totalPesoLbs > 22) {
-            totalDesaduanizacion = 12;
-        }
-
-        // Aranceles
-        const totalAranceles = packages.reduce((accPkg, pkg) => {
-            const arancelesPkg = pkg.items.reduce((accItem, item) => {
-                const itemsDecl = Number(item.items_decl) || 0;
-                const declarado = Number(item.decl_val) || 0;
-                const arancel = Number(item.arancel) || 0; // porcentaje
-                return accItem + itemsDecl * declarado * (arancel / 100);
-            }, 0);
-            return accPkg + arancelesPkg;
-        }, 0);
+        const totalDesaduanizacion = tarifaPorPeso;
+        const totalAranceles = tarifaPorPeso;
 
         const subtotalBase = round(
             packageTotal +
@@ -2221,71 +2204,42 @@ export default function ShippingInterface({
 
                                     const totalSeguroEnvio = totalPesoLbs * 0.1;
 
-                                    // ✅ POR ESTE:
-                                    let totalDesaduanizacion = 0;
-                                    const algunPaqueteSobre = packages.some(
-                                        (pkg) => pkg.service_type === "SOBRE",
-                                    );
+                                    // 🔄 ESQUEMA ACTUAL: arancel y desaduanización se
+                                    // cobran por libras, mínimo 3 libras.
+                                    //
+                                    // 🩹 FIX HISTÓRICO: al abrir en modo lectura una
+                                    // recepción ya guardada, arancel y desaduanización
+                                    // pueden ser valores DISTINTOS (fórmula anterior
+                                    // basada en items/declarado + franjas de peso).
+                                    // Por eso NO se colapsan en una sola "tarifaPorPeso"
+                                    // cuando readOnly: cada uno usa su propio valor
+                                    // guardado (initialData.arancel / initialData.clearance).
+                                    const LIBRAS_MINIMAS = 3;
 
-                                    if (algunPaqueteSobre) {
-                                        totalDesaduanizacion = 3.5;
-                                    } else if (
-                                        totalPesoLbs >= 0 &&
-                                        totalPesoLbs <= 17
-                                    ) {
-                                        totalDesaduanizacion = 6;
-                                    } else if (
-                                        totalPesoLbs > 17 &&
-                                        totalPesoLbs <= 22
-                                    ) {
-                                        totalDesaduanizacion = 9;
-                                    } else if (totalPesoLbs > 22) {
-                                        totalDesaduanizacion = 12;
-                                    }
-                                    // ✅ Calcular Aranceles
-                                    let totalAranceles = 0;
+                                    let totalAranceles: number;
+                                    let totalDesaduanizacion: number;
 
                                     if (
                                         readOnly &&
-                                        initialData.arancel !== undefined
+                                        initialData?.arancel !== undefined
                                     ) {
-                                        // Si estamos editando, usamos el arancel guardado directamente
+                                        // Recepción ya guardada (nueva o antigua):
+                                        // se respeta lo que realmente se cobró.
                                         totalAranceles =
                                             Number(initialData.arancel) || 0;
+                                        totalDesaduanizacion =
+                                            Number(initialData.clearance) || 0;
                                     } else {
-                                        // Sino, calculamos según los items
-                                        totalAranceles = packages.reduce(
-                                            (accPkg, pkg) => {
-                                                const arancelesPkg =
-                                                    pkg.items.reduce(
-                                                        (accItem, item) => {
-                                                            const itemsDecl =
-                                                                Number(
-                                                                    item.items_decl,
-                                                                ) || 0;
-                                                            const declarado =
-                                                                Number(
-                                                                    item.decl_val,
-                                                                ) || 0;
-                                                            const arancel =
-                                                                Number(
-                                                                    item.arancel,
-                                                                ) || 0; // porcentaje
-
-                                                            return (
-                                                                accItem +
-                                                                itemsDecl *
-                                                                    declarado *
-                                                                    (arancel /
-                                                                        100)
-                                                            );
-                                                        },
-                                                        0,
-                                                    );
-                                                return accPkg + arancelesPkg;
-                                            },
-                                            0,
+                                        // Recepción nueva (aún no guardada):
+                                        // se calcula con la fórmula por peso.
+                                        const tarifaPorPeso = round(
+                                            Math.max(
+                                                totalPesoLbs,
+                                                LIBRAS_MINIMAS,
+                                            ),
                                         );
+                                        totalAranceles = tarifaPorPeso;
+                                        totalDesaduanizacion = tarifaPorPeso;
                                     }
 
                                     // 🟢 Subtotal base SIN transmisión
