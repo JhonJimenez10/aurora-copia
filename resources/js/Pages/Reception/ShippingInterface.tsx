@@ -808,11 +808,15 @@ export default function ShippingInterface({
 
         const totalSeguroEnvio = totalPesoLbs * 0.1;
 
-        // 🔄 ESQUEMA ACTUAL: arancel y desaduanización se cobran por libras,
-        // mínimo de 3 libras. El # de items y el valor declarado se
-        // siguen registrando por paquete pero ya no afectan este cálculo.
-        const LIBRAS_MINIMAS = 3;
-        const tarifaPorPeso = round(Math.max(totalPesoLbs, LIBRAS_MINIMAS));
+        // 🔄 ESQUEMA ACTUAL: arancel y desaduanización se cobran a $0.50
+        // por libra, con un mínimo de $3. El # de items y el valor
+        // declarado se siguen registrando por paquete pero ya no
+        // afectan este cálculo.
+        const TARIFA_MINIMA = 3;
+        const TARIFA_POR_LIBRA = 0.5;
+        const tarifaPorPeso = round(
+            Math.max(totalPesoLbs * TARIFA_POR_LIBRA, TARIFA_MINIMA),
+        );
 
         const totalDesaduanizacion = tarifaPorPeso;
         const totalAranceles = tarifaPorPeso;
@@ -2205,16 +2209,18 @@ export default function ShippingInterface({
                                     const totalSeguroEnvio = totalPesoLbs * 0.1;
 
                                     // 🔄 ESQUEMA ACTUAL: arancel y desaduanización se
-                                    // cobran por libras, mínimo 3 libras.
+                                    // cobran a $0.50 por libra, con un mínimo de $3.
                                     //
                                     // 🩹 FIX HISTÓRICO: al abrir en modo lectura una
                                     // recepción ya guardada, arancel y desaduanización
                                     // pueden ser valores DISTINTOS (fórmula anterior
-                                    // basada en items/declarado + franjas de peso).
-                                    // Por eso NO se colapsan en una sola "tarifaPorPeso"
-                                    // cuando readOnly: cada uno usa su propio valor
-                                    // guardado (initialData.arancel / initialData.clearance).
-                                    const LIBRAS_MINIMAS = 3;
+                                    // basada en items/declarado + franjas de peso, o
+                                    // en la tarifa de $1/libra usada antes). Por eso NO
+                                    // se colapsan en una sola "tarifaPorPeso" cuando
+                                    // readOnly: cada uno usa su propio valor guardado
+                                    // (initialData.arancel / initialData.clearance).
+                                    const TARIFA_MINIMA = 3;
+                                    const TARIFA_POR_LIBRA = 0.5;
 
                                     let totalAranceles: number;
                                     let totalDesaduanizacion: number;
@@ -2234,8 +2240,8 @@ export default function ShippingInterface({
                                         // se calcula con la fórmula por peso.
                                         const tarifaPorPeso = round(
                                             Math.max(
-                                                totalPesoLbs,
-                                                LIBRAS_MINIMAS,
+                                                totalPesoLbs * TARIFA_POR_LIBRA,
+                                                TARIFA_MINIMA,
                                             ),
                                         );
                                         totalAranceles = tarifaPorPeso;
