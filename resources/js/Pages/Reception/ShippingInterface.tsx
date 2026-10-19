@@ -172,6 +172,43 @@ interface AgencyDest {
     value: number | null;
 }
 
+// ─── Tarifas por libra: aranceles y desaduanización ───────────────
+// TARIFA_GENERAL es la que paga toda empresa que no tenga excepción.
+// Para cambiar el precio de UNA empresa, edita o agrega su línea en
+// TARIFAS_POR_EMPRESA (la clave es el NOMBRE EXACTO de la empresa); lo que
+// no se indique ahí se toma de TARIFA_GENERAL.
+const TARIFA_GENERAL = {
+    arancel: 0.5, // $ por libra
+    desaduanizacion: 0.5, // $ por libra
+    minimo: 3, // $ mínimo por cada concepto
+};
+
+const TARIFAS_POR_EMPRESA: Record<string, Partial<typeof TARIFA_GENERAL>> = {
+    // CUENCA: aranceles a $1 por libra (desaduanización y mínimo no cambian)
+    "EXPRESS COURIER": { arancel: 1 },
+};
+
+const calcularArancelYDesaduanizacion = (
+    pesoLbs: number,
+    nombreEmpresa?: string | null,
+) => {
+    const nombre = (nombreEmpresa ?? "").trim();
+    const especial = Object.prototype.hasOwnProperty.call(
+        TARIFAS_POR_EMPRESA,
+        nombre,
+    )
+        ? TARIFAS_POR_EMPRESA[nombre]
+        : {};
+    const tarifa = { ...TARIFA_GENERAL, ...especial };
+    const round2 = (n: number) => Math.round(n * 100) / 100;
+    return {
+        arancel: round2(Math.max(pesoLbs * tarifa.arancel, tarifa.minimo)),
+        desaduanizacion: round2(
+            Math.max(pesoLbs * tarifa.desaduanizacion, tarifa.minimo),
+        ),
+    };
+};
+
 type ShippingInterfaceProps = {
     initialData?: any;
     readOnly?: boolean;
@@ -628,6 +665,9 @@ export default function ShippingInterface({
 
     // Origen por empresa
     const [agencyOrigin, setAgencyOrigin] = useState("");
+    // Nombre de la empresa del usuario (null = todavía cargando). Define la
+    // tarifa de aranceles: ver TARIFAS_POR_EMPRESA.
+    const [enterpriseName, setEnterpriseName] = useState<string | null>(null);
     const [enterpriseAutofill, setEnterpriseAutofill] = useState<
         Partial<Person>
     >({});
@@ -635,6 +675,7 @@ export default function ShippingInterface({
         const fetchEnterprise = async () => {
             try {
                 const res = await axios.get("/api/enterprise-info");
+                setEnterpriseName(String(res.data?.enterprise?.name ?? ""));
                 const autofill = res.data.autofill;
                 setAgencyOrigin(autofill.city.toUpperCase());
                 setEnterpriseAutofill({
@@ -783,6 +824,12 @@ export default function ShippingInterface({
 
     // Guardar recepción (sin cambios salvo lógica previa tuya)
     const handleSaveReception = async () => {
+        if (enterpriseName === null) {
+            alert(
+                "Aún se están cargando los datos de la empresa. Espera un momento e inténtalo de nuevo. Si el problema continúa, recarga la página.",
+            );
+            return;
+        }
         const round = (num: number) => Math.round(num * 100) / 100;
 
         const totalAdditionals = additionals.reduce(
@@ -808,18 +855,15 @@ export default function ShippingInterface({
 
         const totalSeguroEnvio = totalPesoLbs * 0.1;
 
-        // 🔄 ESQUEMA ACTUAL: arancel y desaduanización se cobran a $0.50
-        // por libra, con un mínimo de $3. El # de items y el valor
-        // declarado se siguen registrando por paquete pero ya no
+        // 🔄 ESQUEMA ACTUAL: arancel y desaduanización se cobran por libra
+        // (con un mínimo). La tarifa depende de la empresa: ver
+        // TARIFA_GENERAL / TARIFAS_POR_EMPRESA arriba. El # de items y el
+        // valor declarado se siguen registrando por paquete pero ya no
         // afectan este cálculo.
-        const TARIFA_MINIMA = 3;
-        const TARIFA_POR_LIBRA = 0.5;
-        const tarifaPorPeso = round(
-            Math.max(totalPesoLbs * TARIFA_POR_LIBRA, TARIFA_MINIMA),
-        );
-
-        const totalDesaduanizacion = tarifaPorPeso;
-        const totalAranceles = tarifaPorPeso;
+        const {
+            arancel: totalAranceles,
+            desaduanizacion: totalDesaduanizacion,
+        } = calcularArancelYDesaduanizacion(totalPesoLbs, enterpriseName);
 
         const subtotalBase = round(
             packageTotal +
@@ -2209,7 +2253,8 @@ export default function ShippingInterface({
                                     const totalSeguroEnvio = totalPesoLbs * 0.1;
 
                                     // 🔄 ESQUEMA ACTUAL: arancel y desaduanización se
-                                    // cobran a $0.50 por libra, con un mínimo de $3.
+                                    // cobran por libra, con un mínimo; la tarifa depende
+                                    // de la empresa (ver TARIFAS_POR_EMPRESA arriba).
                                     //
                                     // 🩹 FIX HISTÓRICO: al abrir en modo lectura una
                                     // recepción ya guardada, arancel y desaduanización
@@ -2219,9 +2264,6 @@ export default function ShippingInterface({
                                     // se colapsan en una sola "tarifaPorPeso" cuando
                                     // readOnly: cada uno usa su propio valor guardado
                                     // (initialData.arancel / initialData.clearance).
-                                    const TARIFA_MINIMA = 3;
-                                    const TARIFA_POR_LIBRA = 0.5;
-
                                     let totalAranceles: number;
                                     let totalDesaduanizacion: number;
 
@@ -2237,15 +2279,16 @@ export default function ShippingInterface({
                                             Number(initialData.clearance) || 0;
                                     } else {
                                         // Recepción nueva (aún no guardada):
-                                        // se calcula con la fórmula por peso.
-                                        const tarifaPorPeso = round(
-                                            Math.max(
-                                                totalPesoLbs * TARIFA_POR_LIBRA,
-                                                TARIFA_MINIMA,
-                                            ),
-                                        );
-                                        totalAranceles = tarifaPorPeso;
-                                        totalDesaduanizacion = tarifaPorPeso;
+                                        // se calcula con la fórmula por peso
+                                        // y la tarifa de la empresa.
+                                        const calculado =
+                                            calcularArancelYDesaduanizacion(
+                                                totalPesoLbs,
+                                                enterpriseName,
+                                            );
+                                        totalAranceles = calculado.arancel;
+                                        totalDesaduanizacion =
+                                            calculado.desaduanizacion;
                                     }
 
                                     // 🟢 Subtotal base SIN transmisión
