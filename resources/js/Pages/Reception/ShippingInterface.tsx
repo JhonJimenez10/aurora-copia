@@ -178,14 +178,16 @@ interface AgencyDest {
 // TARIFAS_POR_EMPRESA (la clave es el NOMBRE EXACTO de la empresa); lo que
 // no se indique ahí se toma de TARIFA_GENERAL.
 const TARIFA_GENERAL = {
-    arancel: 0.5, // $ por libra
-    desaduanizacion: 0.5, // $ por libra
+    arancel: 0.75, // $ por libra
+    desaduanizacion: 0.75, // $ por libra
     minimo: 3, // $ mínimo por cada concepto
 };
 
 const TARIFAS_POR_EMPRESA: Record<string, Partial<typeof TARIFA_GENERAL>> = {
-    // CUENCA: aranceles a $1 por libra (desaduanización y mínimo no cambian)
-    "EXPRESS COURIER": { arancel: 1 },
+    // CUENCA: aranceles $1 por libra y desaduanización $0.50 por libra.
+    // Se dejan escritos aquí (aunque desaduanización sea la tarifa de antes)
+    // para que NO cambien cuando se mueva la tarifa general de las demás.
+    "EXPRESS COURIER": { arancel: 1, desaduanizacion: 0.5 },
 };
 
 const calcularArancelYDesaduanizacion = (
