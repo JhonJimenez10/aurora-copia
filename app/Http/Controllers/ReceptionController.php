@@ -364,6 +364,7 @@ class ReceptionController extends Controller
                 'invoice_id' => $reception->invoice?->id,
                 'annulled' => (bool) ($reception->annulled ?? false),
                 'arancel' => (float) ($reception->arancel ?? 0),
+                'clearance' => (float) ($reception->clearance ?? 0),   // ← AGREGAR ESTA LÍNEA
             ],
             'readOnly' => true,
         ]);
